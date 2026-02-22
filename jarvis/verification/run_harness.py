@@ -65,7 +65,7 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--manifest-path",
-        required=True,
+        default=str(Path(__file__).parent.parent / "risk" / "THRESHOLD_MANIFEST.json"),
         help="Path to THRESHOLD_MANIFEST.json (MVI-01).",
     )
     parser.add_argument(

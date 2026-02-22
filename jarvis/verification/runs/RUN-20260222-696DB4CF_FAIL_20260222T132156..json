@@ -1,0 +1,13 @@
+{
+    "failure_type_id": "INTEGRITY_FAILURE",
+    "exit_code": 2,
+    "vector_id": "",
+    "field_name": "",
+    "detected_at_iso": "2026-02-22T13:21:56.637584+00:00",
+    "run_id": "RUN-20260222-696DB4CF",
+    "harness_version": "1.0.0",
+    "module_version": "6.1.0",
+    "manifest_hash": "",
+    "freeze_invariant_ref": "",
+    "detail": "INTEGRITY_FAILURE: THRESHOLD_MANIFEST.json not found at jarvis\\verification\\manifest.json. Harness cannot start without manifest."
+}
