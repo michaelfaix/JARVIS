@@ -1,0 +1,10 @@
+{
+    "exit_code_by_key": {
+        "jarvis.verification.input_vector_generator.x\u01c1InputVectorGenerator\u01c1generate__mutmut_1": 33
+    },
+    "durations_by_key": {},
+    "type_check_error_by_key": {},
+    "estimated_durations_by_key": {
+        "jarvis.verification.input_vector_generator.x\u01c1InputVectorGenerator\u01c1generate__mutmut_1": 0
+    }
+}

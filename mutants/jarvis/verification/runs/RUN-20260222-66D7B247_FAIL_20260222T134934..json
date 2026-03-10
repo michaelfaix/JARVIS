@@ -1,0 +1,13 @@
+{
+    "failure_type_id": "MANIFEST_HASH_MISMATCH",
+    "exit_code": 2,
+    "vector_id": "",
+    "field_name": "",
+    "detected_at_iso": "2026-02-22T13:49:34.343955+00:00",
+    "run_id": "RUN-20260222-66D7B247",
+    "harness_version": "1.0.0",
+    "module_version": "6.1.0",
+    "manifest_hash": "",
+    "freeze_invariant_ref": "",
+    "detail": "MANIFEST_HASH_MISMATCH: Computed hash f8c84ce33959a46e... does not match stored hash ... System start denied. Possible tampering."
+}

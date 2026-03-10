@@ -1,0 +1,51 @@
+{
+    "exit_code_by_key": {
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_1": null,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_2": null,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_3": null,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_4": null,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_5": null,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_6": null,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_7": null,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_8": null,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_9": null,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_10": null,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_11": null,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_12": null,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_13": null,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_14": null
+    },
+    "durations_by_key": {
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_1": 0.676288,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_2": 0.702477,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_3": 0.592706,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_4": 0.604273,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_5": 0.595234,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_6": 0.595166,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_7": 0.632642,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_8": 0.642635,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_9": 0.682554,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_10": 0.698912,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_11": 0.696247,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_12": 0.771459,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_13": 0.709687,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_14": 0.695632
+    },
+    "type_check_error_by_key": {},
+    "estimated_durations_by_key": {
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_1": 0.021431844999824534,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_2": 0.021431844999824534,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_3": 0.021431844999824534,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_4": 0.021431844999824534,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_5": 0.021431844999824534,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_6": 0.021431844999824534,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_7": 0.021431844999824534,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_8": 0.021431844999824534,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_9": 0.021431844999824534,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_10": 0.021431844999824534,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_11": 0.021431844999824534,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_12": 0.021431844999824534,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_13": 0.021431844999824534,
+        "jarvis.core.execution_guard.x_build_execution_order__mutmut_14": 0.021431844999824534
+    }
+}

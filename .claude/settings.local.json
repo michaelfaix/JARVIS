@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cmd.exe /c \"copy /Y jarvis\\\\metrics\\\\engine.py jarvis\\\\metrics\\\\engine_bak.py\" 2>&1)"
+    ]
+  }
+}

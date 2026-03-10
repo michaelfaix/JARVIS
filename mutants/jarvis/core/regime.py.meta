@@ -1,0 +1,18 @@
+{
+    "exit_code_by_key": {
+        "jarvis.core.regime.x_map_s05_to_canonical__mutmut_1": null,
+        "jarvis.core.regime.x_map_s05_to_canonical__mutmut_2": null,
+        "jarvis.core.regime.x_map_s05_to_canonical__mutmut_3": null,
+        "jarvis.core.regime.x_map_latent_int_to_canonical__mutmut_1": null,
+        "jarvis.core.regime.x_map_latent_int_to_canonical__mutmut_2": null
+    },
+    "durations_by_key": {},
+    "type_check_error_by_key": {},
+    "estimated_durations_by_key": {
+        "jarvis.core.regime.x_map_s05_to_canonical__mutmut_1": 0,
+        "jarvis.core.regime.x_map_s05_to_canonical__mutmut_2": 0,
+        "jarvis.core.regime.x_map_s05_to_canonical__mutmut_3": 0,
+        "jarvis.core.regime.x_map_latent_int_to_canonical__mutmut_1": 0,
+        "jarvis.core.regime.x_map_latent_int_to_canonical__mutmut_2": 0
+    }
+}
