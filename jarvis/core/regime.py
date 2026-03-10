@@ -94,6 +94,27 @@ class CorrelationRegimeState(Enum):
     DIVERGENCE = "DIVERGENCE"  # Assets decoupling; regime-specific drivers dominant
 
 
+class MacroRegimeState(Enum):
+    """
+    Macro sensitivity regime (S23).
+    Authoritative producer: MacroSensitivityLayer (jarvis/intelligence/macro_layer.py).
+    """
+    BENIGN    = "BENIGN"      # Low macro sensitivity; normal conditions
+    UNCERTAIN = "UNCERTAIN"   # Moderate macro sensitivity; caution warranted
+    ADVERSE   = "ADVERSE"     # High macro sensitivity; macro factors dominate
+
+
+class NewsRegimeState(Enum):
+    """
+    News & event intelligence regime (S24).
+    Authoritative producer: NewsIntelligenceLayer (jarvis/intelligence/news_layer.py).
+    """
+    QUIET       = "QUIET"        # Few/no impactful news events
+    ACTIVE      = "ACTIVE"       # Multiple news events, moderate impact
+    HIGH_IMPACT = "HIGH_IMPACT"  # High aggregate impact from news
+    SHOCK       = "SHOCK"        # Shock-level event detected
+
+
 # ---------------------------------------------------------------------------
 # REGIME VOLATILITY MULTIPLIERS (canonical source — single definition)
 # ---------------------------------------------------------------------------
