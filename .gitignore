@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.mutmut-cache
+.mutmut-cache-journal
+.coverage
