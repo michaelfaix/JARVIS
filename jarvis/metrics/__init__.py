@@ -18,6 +18,18 @@ from .fragility_index import (
     StructuralFragilityIndex,
 )
 
+from .ece_calculator import (
+    N_BINS,
+    MIN_SAMPLES,
+    ECE_HARD_GATE,
+    CONFIDENCE_FLOOR,
+    CONFIDENCE_CEILING,
+    BinStatistics,
+    ECEResult,
+    compute_ece,
+    compute_ece_scalar,
+)
+
 from .trust_score import (
     TRUST_HIGH,
     TRUST_MEDIUM,
@@ -41,6 +53,15 @@ __all__ = [
     "calmar_ratio",
     "regime_conditional_returns",
     "compute_metrics",
+    "N_BINS",
+    "MIN_SAMPLES",
+    "ECE_HARD_GATE",
+    "CONFIDENCE_FLOOR",
+    "CONFIDENCE_CEILING",
+    "BinStatistics",
+    "ECEResult",
+    "compute_ece",
+    "compute_ece_scalar",
     "FRAGILITY_LOW_THRESHOLD",
     "FRAGILITY_MEDIUM_THRESHOLD",
     "FRAGILITY_HIGH_THRESHOLD",

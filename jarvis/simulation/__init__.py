@@ -7,6 +7,24 @@ from .strategy_lab import (
     JARVIS_STRESS_SCENARIOS,
 )
 
+from .stress_scenarios import (
+    StressScenarioPreset,
+    FINANCIAL_CRISIS_2008,
+    COVID_CRASH_2020,
+    FLASH_CRASH_2010,
+    DOTCOM_BUST_2000,
+    BLACK_MONDAY_1987,
+    SYNTHETIC_VOL_SHOCK_3X,
+    SYNTHETIC_LIQUIDITY_CRISIS,
+    SYNTHETIC_CORRELATION_SHOCK,
+    SCENARIO_REGISTRY,
+    get_scenario,
+    get_all_scenarios,
+    get_historical_scenarios,
+    get_synthetic_scenarios,
+    get_scenario_names,
+)
+
 __all__ = [
     "MonteCarloResult",
     "SlippageModel",
@@ -14,4 +32,19 @@ __all__ = [
     "StressTestResult",
     "StrategyLab",
     "JARVIS_STRESS_SCENARIOS",
+    "StressScenarioPreset",
+    "FINANCIAL_CRISIS_2008",
+    "COVID_CRASH_2020",
+    "FLASH_CRASH_2010",
+    "DOTCOM_BUST_2000",
+    "BLACK_MONDAY_1987",
+    "SYNTHETIC_VOL_SHOCK_3X",
+    "SYNTHETIC_LIQUIDITY_CRISIS",
+    "SYNTHETIC_CORRELATION_SHOCK",
+    "SCENARIO_REGISTRY",
+    "get_scenario",
+    "get_all_scenarios",
+    "get_historical_scenarios",
+    "get_synthetic_scenarios",
+    "get_scenario_names",
 ]
