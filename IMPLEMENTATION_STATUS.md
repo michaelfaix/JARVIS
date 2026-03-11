@@ -14,15 +14,15 @@
 | S06-S15 Model Layer + Systems | 106 | 12 | 3 | 91 | **11%** |
 | S16-S25 Risk + Intelligence | 129 | 125 | 3 | 1 | **97%** |
 | S26-S37+ Strategy + Gov + DQ | 190 | 190 | 0 | 0 | **100%** |
-| Multi-Asset Upgrades | 210 | 166 | 5 | 39 | **79%** |
+| Multi-Asset Upgrades | 210 | 205 | 3 | 2 | **98%** |
 | DOCX: Risk Engine FAS | ~40 | ~39 | 1 | 0 | **98%** |
 | DOCX: DVH Architecture | ~35 | ~35 | 0 | 0 | **100%** |
 | DOCX: DVH Blueprint | ~40 | ~40 | 0 | 0 | **100%** |
 | DOCX: Governance Integration | ~20 | ~19 | 0 | 1 | **95%** |
-| **TOTAL (TXT FAS)** | **741** | **596** | **13** | **132** | **80%** |
-| **TOTAL (inkl. DOCX)** | **~876** | **~729** | **~14** | **~133** | **~83%** |
+| **TOTAL (TXT FAS)** | **741** | **635** | **8** | **98** | **86%** |
+| **TOTAL (inkl. DOCX)** | **~876** | **~768** | **~9** | **~99** | **~88%** |
 
-**Bottom line:** Core Platform (S01-S05, S16-S37+) ist zu **~98%** implementiert.
+**Bottom line:** Core Platform (S01-S05, S16-S37+, Multi-Asset) ist zu **~98%** implementiert.
 Die ML-Layer (S06-S15) sind zu **~11%** implementiert — das ist der Hauptgrund
 für den niedrigeren Gesamtwert.
 
@@ -505,15 +505,15 @@ All 8 spec points IMPLEMENTED: `ConfidenceZone`, `ConfidenceZoneRequest`, `Confi
 | 18 | `jarvis/utils/numeric_safety.py` | ✅ IMPLEMENTED (v6.2.0) | Ref |
 | 19 | `jarvis/utils/helpers.py` | ✅ IMPLEMENTED (v6.2.0) | Ref |
 
-### Low Priority (multi-asset extensions not yet needed)
+### Low Priority (multi-asset extensions) — MOSTLY RESOLVED ✅
 
 | # | Module | Missing Items | FAS Section |
 |---|--------|--------------|-------------|
-| 20 | LAYER 1 Data Ingestion | MarketMicrostructure, SessionStructure (5 items) | MA-L1 |
-| 21 | LAYER 2 Feature Preprocessing | FeatureRegistry, asset-specific features (7 items) | MA-L2 |
-| 22 | LAYER 9 Capital Allocation | MultiAssetCapitalAllocator (3 items) | MA-L9 |
-| 23 | LAYER 10 Execution | SessionAwareExecutor (4 items) | MA-L10 |
-| 24 | FX Exposure Manager | Standalone FX risk module | MA-L8 |
+| 20 | LAYER 1 Data Ingestion | ✅ IMPLEMENTED (data_structures.py, data_layer.py) | MA-L1 |
+| 21 | LAYER 2 Feature Preprocessing | ✅ IMPLEMENTED (feature_registry.py) | MA-L2 |
+| 22 | LAYER 9 Capital Allocation | ✅ IMPLEMENTED (multi_asset_allocator.py) | MA-L9 |
+| 23 | LAYER 10 Execution | ✅ IMPLEMENTED (session_aware_executor.py) | MA-L10 |
+| 24 | FX Exposure Manager | ✅ IMPLEMENTED (fx_exposure_manager.py) | MA-L8 |
 
 ---
 
@@ -545,7 +545,7 @@ All 8 spec points IMPLEMENTED: `ConfidenceZone`, `ConfidenceZoneRequest`, `Confi
 - Core layers never import from external layers
 - All PROHIBITED import rules respected
 
-### Test Coverage: 7724 tests
+### Test Coverage: 7922 tests
 - Unit tests for all implemented modules
 - Integration tests for pipeline + backtest
 - Mutation testing infrastructure (mutmut)
