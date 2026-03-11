@@ -87,11 +87,27 @@ export interface Position {
   pnlPercent: number;
 }
 
+export interface ClosedTrade {
+  id: string;
+  asset: string;
+  direction: "LONG" | "SHORT";
+  entryPrice: number;
+  exitPrice: number;
+  size: number;
+  capitalAllocated: number;
+  openedAt: string;
+  closedAt: string;
+  pnl: number;
+  pnlPercent: number;
+}
+
 export interface PortfolioState {
   totalCapital: number;
   availableCapital: number;
   positions: Position[];
   realizedPnl: number;
+  closedTrades: ClosedTrade[];
+  peakValue: number;
 }
 
 // ---------------------------------------------------------------------------

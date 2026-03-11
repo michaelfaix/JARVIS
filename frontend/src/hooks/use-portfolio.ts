@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { Position, PortfolioState } from "@/lib/types";
+import type { Position, ClosedTrade, PortfolioState } from "@/lib/types";
 import { loadJSON, saveJSON } from "@/lib/storage";
 import { DEFAULT_CAPITAL } from "@/lib/constants";
 
@@ -13,6 +13,8 @@ function defaultState(): PortfolioState {
     availableCapital: DEFAULT_CAPITAL,
     positions: [],
     realizedPnl: 0,
+    closedTrades: [],
+    peakValue: DEFAULT_CAPITAL,
   };
 }
 
@@ -20,13 +22,12 @@ export function usePortfolio() {
   const [state, setState] = useState<PortfolioState>(defaultState);
 
   useEffect(() => {
-    setState(loadJSON(KEY, defaultState()));
+    const loaded = loadJSON(KEY, defaultState());
+    // Migration: add new fields if missing from old localStorage
+    if (!loaded.closedTrades) loaded.closedTrades = [];
+    if (!loaded.peakValue) loaded.peakValue = loaded.totalCapital;
+    setState(loaded);
   }, []);
-
-  const save = (next: PortfolioState) => {
-    setState(next);
-    saveJSON(KEY, next);
-  };
 
   const openPosition = useCallback(
     (pos: Omit<Position, "id" | "pnl" | "pnlPercent" | "currentPrice">) => {
@@ -59,11 +60,29 @@ export function usePortfolio() {
         pos.direction === "LONG"
           ? (pos.currentPrice - pos.entryPrice) * pos.size
           : (pos.entryPrice - pos.currentPrice) * pos.size;
+      const pnlPercent =
+        pos.capitalAllocated > 0 ? (pnl / pos.capitalAllocated) * 100 : 0;
+
+      const closedTrade: ClosedTrade = {
+        id: pos.id,
+        asset: pos.asset,
+        direction: pos.direction,
+        entryPrice: pos.entryPrice,
+        exitPrice: pos.currentPrice,
+        size: pos.size,
+        capitalAllocated: pos.capitalAllocated,
+        openedAt: pos.openedAt,
+        closedAt: new Date().toISOString(),
+        pnl,
+        pnlPercent,
+      };
+
       const next: PortfolioState = {
         ...prev,
         availableCapital: prev.availableCapital + pos.capitalAllocated + pnl,
         positions: prev.positions.filter((p) => p.id !== posId),
         realizedPnl: prev.realizedPnl + pnl,
+        closedTrades: [closedTrade, ...prev.closedTrades],
       };
       saveJSON(KEY, next);
       return next;
@@ -89,7 +108,11 @@ export function usePortfolio() {
                 : 0,
           };
         });
-        const next = { ...prev, positions };
+        const currentValue =
+          prev.availableCapital +
+          positions.reduce((s, p) => s + p.capitalAllocated + p.pnl, 0);
+        const peakValue = Math.max(prev.peakValue, currentValue);
+        const next = { ...prev, positions, peakValue };
         saveJSON(KEY, next);
         return next;
       });
@@ -102,13 +125,48 @@ export function usePortfolio() {
     if (capital) {
       next.totalCapital = capital;
       next.availableCapital = capital;
+      next.peakValue = capital;
     }
-    save(next);
+    setState(next);
+    saveJSON(KEY, next);
   }, []);
 
+  // Computed values
   const unrealizedPnl = state.positions.reduce((sum, p) => sum + p.pnl, 0);
-  const totalValue = state.availableCapital +
+  const totalValue =
+    state.availableCapital +
     state.positions.reduce((sum, p) => sum + p.capitalAllocated + p.pnl, 0);
+
+  // Trade stats
+  const wins = state.closedTrades.filter((t) => t.pnl > 0);
+  const losses = state.closedTrades.filter((t) => t.pnl <= 0);
+  const winRate =
+    state.closedTrades.length > 0
+      ? (wins.length / state.closedTrades.length) * 100
+      : 0;
+  const avgWin = wins.length > 0 ? wins.reduce((s, t) => s + t.pnl, 0) / wins.length : 0;
+  const avgLoss =
+    losses.length > 0
+      ? losses.reduce((s, t) => s + t.pnl, 0) / losses.length
+      : 0;
+  const drawdown =
+    state.peakValue > 0
+      ? ((state.peakValue - totalValue) / state.peakValue) * 100
+      : 0;
+  const maxDrawdownPnl = state.peakValue - totalValue;
+
+  // Exposure per asset (as fraction of totalValue)
+  const exposureByAsset: Record<string, number> = {};
+  for (const pos of state.positions) {
+    const val = pos.capitalAllocated + pos.pnl;
+    exposureByAsset[pos.asset] = (exposureByAsset[pos.asset] || 0) + val;
+  }
+  const maxSingleExposure =
+    Object.keys(exposureByAsset).length > 0
+      ? Math.max(...Object.values(exposureByAsset))
+      : 0;
+  const maxSingleExposurePct =
+    totalValue > 0 ? (maxSingleExposure / totalValue) * 100 : 0;
 
   return {
     state,
@@ -118,5 +176,13 @@ export function usePortfolio() {
     resetPortfolio,
     unrealizedPnl,
     totalValue,
+    // Stats
+    winRate,
+    avgWin,
+    avgLoss,
+    drawdown,
+    maxDrawdownPnl,
+    exposureByAsset,
+    maxSingleExposurePct,
   };
 }

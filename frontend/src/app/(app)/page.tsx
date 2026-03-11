@@ -13,16 +13,32 @@ import {
 import { StatCard } from "@/components/dashboard/stat-card";
 import { AppHeader } from "@/components/layout/app-header";
 import { useMetrics, useSystemStatus } from "@/hooks/use-jarvis";
+import { useSignals } from "@/hooks/use-signals";
+import { usePortfolio } from "@/hooks/use-portfolio";
 import { inferRegime, type RegimeState } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import {
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  ShieldAlert,
+  Radio,
+} from "lucide-react";
 
 export default function DashboardPage() {
   const { status } = useSystemStatus(5000);
   const { metrics } = useMetrics(5000);
+  const regime: RegimeState = status ? inferRegime(status.modus) : "RISK_ON";
+  const { signals } = useSignals(regime, 10000);
+  const { state: portfolio, unrealizedPnl, totalValue, winRate, drawdown } =
+    usePortfolio();
 
-  const regime: RegimeState = status
-    ? inferRegime(status.modus)
-    : "RISK_ON";
+  const totalPnl = portfolio.realizedPnl + unrealizedPnl;
+  const topSignals = [...signals]
+    .sort((a, b) => b.confidence - a.confidence)
+    .slice(0, 3);
 
   return (
     <>
@@ -54,9 +70,154 @@ export default function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <BTCChart regime={regime} height={450} />
+            <BTCChart regime={regime} height={400} />
           </CardContent>
         </Card>
+
+        {/* Portfolio Summary + Top Signals */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Portfolio Summary */}
+          <Card className="bg-card/50 border-border/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Wallet className="h-4 w-4" />
+                Portfolio Summary
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="rounded-lg bg-background/50 p-3">
+                  <div className="text-xs text-muted-foreground mb-1">Total Value</div>
+                  <div className="text-lg font-bold font-mono text-white">
+                    ${totalValue.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                  </div>
+                </div>
+                <div className="rounded-lg bg-background/50 p-3">
+                  <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                    {totalPnl >= 0 ? (
+                      <TrendingUp className="h-3 w-3 text-green-400" />
+                    ) : (
+                      <TrendingDown className="h-3 w-3 text-red-400" />
+                    )}
+                    Total P&L
+                  </div>
+                  <div
+                    className={`text-lg font-bold font-mono ${
+                      totalPnl >= 0 ? "text-green-400" : "text-red-400"
+                    }`}
+                  >
+                    {totalPnl >= 0 ? "+" : ""}${Math.abs(totalPnl).toFixed(0)}
+                  </div>
+                </div>
+                <div className="rounded-lg bg-background/50 p-3">
+                  <div className="text-xs text-muted-foreground mb-1">Open Positions</div>
+                  <div className="text-lg font-bold font-mono text-blue-400">
+                    {portfolio.positions.length}
+                  </div>
+                </div>
+                <div className="rounded-lg bg-background/50 p-3">
+                  <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                    <ShieldAlert className="h-3 w-3" />
+                    Drawdown
+                  </div>
+                  <div
+                    className={`text-lg font-bold font-mono ${
+                      drawdown > 5 ? "text-red-400" : drawdown > 0 ? "text-yellow-400" : "text-green-400"
+                    }`}
+                  >
+                    {drawdown.toFixed(2)}%
+                  </div>
+                </div>
+              </div>
+              {portfolio.closedTrades.length > 0 && (
+                <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
+                  <span>
+                    Win Rate:{" "}
+                    <span className={`font-mono ${winRate >= 50 ? "text-green-400" : "text-red-400"}`}>
+                      {winRate.toFixed(0)}%
+                    </span>
+                  </span>
+                  <span>
+                    Trades:{" "}
+                    <span className="font-mono text-white">{portfolio.closedTrades.length}</span>
+                  </span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Top Signals */}
+          <Card className="bg-card/50 border-border/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Radio className="h-4 w-4" />
+                Top Signals
+                <Badge variant="outline" className="ml-auto text-[10px]">
+                  {signals.length} active
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {topSignals.length === 0 ? (
+                <div className="text-sm text-muted-foreground py-4 text-center">
+                  No signals available. Start backend to generate signals.
+                </div>
+              ) : (
+                topSignals.map((signal) => (
+                  <div
+                    key={signal.id}
+                    className="flex items-center gap-3 rounded-lg bg-background/50 p-3"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-white text-sm">
+                          {signal.asset}
+                        </span>
+                        <Badge
+                          className={`text-[10px] ${
+                            signal.direction === "LONG"
+                              ? "bg-green-500/20 text-green-400 border-green-500/30"
+                              : "bg-red-500/20 text-red-400 border-red-500/30"
+                          }`}
+                        >
+                          {signal.direction}
+                        </Badge>
+                        {signal.isOod && (
+                          <Badge className="text-[10px] bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+                            OOD
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground mt-1">
+                        Entry: ${signal.entry.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {" | "}Quality: {(signal.qualityScore * 100).toFixed(0)}
+                      </div>
+                    </div>
+                    <div className="w-24">
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="text-muted-foreground">Conf</span>
+                        <span className="font-mono text-white">
+                          {(signal.confidence * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                      <Progress
+                        value={signal.confidence * 100}
+                        className="h-1.5"
+                        indicatorClassName={
+                          signal.confidence > 0.7
+                            ? "bg-green-500"
+                            : signal.confidence > 0.4
+                            ? "bg-yellow-500"
+                            : "bg-red-500"
+                        }
+                      />
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Stats Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

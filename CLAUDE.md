@@ -298,7 +298,7 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 - 11 shadcn/ui Komponenten (Card, Badge, Button, Table, Input, Label, Select, Separator, Tabs, Progress, Switch)
 - 7 Custom Hooks (use-jarvis, use-signals, use-portfolio, use-settings, use-sidebar, use-prices)
 - Route Group `(app)/` mit shared Sidebar Layout
-- Build: 0 Errors, 6 Routes | Backend: 8897 Tests grün
+- Build: 0 Errors, 7 Routes | Backend: 8897 Tests grün
 
 ---
 
@@ -311,7 +311,20 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 - **Portfolio Real-Time P&L**: Portfolio-Seite aktualisiert Positionen automatisch mit Live-Preisen alle 5s
 - **Binance Status Indicator**: Wifi-Icon zeigt ob Live- oder Synthetic-Preise aktiv sind
 - Signals-Seite: Live Price Spalte, Open Trades Counter, Available Capital Anzeige
-- Build: 0 Errors, 6 Routes | Backend: 8897 Tests grün
+- Build: 0 Errors, 7 Routes | Backend: 8897 Tests grün
+
+---
+
+## ✅ ABGESCHLOSSEN: Risk Guardian + Trade History + Dashboard Enhancement
+
+### Erstellt:
+- **Risk Guardian Seite** (`/risk`): 4 automatische Risk-Checks (Single Asset Exposure, Portfolio Drawdown, Open Positions, Cash Reserve), Farbcodierung (PASS/WARN/FAIL), Asset Exposure Breakdown, Trading Performance Stats
+- **Trade History**: Closed Trades werden gespeichert mit Entry/Exit/P&L/Datum, Trade History Tabelle auf Portfolio-Seite (letzte 20 Trades)
+- **Trading Stats**: Win Rate, Total Trades, Avg Win, Avg Loss, Drawdown — automatisch berechnet aus geschlossenen Trades
+- **Dashboard Enhancement**: Portfolio Summary Widget (Total Value, P&L, Open Positions, Drawdown, Win Rate), Top 3 Signals Widget mit Confidence Bars
+- **Portfolio State Migration**: `closedTrades[]` und `peakValue` zum PortfolioState hinzugefügt, Backward-kompatibel mit altem localStorage
+- Sidebar: 7 Nav-Items (+ Risk Guardian mit ShieldAlert Icon)
+- Build: 0 Errors, 7 Routes | Backend: 8897 Tests grün
 
 ---
 
@@ -334,5 +347,5 @@ BTC/USD Chart mit TradingView Lightweight Charts + JARVIS Signal Overlay.
 
 ---
 
-*CLAUDE.md — Version 7.3.0 | März 2026*
+*CLAUDE.md — Version 7.4.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*

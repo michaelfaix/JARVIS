@@ -29,12 +29,24 @@ import {
   ShieldAlert,
   Wifi,
   WifiOff,
+  Trophy,
+  BarChart3,
   X,
 } from "lucide-react";
 
 export default function PortfolioPage() {
-  const { state, closePosition, updatePrices, resetPortfolio, unrealizedPnl, totalValue } =
-    usePortfolio();
+  const {
+    state,
+    closePosition,
+    updatePrices,
+    resetPortfolio,
+    unrealizedPnl,
+    totalValue,
+    winRate,
+    avgWin,
+    avgLoss,
+    drawdown,
+  } = usePortfolio();
   const { status } = useSystemStatus(5000);
   const regime: RegimeState = status ? inferRegime(status.modus) : "RISK_ON";
   const { prices, binanceConnected } = usePrices(5000);
@@ -264,16 +276,23 @@ export default function PortfolioPage() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   Open Positions ({state.positions.length})
                 </CardTitle>
-                {state.positions.length > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs text-muted-foreground h-7"
-                    onClick={() => resetPortfolio(state.totalCapital)}
-                  >
-                    Close All
-                  </Button>
-                )}
+                <div className="flex items-center gap-2">
+                  {state.closedTrades.length > 0 && (
+                    <span className="text-[10px] text-muted-foreground font-mono">
+                      Win Rate: {winRate.toFixed(0)}%
+                    </span>
+                  )}
+                  {state.positions.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs text-muted-foreground h-7"
+                      onClick={() => resetPortfolio(state.totalCapital)}
+                    >
+                      Close All
+                    </Button>
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -355,6 +374,130 @@ export default function PortfolioPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Trade Stats */}
+        {state.closedTrades.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <Card className="bg-card/50 border-border/50">
+              <CardContent className="pt-4 pb-3 px-4">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                  <Trophy className="h-3 w-3" /> Win Rate
+                </div>
+                <div className={`text-xl font-bold font-mono ${winRate >= 50 ? "text-green-400" : "text-red-400"}`}>
+                  {winRate.toFixed(1)}%
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-card/50 border-border/50">
+              <CardContent className="pt-4 pb-3 px-4">
+                <div className="text-xs text-muted-foreground mb-1">Total Trades</div>
+                <div className="text-xl font-bold font-mono text-white">
+                  {state.closedTrades.length}
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-card/50 border-border/50">
+              <CardContent className="pt-4 pb-3 px-4">
+                <div className="text-xs text-muted-foreground mb-1">Avg Win</div>
+                <div className="text-xl font-bold font-mono text-green-400">
+                  +${avgWin.toFixed(0)}
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-card/50 border-border/50">
+              <CardContent className="pt-4 pb-3 px-4">
+                <div className="text-xs text-muted-foreground mb-1">Avg Loss</div>
+                <div className="text-xl font-bold font-mono text-red-400">
+                  ${avgLoss.toFixed(0)}
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-card/50 border-border/50">
+              <CardContent className="pt-4 pb-3 px-4">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                  <BarChart3 className="h-3 w-3" /> Drawdown
+                </div>
+                <div className={`text-xl font-bold font-mono ${drawdown > 5 ? "text-red-400" : drawdown > 0 ? "text-yellow-400" : "text-green-400"}`}>
+                  {drawdown.toFixed(2)}%
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Trade History */}
+        {state.closedTrades.length > 0 && (
+          <Card className="bg-card/50 border-border/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Trade History ({state.closedTrades.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Asset</TableHead>
+                    <TableHead>Side</TableHead>
+                    <TableHead className="text-right">Entry</TableHead>
+                    <TableHead className="text-right">Exit</TableHead>
+                    <TableHead className="text-right">P&L</TableHead>
+                    <TableHead className="text-right">Return</TableHead>
+                    <TableHead>Closed</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {state.closedTrades.slice(0, 20).map((trade) => (
+                    <TableRow key={trade.id + trade.closedAt}>
+                      <TableCell className="font-medium text-white">
+                        {trade.asset}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          className={
+                            trade.direction === "LONG"
+                              ? "bg-green-500/20 text-green-400 border-green-500/30"
+                              : "bg-red-500/20 text-red-400 border-red-500/30"
+                          }
+                        >
+                          {trade.direction}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-muted-foreground text-xs">
+                        ${trade.entryPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-white text-xs">
+                        ${trade.exitPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </TableCell>
+                      <TableCell
+                        className={`text-right font-mono ${
+                          trade.pnl >= 0 ? "text-green-400" : "text-red-400"
+                        }`}
+                      >
+                        {trade.pnl >= 0 ? "+" : ""}${Math.abs(trade.pnl).toFixed(2)}
+                      </TableCell>
+                      <TableCell
+                        className={`text-right font-mono text-xs ${
+                          trade.pnlPercent >= 0 ? "text-green-400" : "text-red-400"
+                        }`}
+                      >
+                        {trade.pnlPercent >= 0 ? "+" : ""}{trade.pnlPercent.toFixed(2)}%
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {new Date(trade.closedAt).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </>
   );
