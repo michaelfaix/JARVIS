@@ -269,11 +269,24 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 
 - `jarvis/api/main.py` erstellt — CORS für localhost:3000, Router unter /api/v1
 - 8897 Tests grün (inkl. 7 neue main.py Tests)
-- Nächster Schritt: Frontend erstellen (Verzeichnis-Berechtigungen fixen: `icacls C:\Project\JARVIS /grant Benutzer:(OI)(CI)(F) /T`)
+- Frontend erstellt: Next.js 14 + TypeScript + Tailwind CSS + shadcn/ui
 
 ---
 
-## 🔜 NÄCHSTER SCHRITT: FRONTEND
+## ✅ ABGESCHLOSSEN: Frontend Dashboard v1
+
+### Erstellt:
+- `frontend/` — Next.js 14 + TypeScript + Tailwind CSS + shadcn/ui
+- Dashboard mit Market Regime Anzeige (5 Regime-States, farbcodiert)
+- BTC/USD Chart mit TradingView Lightweight Charts + JARVIS Signal Overlay
+- System Status Cards (Degradation Mode, Quality Score, Connection)
+- API Client verbunden mit `localhost:8000/api/v1`
+- Build erfolgreich (`npx next build` → 0 Errors)
+- 8897 Backend-Tests grün
+
+---
+
+## 🔜 NÄCHSTER SCHRITT
 
 ### Sofort (ohne Code, diese Woche):
 1. Domain: **jarvis-trader.app** registrieren (~€15)
@@ -292,5 +305,5 @@ BTC/USD Chart mit TradingView Lightweight Charts + JARVIS Signal Overlay.
 
 ---
 
-*CLAUDE.md — Version 7.0.1 | März 2026*
+*CLAUDE.md — Version 7.1.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*
