@@ -4,7 +4,8 @@
 
 "use client";
 
-import { BTCChart } from "@/components/chart/btc-chart";
+import { useState } from "react";
+import { AssetChart } from "@/components/chart/asset-chart";
 import { RegimeDisplay } from "@/components/dashboard/regime-display";
 import {
   QualityScoreCard,
@@ -15,6 +16,8 @@ import { AppHeader } from "@/components/layout/app-header";
 import { useMetrics, useSystemStatus } from "@/hooks/use-jarvis";
 import { useSignals } from "@/hooks/use-signals";
 import { usePortfolio } from "@/hooks/use-portfolio";
+import { usePrices } from "@/hooks/use-prices";
+import { useWebSocket } from "@/hooks/use-websocket";
 import { inferRegime, type RegimeState } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +28,16 @@ import {
   Wallet,
   ShieldAlert,
   Radio,
+  Zap,
 } from "lucide-react";
+
+const CHART_ASSETS = [
+  { symbol: "BTC", name: "Bitcoin", basePrice: 65000 },
+  { symbol: "ETH", name: "Ethereum", basePrice: 3200 },
+  { symbol: "SOL", name: "Solana", basePrice: 145 },
+  { symbol: "SPY", name: "S&P 500 ETF", basePrice: 520 },
+  { symbol: "GLD", name: "Gold ETF", basePrice: 215 },
+] as const;
 
 export default function DashboardPage() {
   const { status } = useSystemStatus(5000);
@@ -34,6 +46,12 @@ export default function DashboardPage() {
   const { signals } = useSignals(regime, 10000);
   const { state: portfolio, unrealizedPnl, totalValue, winRate, drawdown } =
     usePortfolio();
+  const { prices } = usePrices(5000);
+  const [selectedAsset, setSelectedAsset] = useState(0);
+
+  // WebSocket connection to backend stream for the selected asset
+  const asset = CHART_ASSETS[selectedAsset];
+  const { status: wsStatus } = useWebSocket(asset.symbol);
 
   const totalPnl = portfolio.realizedPnl + unrealizedPnl;
   const topSignals = [...signals]
@@ -61,16 +79,63 @@ export default function DashboardPage() {
           <QualityScoreCard metrics={metrics} />
         </div>
 
-        {/* Chart */}
+        {/* Multi-Asset Chart */}
         <Card className="bg-card/50 border-border/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-              <span>BTC/USD — 90 Day Chart with JARVIS Signals</span>
-              <span className="text-xs font-normal">Synthetic demo data</span>
+              <div className="flex items-center gap-3">
+                {/* Asset Selector Tabs */}
+                <div className="flex gap-1">
+                  {CHART_ASSETS.map((a, i) => (
+                    <button
+                      key={a.symbol}
+                      onClick={() => setSelectedAsset(i)}
+                      className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                        selectedAsset === i
+                          ? "bg-blue-600/20 text-blue-400"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      }`}
+                    >
+                      {a.symbol}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                {/* WebSocket Status */}
+                <div className="flex items-center gap-1.5">
+                  <Zap
+                    className={`h-3 w-3 ${
+                      wsStatus === "connected"
+                        ? "text-green-400"
+                        : wsStatus === "connecting"
+                        ? "text-yellow-400"
+                        : "text-muted-foreground"
+                    }`}
+                  />
+                  <span className="text-[10px]">
+                    {wsStatus === "connected"
+                      ? "WS Live"
+                      : wsStatus === "connecting"
+                      ? "Connecting..."
+                      : "WS Offline"}
+                  </span>
+                </div>
+                <span className="text-xs font-normal">
+                  90d synthetic + signals
+                </span>
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <BTCChart regime={regime} height={400} />
+            <AssetChart
+              symbol={asset.symbol}
+              name={asset.name}
+              basePrice={asset.basePrice}
+              livePrice={prices[asset.symbol]}
+              regime={regime}
+              height={400}
+            />
           </CardContent>
         </Card>
 
@@ -87,9 +152,14 @@ export default function DashboardPage() {
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
                 <div className="rounded-lg bg-background/50 p-3">
-                  <div className="text-xs text-muted-foreground mb-1">Total Value</div>
+                  <div className="text-xs text-muted-foreground mb-1">
+                    Total Value
+                  </div>
                   <div className="text-lg font-bold font-mono text-white">
-                    ${totalValue.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                    $
+                    {totalValue.toLocaleString("en-US", {
+                      maximumFractionDigits: 0,
+                    })}
                   </div>
                 </div>
                 <div className="rounded-lg bg-background/50 p-3">
@@ -106,11 +176,14 @@ export default function DashboardPage() {
                       totalPnl >= 0 ? "text-green-400" : "text-red-400"
                     }`}
                   >
-                    {totalPnl >= 0 ? "+" : ""}${Math.abs(totalPnl).toFixed(0)}
+                    {totalPnl >= 0 ? "+" : ""}$
+                    {Math.abs(totalPnl).toFixed(0)}
                   </div>
                 </div>
                 <div className="rounded-lg bg-background/50 p-3">
-                  <div className="text-xs text-muted-foreground mb-1">Open Positions</div>
+                  <div className="text-xs text-muted-foreground mb-1">
+                    Open Positions
+                  </div>
                   <div className="text-lg font-bold font-mono text-blue-400">
                     {portfolio.positions.length}
                   </div>
@@ -122,7 +195,11 @@ export default function DashboardPage() {
                   </div>
                   <div
                     className={`text-lg font-bold font-mono ${
-                      drawdown > 5 ? "text-red-400" : drawdown > 0 ? "text-yellow-400" : "text-green-400"
+                      drawdown > 5
+                        ? "text-red-400"
+                        : drawdown > 0
+                        ? "text-yellow-400"
+                        : "text-green-400"
                     }`}
                   >
                     {drawdown.toFixed(2)}%
@@ -133,13 +210,19 @@ export default function DashboardPage() {
                 <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
                   <span>
                     Win Rate:{" "}
-                    <span className={`font-mono ${winRate >= 50 ? "text-green-400" : "text-red-400"}`}>
+                    <span
+                      className={`font-mono ${
+                        winRate >= 50 ? "text-green-400" : "text-red-400"
+                      }`}
+                    >
                       {winRate.toFixed(0)}%
                     </span>
                   </span>
                   <span>
                     Trades:{" "}
-                    <span className="font-mono text-white">{portfolio.closedTrades.length}</span>
+                    <span className="font-mono text-white">
+                      {portfolio.closedTrades.length}
+                    </span>
                   </span>
                 </div>
               )}
@@ -189,7 +272,11 @@ export default function DashboardPage() {
                         )}
                       </div>
                       <div className="text-[10px] text-muted-foreground mt-1">
-                        Entry: ${signal.entry.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        Entry: $
+                        {signal.entry.toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                         {" | "}Quality: {(signal.qualityScore * 100).toFixed(0)}
                       </div>
                     </div>

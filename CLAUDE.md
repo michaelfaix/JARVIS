@@ -328,6 +328,19 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 
 ---
 
+## ✅ ABGESCHLOSSEN: Multi-Asset Chart + WebSocket Live Stream (P2)
+
+### Erstellt:
+- **Multi-Asset Chart**: Generischer `AssetChart`-Komponent ersetzt BTC-only Chart. Tabs auf Dashboard für BTC, ETH, SOL, SPY, GLD — jeder mit eigenem synthetischen Datensatz + JARVIS Signal Overlay + Live-Preis
+- **WebSocket Hook**: `use-websocket.ts` verbindet sich mit `/api/v1/stream/{symbol}`, Auto-Reconnect mit Exponential Backoff, Connection Status Tracking
+- **WS Status Indicator**: Zap-Icon im Dashboard zeigt WebSocket-Verbindungsstatus (Live/Connecting/Offline)
+- **API WS_BASE Export**: `api.ts` exportiert `WS_BASE` URL für WebSocket-Verbindungen
+- **Live Preis Integration**: Chart zeigt Binance-Live-Preis wenn verfügbar, synthetischer Fallback
+- 8 Custom Hooks (+ use-websocket)
+- Build: 0 Errors, 7 Routes | Backend: 8897 Tests grün
+
+---
+
 ## 🔜 NÄCHSTER SCHRITT
 
 ### Sofort (ohne Code, diese Woche):
@@ -347,5 +360,5 @@ BTC/USD Chart mit TradingView Lightweight Charts + JARVIS Signal Overlay.
 
 ---
 
-*CLAUDE.md — Version 7.4.0 | März 2026*
+*CLAUDE.md — Version 7.5.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*
