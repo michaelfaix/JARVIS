@@ -337,7 +337,28 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 - **API WS_BASE Export**: `api.ts` exportiert `WS_BASE` URL für WebSocket-Verbindungen
 - **Live Preis Integration**: Chart zeigt Binance-Live-Preis wenn verfügbar, synthetischer Fallback
 - 8 Custom Hooks (+ use-websocket)
-- Build: 0 Errors, 7 Routes | Backend: 8897 Tests grün
+- Build: 0 Errors, 9 Routes | Backend: 8897 Tests grün
+
+---
+
+## ✅ ABGESCHLOSSEN: AI Chat + Strategy Lab Backtest Engine
+
+### Erstellt:
+- **AI Chat Seite** (`/chat`): Vollständige Chat-UI mit JARVIS AI Assistant
+  - Next.js API Route (`/api/chat`) — Server-seitig, API-Key bleibt auf dem Server
+  - Claude API Integration (claude-sonnet-4-20250514) mit Trading-System-Prompt
+  - Offline-Fallback mit kontextbezogenen Antworten (Regime, Signals, Risk, Strategy)
+  - Portfolio-Kontext wird automatisch an Claude gesendet (Regime, P&L, Positions, Drawdown)
+  - Quick-Prompt Buttons, Markdown-Rendering, Chat-Verlauf, Clear-Button
+  - Konfiguration: `ANTHROPIC_API_KEY` in `.env.local` (optional — funktioniert auch ohne)
+- **Strategy Lab Backtest Engine** (`/strategy-lab`): Voll funktionaler Backtest
+  - Deterministische Backtest-Simulation über 90 Tage, 5 Assets (BTC, ETH, SOL, SPY, GLD)
+  - 3 Strategien wählbar (Momentum, Mean Reversion, Combined) mit Visual Feedback
+  - Performance Stats: Total Return, Win Rate, Sharpe Ratio, Max Drawdown, Avg Win/Loss, Profit Factor
+  - SVG Equity Curve Chart mit Fill und Grid
+  - Trade Log Tabelle (letzte 20 Trades mit Entry/Exit/P&L)
+- Sidebar: 9 Nav-Items (+ AI Chat mit MessageSquare Icon)
+- Build: 0 Errors, 9 Routes (8 Pages + 1 API) | Backend: 8897 Tests grün
 
 ---
 
@@ -360,5 +381,5 @@ BTC/USD Chart mit TradingView Lightweight Charts + JARVIS Signal Overlay.
 
 ---
 
-*CLAUDE.md — Version 7.5.0 | März 2026*
+*CLAUDE.md — Version 7.6.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*

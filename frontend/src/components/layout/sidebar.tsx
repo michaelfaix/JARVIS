@@ -13,6 +13,7 @@ import {
   ShieldAlert,
   Radar,
   FlaskConical,
+  MessageSquare,
   Settings,
   ChevronsLeft,
   ChevronsRight,
@@ -27,6 +28,7 @@ const NAV_ITEMS = [
   { label: "Risk Guardian", icon: ShieldAlert, path: "/risk" },
   { label: "Opportunity Radar", icon: Radar, path: "/radar" },
   { label: "Strategy Lab", icon: FlaskConical, path: "/strategy-lab" },
+  { label: "AI Chat", icon: MessageSquare, path: "/chat" },
   { label: "Settings", icon: Settings, path: "/settings" },
 ] as const;
 
