@@ -41,6 +41,11 @@ from jarvis.research.sandbox_runner import (
     run_scenario_safely,
 )
 
+from jarvis.research.strategy_benchmark import (
+    BenchmarkResult,
+    StrategyBenchmarkEngine,
+)
+
 __all__ = [
     "FeatureEntry",
     "FeatureImportanceResult",
@@ -68,4 +73,6 @@ __all__ = [
     "SUPPORTED_SCENARIO_DISPATCHES",
     "SandboxRunnerResult",
     "run_scenario_safely",
+    "BenchmarkResult",
+    "StrategyBenchmarkEngine",
 ]

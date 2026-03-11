@@ -83,7 +83,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import Any, Dict, FrozenSet, List, Optional, Tuple
+from typing import Any, Dict, FrozenSet, List, Optional, Protocol, Tuple, runtime_checkable
 
 
 # =============================================================================
@@ -1048,7 +1048,36 @@ class DataCache:
 
 
 # =============================================================================
-# SECTION 10 -- MODULE __all__
+# SECTION 10 -- MARKET DATA PROVIDER PROTOCOLS (S03)
+# =============================================================================
+
+@runtime_checkable
+class MarketDataProvider(Protocol):
+    """Abstract protocol for market data providers."""
+
+    def fetch(self, symbol: str, timeframe: str) -> MarketData: ...
+
+    def validate(self, data: MarketData) -> ValidationResult: ...
+
+
+@runtime_checkable
+class HistoricalDataProvider(Protocol):
+    """Protocol for historical data providers."""
+
+    def fetch_range(self, symbol: str, start_ordinal: int, end_ordinal: int) -> list: ...
+
+
+@runtime_checkable
+class LiveDataProvider(Protocol):
+    """Protocol for live data stream providers."""
+
+    def subscribe(self, symbol: str) -> None: ...
+
+    def get_latest(self, symbol: str) -> MarketData: ...
+
+
+# =============================================================================
+# SECTION 11 -- MODULE __all__
 # =============================================================================
 
 __all__ = [
@@ -1079,4 +1108,8 @@ __all__ = [
     "VALID_TIMEFRAMES",
     "VALID_SESSION_TAGS",
     "VALID_DATA_SOURCES",
+    # Protocols
+    "MarketDataProvider",
+    "HistoricalDataProvider",
+    "LiveDataProvider",
 ]

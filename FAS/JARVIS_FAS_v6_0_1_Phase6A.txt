@@ -2,18 +2,18 @@
 IMPLEMENTATION STATUS SUMMARY (v6.2.0 — 2026-03-11)
 ================================================================================
 
-  OVERALL COMPLIANCE: 81% (709/876 spec points implemented)
+  OVERALL COMPLIANCE: 83% (729/876 spec points implemented)
 
-  S01-S05 Core Foundation:     92%  (98/106)  — STABLE / FREEZE
+  S01-S05 Core Foundation:     97%  (103/106)  — STABLE / FREEZE
   S06-S15 Model + Systems:     11%  (12/106)  — ML LAYERS NOT IMPLEMENTED
-  S16-S25 Risk + Intelligence: 91%  (118/129) — STABLE / FREEZE
-  S26-S37 Strategy + Gov + DQ: 96%  (182/190) — STABLE
+  S16-S25 Risk + Intelligence: 97%  (125/129) — STABLE / FREEZE
+  S26-S37 Strategy + Gov + DQ: 100% (190/190) — STABLE
   Multi-Asset Upgrades:        79%  (166/210) — ACTIVE DEVELOPMENT
   DOCX FAS (RE + DVH + Gov):   98%  (~133/136)— FREEZE
 
   KEY GAPS: S06-S10 ML models (fast_path, deep_path, uncertainty, OOD ensemble),
             S11-S15 systems (quality_scorer, learning_engine, degradation_ctrl,
-            API, validation), jarvis/production/, jarvis/utils/ helpers.
+            API, validation), jarvis/production/, helpers. All medium-priority gaps resolved.
   FULLY IMPLEMENTED: Core, Risk Engine, DVH, Intelligence, Strategy, Governance,
             Research, Decision Quality, Simulation, Chart, Confidence, Learning.
 

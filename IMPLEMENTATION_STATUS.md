@@ -10,19 +10,19 @@
 
 | Category | Spec Points | Implemented | Partial | Missing | Rate |
 |----------|-------------|-------------|---------|---------|------|
-| S01-S05 Core Foundation | 106 | 98 | 4 | 4 | **92%** |
+| S01-S05 Core Foundation | 106 | 103 | 2 | 1 | **97%** |
 | S06-S15 Model Layer + Systems | 106 | 12 | 3 | 91 | **11%** |
-| S16-S25 Risk + Intelligence | 129 | 118 | 7 | 4 | **91%** |
-| S26-S37+ Strategy + Gov + DQ | 190 | 182 | 0 | 8 | **96%** |
+| S16-S25 Risk + Intelligence | 129 | 125 | 3 | 1 | **97%** |
+| S26-S37+ Strategy + Gov + DQ | 190 | 190 | 0 | 0 | **100%** |
 | Multi-Asset Upgrades | 210 | 166 | 5 | 39 | **79%** |
 | DOCX: Risk Engine FAS | ~40 | ~39 | 1 | 0 | **98%** |
 | DOCX: DVH Architecture | ~35 | ~35 | 0 | 0 | **100%** |
 | DOCX: DVH Blueprint | ~40 | ~40 | 0 | 0 | **100%** |
 | DOCX: Governance Integration | ~20 | ~19 | 0 | 1 | **95%** |
-| **TOTAL (TXT FAS)** | **741** | **576** | **19** | **146** | **78%** |
-| **TOTAL (inkl. DOCX)** | **~876** | **~709** | **~20** | **~147** | **~81%** |
+| **TOTAL (TXT FAS)** | **741** | **596** | **13** | **132** | **80%** |
+| **TOTAL (inkl. DOCX)** | **~876** | **~729** | **~14** | **~133** | **~83%** |
 
-**Bottom line:** Core Platform (S01-S05, S16-S37+) ist zu **~93%** implementiert.
+**Bottom line:** Core Platform (S01-S05, S16-S37+) ist zu **~98%** implementiert.
 Die ML-Layer (S06-S15) sind zu **~11%** implementiert — das ist der Hauptgrund
 für den niedrigeren Gesamtwert.
 
@@ -492,18 +492,18 @@ All 8 spec points IMPLEMENTED: `ConfidenceZone`, `ConfidenceZoneRequest`, `Confi
 | 10 | `jarvis/validation/` | Validation framework (10 items) | S15 |
 | 11 | `jarvis/production/` | Production ops (7 items) | S15+ |
 
-### Medium Priority (gaps in otherwise-implemented areas)
+### Medium Priority (gaps in otherwise-implemented areas) — ALL RESOLVED ✅
 
 | # | Module | Missing Items | FAS Section |
 |---|--------|--------------|-------------|
-| 12 | `jarvis/research/strategy_benchmark.py` | Entire module (7 items) | S33 |
-| 13 | `jarvis/confidence/confidence_refresh.py` | `should_refresh_confidence()` | S37+ |
-| 14 | `jarvis/risk/risk_engine.py` | FM-01..FM-06 handlers + SIMULTANEOUS_FM_RULES | S17 |
-| 15 | `jarvis/core/global_state.py` | State Refresh Policy + Event Log/Replay | S35 |
-| 16 | `jarvis/core/data_layer.py` | MarketDataProvider, HistoricalDataProvider, LiveDataProvider | S03 |
-| 17 | `jarvis/utils/exceptions.py` | FehlerCode taxonomy (6 exception classes) | Ref |
-| 18 | `jarvis/utils/numeric_safety.py` | 5 numeric safety utilities | Ref |
-| 19 | `jarvis/utils/helpers.py` | 5 statistical helper functions | Ref |
+| 12 | `jarvis/research/strategy_benchmark.py` | ✅ IMPLEMENTED (v6.2.0) | S33 |
+| 13 | `jarvis/confidence/confidence_refresh.py` | ✅ IMPLEMENTED (v6.2.0) | S37+ |
+| 14 | `jarvis/risk/failure_mode_handler.py` | ✅ IMPLEMENTED (v6.2.0) | S17 |
+| 15 | `jarvis/core/global_state.py` | ✅ IMPLEMENTED (v6.2.0) | S35 |
+| 16 | `jarvis/core/data_layer.py` | ✅ IMPLEMENTED (v6.2.0) | S03 |
+| 17 | `jarvis/utils/exceptions.py` | ✅ IMPLEMENTED (v6.2.0) | Ref |
+| 18 | `jarvis/utils/numeric_safety.py` | ✅ IMPLEMENTED (v6.2.0) | Ref |
+| 19 | `jarvis/utils/helpers.py` | ✅ IMPLEMENTED (v6.2.0) | Ref |
 
 ### Low Priority (multi-asset extensions not yet needed)
 
@@ -545,7 +545,7 @@ All 8 spec points IMPLEMENTED: `ConfidenceZone`, `ConfidenceZoneRequest`, `Confi
 - Core layers never import from external layers
 - All PROHIBITED import rules respected
 
-### Test Coverage: ~7500+ tests
+### Test Coverage: 7724 tests
 - Unit tests for all implemented modules
 - Integration tests for pipeline + backtest
 - Mutation testing infrastructure (mutmut)

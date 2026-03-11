@@ -518,8 +518,69 @@ class GlobalSystemStateController:
         return self._emergency_active
 
 
+# ---------------------------------------------------------------------------
+# SYSTEM OPERATING MODE & REFRESH POLICIES (S35)
+# ---------------------------------------------------------------------------
+
+from enum import Enum
+
+
+class SystemOperatingMode(Enum):
+    """Operating modes for the JARVIS platform."""
+    HISTORICAL = "historical"
+    LIVE_ANALYTICAL = "live_analytical"
+    HYBRID = "hybrid"
+
+
+@dataclass(frozen=True)
+class RefreshPolicy:
+    """
+    Immutable refresh policy configuration per operating mode.
+
+    Fields:
+        interval_bars:     Minimum bars between updates.
+        on_regime_change:  Refresh on regime change.
+        on_vol_spike:      Refresh on volatility spike.
+        on_failure_mode:   Refresh on failure mode activation.
+        on_exposure_delta: Refresh on exposure delta.
+    """
+    interval_bars: int
+    on_regime_change: bool
+    on_vol_spike: bool
+    on_failure_mode: bool
+    on_exposure_delta: bool
+
+
+REFRESH_POLICIES: Dict[SystemOperatingMode, RefreshPolicy] = {
+    SystemOperatingMode.HISTORICAL: RefreshPolicy(
+        interval_bars=1,
+        on_regime_change=True,
+        on_vol_spike=True,
+        on_failure_mode=True,
+        on_exposure_delta=True,
+    ),
+    SystemOperatingMode.LIVE_ANALYTICAL: RefreshPolicy(
+        interval_bars=5,
+        on_regime_change=True,
+        on_vol_spike=True,
+        on_failure_mode=True,
+        on_exposure_delta=True,
+    ),
+    SystemOperatingMode.HYBRID: RefreshPolicy(
+        interval_bars=3,
+        on_regime_change=True,
+        on_vol_spike=True,
+        on_failure_mode=True,
+        on_exposure_delta=True,
+    ),
+}
+
+
 __all__ = [
     "SystemState",
     "GlobalSystemStateController",
     "EMERGENCY_CONDITIONS",
+    "SystemOperatingMode",
+    "RefreshPolicy",
+    "REFRESH_POLICIES",
 ]
