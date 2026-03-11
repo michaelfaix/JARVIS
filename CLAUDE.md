@@ -1,741 +1,303 @@
-# JARVIS — Multi-Asset Strategy Platform (MASP)
-# Decision Quality Platform v6.2.0
-# CLAUDE.md — Projektkontext für Claude Code
+# JARVIS — CLAUDE.md
+## AI Trading Intelligence Platform
+**Version:** 6.2.0 (Backend) | **Stand:** März 2026 | **Autor:** Michael Faix
 
 ---
 
-## SYSTEM CLASSIFICATION (P0 — UNVERAENDERLICH)
+## 🎯 GESAMTVISION
 
-**JARVIS ist ein reines Analyse- und Strategie-Forschungsplattform.**
-- KEIN Handelssystem. KEIN Broker-API. KEIN Echtgeld-Management.
-- Alle Berechnungen operieren auf simulierten Positionen.
-- Dieser P0-Status überschreibt alle anderen Layer (P1-P9).
-- Jeder Code-Pfad der zu echten Order-Übertragungen führt ist ein kritischer Verstoss.
+JARVIS ist eine **AI-gestützte Trading-Intelligence-Plattform** mit zwei Schichten:
+
+```
+JARVIS-Trader (Frontend SaaS)          ← Wird gebaut
+    ↓
+JARVIS Backend (Python Engine)         ← Fertig ✅
+```
+
+**Langfristige Vision** (analog TradingView + Revolut):
+- AI Market Intelligence
+- Trading Signals & Analysis
+- Portfolio Tracking & Risk Guardian
+- Strategy Builder & Marketplace
+- Community & Social Trading
+- Paper Trading → später echtes Trading
+- Crypto Wallet & Fintech App
 
 ---
 
-## Projektstruktur
+## 📊 AKTUELLER BACKEND-STAND (März 2026)
 
-```
-JARVIS/
-├── jarvis/
-│   ├── core/               <- STABLE CORE (FREEZE - nicht ohne Release aendern!)
-│   │   ├── regime.py               GlobalRegimeState, AssetRegimeState, AssetClass,
-│   │   │                           CorrelationRegimeState, HierarchicalRegime Enums
-│   │   ├── regime_detector.py      RegimeDetector (HMM-basiert)
-│   │   ├── state_layer.py          LatentState dataclass
-│   │   ├── state_estimator.py      StateEstimator (Kalman-artig)
-│   │   ├── volatility_tracker.py   VolatilityTracker (EWMA)
-│   │   ├── data_layer.py           OHLCV, MarketData, EnhancedMarketData, DataCache
-│   │   ├── data_structures.py      Shared data structures
-│   │   ├── feature_layer.py        FeatureLayer, FeatureDriftMonitor, DriftResult
-│   │   ├── feature_registry.py     Feature registry
-│   │   ├── integrity_layer.py      Hash-Chain Validierung
-│   │   ├── logging_layer.py        EventLogger, Event, EventFilter
-│   │   ├── execution_guard.py      build_execution_order(), ExecutionOrder
-│   │   ├── decision_context_state.py  DecisionContextState (frozen dataclass)
-│   │   ├── system_mode.py          SystemMode Enum + GlobalSystemStateController
-│   │   ├── trading_calendar.py     is_trading_day(), NYSE/CME/EUREX Holiday-Listen
-│   │   ├── strategy_schema.py      Strategy schema definitions
-│   │   ├── strategy_registry.py    Strategy registry
-│   │   ├── schema_versions.py      Schema versioning
-│   │   ├── event_bus.py            Event bus
-│   │   ├── event_log.py            Event log
-│   │   ├── event_queue.py          Event queue
-│   │   ├── confidence_refresh.py   Confidence refresh logic
-│   │   ├── global_state.py         Global state definitions
-│   │   ├── global_state_controller.py  Global state controller
-│   │   ├── governance_monitor.py   Governance monitoring
-│   │   ├── hybrid_coordinator.py   Hybrid mode coordinator
-│   │   ├── live_data_integrity_gate.py  Live data integrity gate
-│   │   ├── market_data_provider.py Market data provider
-│   │   ├── state_checkpoint.py     State checkpoint
-│   │   ├── state_refresh_policy.py State refresh policy
-│   │   └── risk_layer/             Risk-Layer Subdomain
-│   │       ├── domain.py           RiskDomain Datenmodelle
-│   │       ├── engine.py           Risk-Layer Engine
-│   │       ├── evaluator.py        Risk Evaluator
-│   │       ├── exceptions.py       Risk Exceptions
-│   │       └── sizing.py           Position Sizing
-│   │
-│   ├── risk/               <- STABLE CORE (FREEZE - FAS v6.1.0)
-│   │   ├── risk_engine.py          RiskEngine - FREEZE v6.1.0 (HAUPTKOMPONENTE)
-│   │   ├── THRESHOLD_MANIFEST.json Hash-geschuetzte Konstanten
-│   │   ├── correlation.py          _pearson() cross-asset correlation
-│   │   ├── asset_risk.py           Asset-level risk
-│   │   ├── capital_allocation.py   Capital allocation
-│   │   ├── confidence_zone_engine.py  Confidence zone engine
-│   │   ├── gap_risk.py             Gap risk detection
-│   │   ├── multi_timeframe.py      Multi-timeframe risk
-│   │   ├── portfolio_heatmap.py    Portfolio heatmap
-│   │   ├── portfolio_risk.py       Portfolio risk
-│   │   ├── risk_budget.py          Risk budget
-│   │   ├── stress_detector.py      Stress detection
-│   │   ├── systemic_risk.py        Systemic risk
-│   │   └── tail_risk.py            Tail risk
-│   │
-│   ├── utils/              <- STABLE CORE (FREEZE)
-│   │   └── constants.py            JOINT_RISK_MULTIPLIER_TABLE + Plattform-Konstanten
-│   │
-│   ├── portfolio/          <- STABLE CORE (FREEZE)
-│   │   └── portfolio_allocator.py  allocate_positions() - KANONISCHE Funktion
-│   │
-│   ├── execution/          <- STABLE CORE (FREEZE)
-│   │   ├── exposure_router.py      route_exposure_to_positions() - KANONISCH
-│   │   ├── execution_optimizer.py  Execution optimization
-│   │   └── session_aware_executor.py  Session-aware execution
-│   │
-│   ├── governance/         <- Governance Layer
-│   │   ├── policy_validator.py     validate_pipeline_config() - GOV-01..GOV-06
-│   │   ├── exceptions.py           GovernanceViolationError
-│   │   ├── backtest_governance.py  BacktestGovernanceEngine, OverfittingReport
-│   │   ├── model_registry.py       Model registry
-│   │   ├── performance_certification.py  Performance certification
-│   │   └── threshold_guardian.py   Threshold guardian
-│   │
-│   ├── orchestrator/       <- External Orchestration Layer
-│   │   └── pipeline.py             run_full_pipeline() - Haupt-API v1.2.1
-│   │
-│   ├── backtest/           <- External Layer (IMPLEMENTIERT)
-│   │   ├── engine.py               run_backtest() + slippage_model Integration
-│   │   └── multi_asset_engine.py   run_multi_asset_backtest(), run_multi_asset_walkforward()
-│   │
-│   ├── intelligence/       <- Intelligence Layer (IMPLEMENTIERT - MA-1..MA-4)
-│   │   ├── ood_engine.py           AssetConditionalOOD (5-Sensor Majority Voting)
-│   │   ├── ood_config.py           AssetOODConfig, Thresholds, Weights
-│   │   ├── decision_quality_engine.py  DecisionQualityEngine (< 20ms/cycle)
-│   │   ├── regime_duration_model.py    RegimeDurationModel
-│   │   ├── asset_regimes.py        Asset regime detection
-│   │   ├── bayesian_confidence.py  Bayesian confidence estimation
-│   │   ├── correlation_regime.py   Correlation regime detection
-│   │   ├── cross_asset_layer.py    Cross-asset intelligence
-│   │   ├── epistemic_uncertainty.py Epistemic uncertainty estimation
-│   │   ├── global_regime.py        Global regime detection
-│   │   ├── liquidity_layer.py      Liquidity layer
-│   │   ├── macro_layer.py          Macro event layer
-│   │   ├── microstructure_layer.py Microstructure analysis
-│   │   ├── multi_broker_layer.py   Multi-broker layer
-│   │   ├── news_layer.py           News event layer
-│   │   ├── regime_memory.py        Regime memory
-│   │   ├── regime_transition.py    Regime transition detection
-│   │   ├── volatility_markov.py    Volatility Markov model
-│   │   └── weight_posterior.py     Weight posterior estimation
-│   │
-│   ├── confidence/         <- Confidence Layer (IMPLEMENTIERT)
-│   │   ├── adaptive_selectivity_model.py  AdaptiveSelectivityModel
-│   │   └── failure_impact.py       Failure impact analysis
-│   │
-│   ├── simulation/         <- Simulation Layer (IMPLEMENTIERT)
-│   │   ├── strategy_lab.py         StrategyLab, SlippageModel, MonteCarloResult,
-│   │   │                           StressTestResult, WalkForwardResult
-│   │   └── stress_scenarios.py     StressScenarioPreset, RegimeAwareScenario,
-│   │                               run_regime_aware_stress_test(), SCENARIO_REGISTRY
-│   │
-│   ├── metrics/            <- Metrics Layer (IMPLEMENTIERT)
-│   │   ├── engine.py               compute_metrics(), sharpe_ratio, max_drawdown,
-│   │   │                           calmar_ratio, regime_conditional_returns
-│   │   ├── ece_calculator.py       ECEResult, compute_ece, compute_ece_scalar
-│   │   ├── fragility_index.py      FragilityAssessment, StructuralFragilityIndex
-│   │   └── trust_score.py          TrustScoreEngine, TrustScoreResult
-│   │
-│   ├── strategy/           <- Strategy Layer (IMPLEMENTIERT)
-│   │   ├── engine.py               momentum_signal, mean_reversion_signal,
-│   │   │                           combine_signals, run_strategy()
-│   │   ├── signal_fragility_analyzer.py  SignalFragilityAnalyzer (< 30ms/eval)
-│   │   └── adaptive_strategy.py    Adaptive strategy logic
-│   │
-│   ├── selection/          <- Selection Layer (IMPLEMENTIERT)
-│   │   └── engine.py               rank_candidates, filter_by_threshold,
-│   │                               select_top_n, run_selection()
-│   │
-│   ├── optimization/       <- Optimization Layer (IMPLEMENTIERT)
-│   │   └── engine.py               run_optimization() - Kartesisches Produkt
-│   │
-│   ├── robustness/         <- Robustness Layer (IMPLEMENTIERT)
-│   │   └── engine.py               evaluate_robustness()
-│   │
-│   ├── report/             <- Report Layer (IMPLEMENTIERT)
-│   │   └── engine.py               generate_report(), generate_enriched_report(),
-│   │                               ReportResult (frozen dataclass)
-│   │
-│   ├── walkforward/        <- Walk-Forward Layer (IMPLEMENTIERT)
-│   │   └── engine.py               generate_windows(), generate_trading_windows(),
-│   │                               run_walkforward()
-│   │
-│   ├── models/             <- Models Layer (IMPLEMENTIERT)
-│   │   └── calibration.py          Model calibration
-│   │
-│   ├── learning/           <- Learning Layer (IMPLEMENTIERT)
-│   │   └── deterministic_learning.py  Deterministic learning
-│   │
-│   ├── systems/            <- Systems Layer (IMPLEMENTIERT)
-│   │   ├── control_flow.py         Control flow management
-│   │   ├── mode_controller.py      Mode controller
-│   │   ├── reproducibility.py      Reproducibility guarantees
-│   │   └── validation_gates.py     Validation gates
-│   │
-│   ├── research/           <- Research Layer (IMPLEMENTIERT)
-│   │   ├── feature_pipeline.py     Feature pipeline
-│   │   ├── overfitting_detector.py Overfitting detection
-│   │   ├── sandbox_runner.py       Sandbox runner
-│   │   ├── scenario_sandbox.py     Scenario sandbox
-│   │   └── walk_forward_validation.py  Walk-forward validation
-│   │
-│   ├── chart/              <- Chart Layer (IMPLEMENTIERT)
-│   │   ├── chart_contract.py       Chart contract definitions
-│   │   └── chart_data_builder.py   Chart data builder
-│   │
-│   └── verification/       <- Deterministic Verification Harness (DVH) v1.0.0
-│       ├── run_harness.py          Entry Point
-│       ├── manifest_validator.py   Manifest-Pruefung
-│       ├── ci_dvh_gate.py          CI DVH gate
-│       ├── input_vector_generator.py
-│       ├── execution_recorder.py
-│       ├── replay_engine.py
-│       ├── bit_comparator.py
-│       ├── clip_verifier.py
-│       ├── failure_handler.py
-│       ├── harness_version.py
-│       ├── data_models/            Dataclasses fuer DVH
-│       ├── vectors/                Input Vector Definitionen
-│       ├── storage/                Record Serialisierung
-│       └── runs/                   Laufzeit-generierte Verifikations-Records
-│
-├── tests/                  <- Test Suite (7513 Tests, pytest)
-│   ├── test_pipeline_contract.py     Haupt-Vertragstest (Pipeline + Backtest)
-│   ├── test_metrics_engine.py        Metrics engine tests
-│   ├── test_strategy_engine.py       Strategy engine tests
-│   ├── test_selection_engine.py      Selection engine tests
-│   ├── test_optimization_engine.py   Optimization engine tests
-│   ├── test_robustness_engine.py     Robustness engine tests
-│   ├── test_report_engine.py         Report engine tests
-│   ├── test_walkforward_engine.py    Walk-forward engine tests
-│   ├── test_decision_quality_engine.py  DQE tests
-│   ├── test_adaptive_selectivity_model.py  ASM tests
-│   ├── test_regime_duration_model.py    RDM tests
-│   ├── test_signal_fragility_analyzer.py  SFA tests
-│   ├── test_decision_context_state.py   DCS tests
-│   ├── test_system_mode.py           SystemMode tests
-│   ├── test_multi_asset_integration.py  Multi-asset integration
-│   ├── test_ma8_coverage_benchmarks.py  MA-8 coverage benchmarks
-│   ├── test_mutant_killers.py        Mutation test killers
-│   ├── integration/
-│   │   ├── test_full_flow.py         Full pipeline flow (41 tests, determinism)
-│   │   └── test_e2e_fas_pipeline.py  End-to-end FAS pipeline
-│   └── unit/
-│       ├── backtest/                 Backtest tests (multi-asset, slippage)
-│       ├── chart/                    Chart tests
-│       ├── confidence/               Confidence tests (failure impact)
-│       ├── core/                     Core layer tests (30+ test files)
-│       ├── execution/                Execution tests
-│       ├── governance/               Governance tests (6 test files)
-│       ├── intelligence/             Intelligence tests (18 test files)
-│       ├── metrics/                  Metrics tests (ECE, fragility, trust score)
-│       ├── models/                   Models tests (calibration)
-│       ├── report/                   Report tests (enriched report)
-│       ├── research/                 Research tests (5 test files)
-│       ├── risk/                     Risk tests (10 test files)
-│       ├── risk_layer/               Risk layer tests
-│       ├── simulation/               Simulation tests (strategy lab, stress, regime-aware)
-│       ├── strategy/                 Strategy tests (adaptive, det-learning)
-│       └── systems/                  Systems tests (control flow, mode, reproducibility)
-│
-├── mutants/                <- Mutation Testing (mutmut) - Spiegelstruktur von tests/
-├── FAS/                    <- Formale Architektur-Spezifikation (BAUANLEITUNG)
-│   ├── FAS_v6_1_0_Risk_Engine.docx
-│   ├── DVH_Architecture_Risk_Engine_v6_1_0.docx
-│   ├── DVH_Implementation_Blueprint_Risk_Engine_v6_1_0.docx
-│   ├── MASTER_FAS_v6_1_0_G_Governance_Integration.docx
-│   └── JARVIS_FAS_v6_0_1_Phase6A.txt
-├── docs/governance/
-│   └── MASTER_FAS_v6_1_0.docx
-├── scripts/
-│   ├── run_ci.bat
-│   └── run_ci_checks.py
-├── requirements.txt
-├── pytest.ini
-├── setup.cfg
-└── usage_example.py
-```
+| Metrik | Wert |
+|--------|------|
+| **Tests** | **8.127** ✅ |
+| **FAS-Compliance Overall** | **91%** (801/876) |
+| **Core Platform** | **98%** ✅ |
+| **Multi-Asset** | **98%** ✅ |
+| **S26-S37 Strategy/Gov** | **100%** ✅ |
+| **S06-S15 ML-Layer** | **42%** (Sprint 1 fertig) |
+| **Coverage (produktiv)** | **96%+** ✅ |
+| **Mutation Kill-Rate** | **~95%** ✅ |
+| **DVH** | **PASS** ✅ |
+| **Warnings** | **0** ✅ |
+| **Performance** | **0.76ms** P95 🚀 |
+
+### ML-Layer Sprint-Status
+| Sprint | Module | Status |
+|--------|--------|--------|
+| Sprint 1 | S06 FastPath + S07 DeepPath | ✅ Fertig |
+| Sprint 2 | S08 Uncertainty + S09 Calibration + S09.5 AutoRecalibrator | ⏳ Läuft |
+| Sprint 3 | S10 OOD Detection + S11 Quality Scorer | 🔜 |
+| Sprint 4 | S12 Learning Engine + S13 Degradation Control | 🔜 |
+| Sprint 5 | S14 API Layer + S15 Validation | 🔜 |
 
 ---
 
-## Tech Stack
+## 🏗️ BACKEND-ARCHITEKTUR (Fertig)
 
-- **Sprache:** Python 3.10+
-- **Kern-Dependencies:** numpy >= 1.24.0, scipy >= 1.10.0
-- **Test-Framework:** pytest 9.0.2, pytest-cov (7513 Tests)
-- **Mutation Testing:** mutmut 3.5.0
-- **DVH:** Standard Library only (null third-party dependencies)
-- **Weitere:** pandas, click, rich, textual, libcst, PyYAML
+```
+Tier 1 — Core Infrastructure      event_log, state_controller, market_data_provider...
+Tier 2 — Intelligence Stack       regime_transition, bayesian_confidence, epistemic_uncertainty...
+Tier 3 — Confidence & Risk        failure_impact, stress_detector...
+Tier 4 — Governance & Control     control_flow, mode_controller, reproducibility...
+Tier 5 — Research & Validation    walk_forward_validation, overfitting_detector...
+Tier 6 — Metrics & Observability  fragility_index, trust_score, governance_monitor...
+MA     — Multi-Asset Extension    global_regime, asset_regimes, correlation_regime...
+ML     — S06-S15 Model Layer      fast_path ✅, deep_path ✅, uncertainty ⏳...
+```
+
+**Import-Regel:** Nur Top→Down. Kein numpy in Intelligence Layer (DVH).
 
 ---
 
-## Architektur-Prinzipien (STRENG EINHALTEN)
+## 🖥️ FRONTEND TECH STACK (Wird gebaut)
 
-### Import-Regeln (gerichteter azyklischer Graph)
-```
-orchestrator/  -> core/, risk/, execution/
-backtest/      -> core/, orchestrator/, metrics/, risk/, walkforward/,
-                  governance/, simulation/
-walkforward/   -> core/, governance/
-simulation/    -> core/, orchestrator/
-report/        -> metrics/, simulation/
-intelligence/  -> core/
-confidence/    -> (nur stdlib)
-execution/     -> core/, portfolio/
-portfolio/     -> (nur stdlib)
-risk/          -> core/, utils/
-metrics/       -> (nur stdlib + math)
-strategy/      -> core/
-selection/     -> (nur stdlib)
-optimization/  -> (nur stdlib)
-robustness/    -> (nur stdlib)
-systems/       -> core/
-models/        -> (nur stdlib + math)
-learning/      -> core/
-research/      -> core/, metrics/
-chart/         -> core/
-utils/         -> core/
-core/          -> (nur stdlib)
-```
+| Komponente | Technologie | Kosten |
+|------------|-------------|--------|
+| Web Framework | Next.js 14 + React + TypeScript | €0 |
+| Charts | TradingView Lightweight Charts v4 | €0 |
+| Styling | Tailwind CSS + shadcn/ui | €0 |
+| Mobile | Capacitor.js (PWA → App Store) | €0 |
+| Database + Auth | Supabase (PostgreSQL + JWT + Social Login) | €0 |
+| Hosting | Railway.app | €5/Mo |
+| Payments | Stripe (Subscriptions, SEPA) | % pro Transaktion |
+| Crypto Live-Daten | Binance WebSocket | €0 |
+| Forex/Stock-Daten | Alpha Vantage | €0 → €50/Mo |
+| Monitoring | Sentry + Grafana Cloud | €0 |
+| E-Mail | Resend.com | €0 |
+| **MVP GESAMT** | | **~€159 einmalig** |
 
-**VERBOTENE Imports:**
-- core/, risk/, utils/, portfolio/, execution/ duerfen NIEMALS aus orchestrator/, backtest/, walkforward/ importieren
-- Zirkulaere Imports sind absolut verboten
-
-### Determinismus-Garantien (DET-01 bis DET-07)
-1. **DET-01** Keine stochastischen Operationen (kein random(), numpy.random, secrets, os.urandom)
-2. **DET-02** Kein externer State-Zugriff innerhalb von Berechnungsfunktionen - alle Inputs explizit uebergeben
-3. **DET-03** Keine Seiteneffekte - Berechnungsfunktionen schreiben nicht in externen State
-4. **DET-04** Alle Arithmetik-Operationen sind deterministisch (kein symbolisches Math, kein lazy eval)
-5. **DET-05** Alle bedingten Verzweigungen sind deterministische Funktionen expliziter Inputs
-6. **DET-06** Fixe Literale als Algorithmus-Parameter werden NICHT parametrisierbar gemacht
-7. **DET-07** Rueckwaertskompatibilitaet: Gleiche Inputs = bit-identische Outputs (ohne Version-Bump)
-
-### VERBOTENE Aktionen (absolut, keine Ausnahmen)
-| Nr | Verbot |
-|----|--------|
-| PROHIBITED-01 | Stochastische Operationen (random, Monte Carlo, Sampling) |
-| PROHIBITED-02 | File I/O in Berechnungs-Layern (open(), pathlib, csv, json, pickle...) |
-| PROHIBITED-03 | Logging in Berechnungs-Layern (logging.getLogger, print(), sys.stderr) |
-| PROHIBITED-04 | Environment Variable Zugriff (os.environ, os.getenv, dotenv) |
-| PROHIBITED-05 | Globaler mutabler State (module-level mutable containers) |
-| PROHIBITED-06 | Reimplementierung kanonischer Logik (immer aus dem kanonischen Owner importieren) |
-| PROHIBITED-07 | Aenderung von hash-geschuetzten Konstanten zur Laufzeit |
-| PROHIBITED-08 | Neue Regime-Enum-Definitionen ausserhalb von jarvis/core/regime.py |
-| PROHIBITED-09 | String-basiertes Regime-Branching (immer Enum-Instanzen aus core/regime.py) |
-| PROHIBITED-10 | Architektur-Drift (keine neuen Dependency-Edges ohne Review) |
+> ⚠️ NICHT für MVP: AWS, Kubernetes, Kafka — überdimensioniert und teuer.
+> Railway + Supabase reicht bis 10.000+ User.
 
 ---
 
-## Haupt-API
+## 🛍️ PRODUKT: JARVIS-Trader
 
-### run_full_pipeline (Hauptfunktion)
-```python
-from jarvis.orchestrator.pipeline import run_full_pipeline
-from jarvis.core.regime import GlobalRegimeState
+### Kernfunktionen (FAS_frontend.txt)
+- **Dashboard:** Market Regime, Top Opportunities, Latest Signals, Portfolio Risk
+- **Charts:** Candlestick + Signal Marker + Entry/Exit + Regime Overlay + Multi-Timeframe
+- **Signals Feed:** Asset, Direction, Entry, Stop Loss, TP, Confidence Score
+- **Opportunity Radar:** Top-Opportunities nach Trend-Stärke, Volumen, Momentum
+- **Portfolio Intelligence:** Asset Allocation, P&L, Risk Score, Diversification
+- **Risk Guardian:** Position Size Check, Drawdown Warning, Correlation Check
+- **Paper Trading:** Market/Limit/SL/TP Orders, PnL, Win Rate, Drawdown
+- **AI Assistant (Chat):** Marktfragen → JARVIS analysiert + antwortet (Claude API)
+- **Strategy Lab:** Eigene Strategien bauen, Backtesting, Sharing
+- **Community:** Leaderboards, Top Traders, Strategy Marketplace
 
-positions = run_full_pipeline(
-    returns_history=[0.01, -0.02, 0.015, ...],  # min 20 Elemente!
-    current_regime=GlobalRegimeState.RISK_ON,
-    meta_uncertainty=0.2,                        # [0.0, 1.0]
-    total_capital=100_000.0,                     # > 0
-    asset_prices={"BTC": 65000.0, "ETH": 3200.0, "SPY": 520.0},
-)
-# Returns: {"BTC": 0.307, "ETH": 6.25, "SPY": 38.46}
-```
+### Tier-Modell
+| Feature | 🆓 Free | ⭐ Pro (€29/Mo) | 🏢 Enterprise (€199/Mo) |
+|---------|---------|----------------|------------------------|
+| Charts | 3 Assets, 2 TF | Alle | Alle + Custom Feeds |
+| Strategien | 1 (Scalping) | 8 Strategien | Alle + eigene |
+| Paper Trading | €10.000 | €1k–€500k | Unbegrenzt |
+| JARVIS-Signale | 15 Min verzögert | Echtzeit | Echtzeit + Rohdaten |
+| Regime-Detection | Basis | Vollständig (3-Tier) | Vollständig + Config |
+| OOD-Warnungen | ❌ | ✅ | ✅ + Schwellwerte |
+| Backtesting | ❌ | 90 Tage + WFV | Unbegrenzt |
+| AI Chat | ❌ | ✅ | ✅ + Priorität |
+| API-Zugang | ❌ | ❌ | ✅ REST + WebSocket |
+| Support | Community | E-Mail (48h) | Priority Slack (4h) |
 
-### RiskEngine direkt
-```python
-from jarvis.risk.risk_engine import RiskEngine
-from jarvis.core.regime import GlobalRegimeState
+### 8 Trading-Strategien
+1. **Scalping** (1m, 5m) — Free
+2. **Day Trading** (15m, 1H) — Pro
+3. **Swing Trading** (4H, 1D) — Pro
+4. **Momentum** (1H, 4H) — Pro
+5. **Mean Reversion** (15m, 1H) — Pro
+6. **Regime-Adaptive** (Auto) — Pro
+7. **RSI Divergence** (1H, 4H) — Pro
+8. **VWAP Anchored** (5m, 15m) — Pro
 
-engine = RiskEngine()
-result = engine.assess(
-    returns_history=[...],                    # min 20 Elemente
-    current_regime=GlobalRegimeState.RISK_ON,
-    meta_uncertainty=0.2,
-)
-# result.exposure_weight    -> finale Exposure [0, 1]
-# result.risk_regime        -> "NORMAL" | "ELEVATED" | "CRITICAL" | "DEFENSIVE"
-# result.volatility_forecast -> EWMA annualisierte Volatilitaet
-```
-
-### Backtest (mit optionalem Slippage)
-```python
-from jarvis.backtest.engine import run_backtest
-from jarvis.simulation.strategy_lab import SlippageModel
-
-equity_curve = run_backtest(
-    returns_series=[...],
-    asset_price_series=[...],
-    regime=GlobalRegimeState.RISK_ON,
-    meta_uncertainty=0.2,
-    initial_capital=100_000.0,
-    window=20,
-    slippage_model=SlippageModel(0.001, 0.01, 0.001),  # optional
-)
-```
-
-### Multi-Asset Backtest
-```python
-from jarvis.backtest.multi_asset_engine import run_multi_asset_backtest
-
-result = run_multi_asset_backtest(
-    asset_returns={"SPY": [...], "BTC": [...]},
-    asset_prices={"SPY": [...], "BTC": [...]},
-    window=20, initial_capital=100_000.0,
-    regime=GlobalRegimeState.RISK_ON, meta_uncertainty=0.2,
-    slippage_model=None,  # optional
-)
-# result.portfolio_equity, result.asset_results, result.correlation_final
-```
-
-### Enriched Report
-```python
-from jarvis.report.engine import generate_enriched_report
-
-report = generate_enriched_report(
-    equity_curve=[100.0, 105.0, ...],
-    returns=[0.05, -0.02, ...],              # optional
-    regime_labels=["RISK_ON", "CRISIS", ...], # optional
-    stress_results=[...],                     # optional
-    trust_ece=0.03, trust_ood_recall=0.85,    # optional (all 5 together)
-    trust_prediction_variance=0.05,
-    trust_drawdown=0.10, trust_uptime=0.99,
-)
-# report.metrics, report.regime_returns, report.stress_results, report.trust_score
-```
-
-### Trading Calendar
-```python
-from jarvis.core.trading_calendar import is_trading_day, EXCHANGE_NYSE
-import datetime
-
-ordinal = datetime.date(2024, 12, 25).toordinal()
-is_trading_day(ordinal, EXCHANGE_NYSE)  # False (Christmas)
-```
-
-### Trading-Day-Aligned Walk-Forward
-```python
-from jarvis.walkforward.engine import generate_trading_windows
-
-windows = generate_trading_windows(
-    date_ordinals=[...],  # sequence of date ordinals
-    train_days=60, test_days=20, step_days=20,
-    exchange="NYSE",
-)
-```
-
-### Regime-Aware Stress Test
-```python
-from jarvis.simulation.stress_scenarios import run_regime_aware_stress_test, REGIME_AWARE_REGISTRY
-
-scenario = REGIME_AWARE_REGISTRY["FINANCIAL_CRISIS_2008"]
-result = run_regime_aware_stress_test(scenario)
-# result.equity_curve, result.peak_drawdown, result.n_regime_changes
-```
-
-### OOD Detection (5-Sensor Majority Voting)
-```python
-from jarvis.intelligence.ood_engine import AssetConditionalOOD
-
-detector = AssetConditionalOOD()
-result = detector.detect(
-    asset_class=AssetClass.EQUITY,
-    features=[...], reference_mean=[...], reference_std=[...],
-    recent_return=-0.05, current_volatility=0.4,
-    historical_volatility=0.2, liquidity_score=0.3,
-    macro_event_scores={"FOMC": 0.8},
-    regime=hierarchical_regime,
-    drift_score=0.7,  # optional, activates 5-sensor voting
-)
-# result.is_ood, result.score, result.severity, result.components
-```
-
-### Verification Harness
-```bash
-python -m jarvis.verification.run_harness \
-  --manifest-path jarvis/risk/THRESHOLD_MANIFEST.json \
-  --module-version 6.1.0 \
-  --runs-dir jarvis/verification/runs
-```
+### USP — Zeitfenster-Regler
+> Nutzer zieht Slider 1m → 1W → JARVIS wählt automatisch optimale Strategie
+> + berechnet Entry/Exit neu + Regime-Detection passt sich an.
+> Kein Konkurrent bietet das.
 
 ---
 
-## Globale Regime-Typen (aus jarvis/core/regime.py)
+## 🗺️ ENTWICKLUNGSREIHENFOLGE
 
-```python
-class GlobalRegimeState(Enum):
-    RISK_ON     # Normales Risk-On Umfeld
-    RISK_OFF    # Risk-Off Umfeld
-    CRISIS      # Krisen-Regime (75% CRISIS-Dampening auf exposure_weight)
-    TRANSITION  # Uebergangsphase
-    UNKNOWN     # Unbekannt
-
-class AssetClass(Enum):
-    EQUITY, FIXED_INCOME, COMMODITY, CRYPTO, FX
-
-class AssetRegimeState(Enum):
-    NORMAL, HIGH_VOLATILITY, SHOCK, RECOVERY
-
-class CorrelationRegimeState(Enum):
-    NORMAL, DECORRELATION, BREAKDOWN, CONVERGENCE
+### Backend ML-Layer (läuft gerade in Claude Code)
 ```
+Sprint 1: S06 FastPath + S07 DeepPath          ✅ Fertig (8127 Tests)
+Sprint 2: S08 Uncertainty + S09 Cal + S09.5    ⏳ Läuft
+Sprint 3: S10 OOD + S11 Quality Scorer         🔜
+Sprint 4: S12 Learning + S13 Degradation       🔜
+Sprint 5: S14 API Layer + S15 Validation       🔜  ← Brücke zum Frontend!
+```
+
+### Frontend Phasen (nach ML-Layer)
+```
+Phase 0  Landing Page + Warteliste      3 Tage
+Phase 1  FastAPI S14 + WebSocket        3 Wochen
+Phase 2  Auth + DB + Stripe             2 Wochen
+Phase 3  Charts + Signale + Radar       4 Wochen
+Phase 4  Paper Trading + Dashboard      3 Wochen
+Phase 5  PWA + Mobile (Capacitor)       2 Wochen
+Phase 6  Stripe Payments                1 Woche
+Phase 7  Beta Launch (50-100 User)      2 Wochen
+─────────────────────────────────────────────────
+GESAMT   ~17 Wochen (4 Monate)
+```
+
+### Produkt-Roadmap
+| Version | Zeitraum | Features |
+|---------|----------|---------|
+| v0.1 MVP | Monat 1-4 | Charts, Paper Trading, Signale, Free/Pro |
+| v0.2 Beta | Monat 5 | Community, Trade-Journal, Gamification |
+| v1.0 | Monat 6 | Enterprise, API, Mobile Apps im Store |
+| v1.1 | Monat 7-8 | Social Trading: Top-Trader folgen |
+| v1.2 | Monat 9-10 | Strategy Marketplace |
+| v1.3 | Monat 11-12 | Broker-Integration (read-only) |
+| v2.0 | Jahr 2 | AI-Coach: personalisierter Lernpfad |
 
 ---
 
-## Hash-Geschuetzte Konstanten (THRESHOLD_MANIFEST.json)
+## 📦 MARKTDATEN
 
-Diese Konstanten sind hash-geschuetzt und duerfen NIEMALS ohne Version-Bump und Manifest-Update geaendert werden:
-
-| Konstante | Wert | Bedeutung |
-|-----------|------|-----------|
-| MAX_DRAWDOWN_THRESHOLD | 0.15 | 15% - Hard Limit |
-| VOL_COMPRESSION_TRIGGER | 0.30 | 30% ann. Vol -> Risk Compression |
-| SHOCK_EXPOSURE_CAP | 0.25 | Max 25% Exposure (Clip C Floor) |
-
-**Fixe Literale (FAS DET-06, nicht parametrisierbar):**
-- VOL_ADJUSTMENT_CAP = 3.0
-- CRISIS_DAMPENING = 0.75
-- CLIP_B_FLOOR = 1e-6
+| Provider | Märkte | Kosten | Status |
+|----------|--------|--------|--------|
+| Binance WebSocket | Crypto (500+ Paare) | €0 | ✅ Sofort |
+| FRED API | Macro, Rates | €0 | ✅ Sofort |
+| Alpha Vantage | Forex, Stocks, Commodities | €0 (25 req/Tag) | MVP |
+| Twelve Data | Forex, Crypto | €0 (800 req/Tag) | Fallback |
+| Polygon.io | US Stocks Echtzeit | $29/Mo | Phase 2 |
 
 ---
 
-## Clip Chain Order (INV-07 - Reihenfolge darf NICHT geaendert werden)
+## 💰 FINANZPLANUNG
 
-```
-E_pre_clip = capital_base * vol_efficiency * uncertainty_penalty * regime_budget
-  | Clip A: compute_adaptive_position_size() (position_size_factor)
-  | Clip B: np.clip(E_pre_clip, 1e-6, 1.0) [IMMER, bedingungslos]
-  | Clip C: np.clip(E/JRM, SHOCK_EXPOSURE_CAP, 1.0) [nur wenn JRM aktiv]
-  | CRISIS Dampening: * 0.75 [nur wenn CRISIS Regime]
-  = exposure_weight (Output)
-```
+### MVP-Kosten: ~€159 einmalig
+| Posten | Kosten |
+|--------|--------|
+| Domain (jarvis-trader.app) | €15/Jahr |
+| Apple Developer Account | €99/Jahr |
+| Google Play Account | €25 einmalig |
+| Server, DB, APIs | €0 (Free Tiers) |
+
+### Break-Even: ~150 Pro-User = €4.350/Mo
+### Revenue-Ziele
+- Monat 12: €50k–€120k ARR (konservativ–realistisch)
+- Monat 24: €300k–€800k ARR
 
 ---
 
-## Tests ausfuehren
+## 🔒 SICHERHEIT & RECHTLICHES
 
-```bash
-# Alle Tests (7513 Tests)
-pytest
+### Security-Stack
+- Auth: Supabase JWT + Google/Apple SSO + 2FA
+- Transport: TLS 1.3 via Cloudflare
+- DDoS: Cloudflare Free
+- Rate Limiting: FastAPI Middleware
+- Verschlüsselung: AES-256 (Supabase)
+
+### Pflicht-Dokumente (vor Launch)
+- [ ] AGB / Terms of Service
+- [ ] Datenschutzerklärung (DSGVO)
+- [ ] Disclaimer: "Kein Anlageberater, keine Garantien, Paper Trading = Simulation"
+- [ ] Cookie-Richtlinie
+- [ ] Impressum (österreichisches Recht)
+- [ ] Subscription-AGB (Stripe Widerruf etc.)
+
+> Anwalt für AGB empfohlen: ~€500 einmalig
+
+---
+
+## 💻 BEFEHLE
+
+```powershell
+# Alle Tests
+python -m pytest --tb=short -q
 
 # Mit Coverage
-pytest --cov=jarvis --cov-report=term-missing
+COVERAGE_FILE=/tmp/.coverage python -m pytest --cov=jarvis --cov-report=term-missing -q
 
-# Einzelner Test
-pytest tests/test_pipeline_contract.py -v
+# DVH
+python -m jarvis.verification.run_harness --manifest-path jarvis/risk/THRESHOLD_MANIFEST.json --module-version 6.1.0 --runs-dir jarvis/verification/runs
 
-# Mutation Tests (dauert laenger)
-cd mutants && mutmut run
+# Git
+git add -A && git commit -m "message" && git push origin master
 
-# CI Check Script
-python scripts/run_ci_checks.py
+# Windows Permissions (Admin PowerShell)
+takeown /F "C:\Project\JARVIS" /R /D J
+icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 ```
 
 ---
 
-## Governance Rules (GOV-01 bis GOV-06)
+## ⚙️ BEKANNTE WORKAROUNDS
 
-| Regel | Feld | Constraint |
-|-------|------|-----------|
-| GOV-01 | meta_uncertainty | Muss in [0.0, 1.0] liegen |
-| GOV-02 | initial_capital | Muss strikt positiv (> 0.0) sein |
-| GOV-03 | window | Muss Integer und >= 20 sein |
-| GOV-04 | step | Muss Integer und >= 1, <= window sein |
-| GOV-05 | regime | Muss GlobalRegimeState Instanz sein |
-| GOV-06 | CRISIS + meta | CRISIS ist valides Regime; meta=0.1 ist legitim |
+| Problem | Lösung |
+|---------|--------|
+| Coverage Permission Error | `COVERAGE_FILE=/tmp/.coverage python -m pytest ...` |
+| Git Line Endings | `.gitattributes`: LF für Python, CRLF für .bat/.cmd |
+| numpy in Intelligence Layer | Verboten (DVH) — stdlib-only |
+| `datetime.utcnow()` deprecated | `datetime.now(timezone.utc)` |
 
 ---
 
-## Vollstaendig implementierte Module
-
-### Tier 1 - Stable Core (FREEZE)
-- core/regime.py - Regime Enums (GlobalRegimeState, AssetClass, AssetRegimeState, CorrelationRegimeState, HierarchicalRegime)
-- core/regime_detector.py - HMM-basierter Regime Detector
-- core/state_layer.py - LatentState
-- core/state_estimator.py - StateEstimator
-- core/volatility_tracker.py - EWMA Volatility Tracker
-- core/data_layer.py - OHLCV, MarketData, EnhancedMarketData, DataCache
-- core/feature_layer.py - FeatureLayer, FeatureDriftMonitor
-- core/integrity_layer.py - Hash-Chain Validierung
-- core/risk_layer/ - Risk Layer Subdomain (domain, engine, evaluator, exceptions, sizing)
-- risk/risk_engine.py - RiskEngine v6.1.0 (FREEZE)
-- utils/constants.py - JOINT_RISK_MULTIPLIER_TABLE + Plattform-Konstanten
-- portfolio/portfolio_allocator.py - allocate_positions()
-- execution/exposure_router.py - route_exposure_to_positions()
-
-### Tier 2 - Governance + Orchestration
-- governance/policy_validator.py - validate_pipeline_config() GOV-01..GOV-06
-- governance/backtest_governance.py - BacktestGovernanceEngine, OverfittingReport
-- governance/model_registry.py - Model registry
-- governance/performance_certification.py - Performance certification
-- governance/threshold_guardian.py - Threshold guardian
-- orchestrator/pipeline.py - run_full_pipeline() v1.2.1
-
-### Tier 3 - External Layers (ehemals Scaffolds - ALLE IMPLEMENTIERT)
-- metrics/engine.py - compute_metrics(), sharpe_ratio, max_drawdown, calmar_ratio, regime_conditional_returns
-- metrics/ece_calculator.py - ECEResult, compute_ece, compute_ece_scalar
-- metrics/fragility_index.py - FragilityAssessment, StructuralFragilityIndex
-- metrics/trust_score.py - TrustScoreEngine, TrustScoreResult
-- strategy/engine.py - momentum_signal, mean_reversion_signal, combine_signals, run_strategy()
-- strategy/signal_fragility_analyzer.py - SignalFragilityAnalyzer (< 30ms/eval)
-- strategy/adaptive_strategy.py - Adaptive strategy
-- selection/engine.py - rank_candidates, filter_by_threshold, select_top_n, run_selection()
-- optimization/engine.py - run_optimization() (Kartesisches Produkt)
-- robustness/engine.py - evaluate_robustness()
-- report/engine.py - generate_report(), generate_enriched_report(), ReportResult
-- walkforward/engine.py - generate_windows(), generate_trading_windows(), run_walkforward()
-
-### Tier 4 - Backtest + Simulation
-- backtest/engine.py - run_backtest() + slippage_model Integration
-- backtest/multi_asset_engine.py - run_multi_asset_backtest(), run_multi_asset_walkforward()
-- simulation/strategy_lab.py - StrategyLab, SlippageModel, MonteCarloResult, StressTestResult
-- simulation/stress_scenarios.py - StressScenarioPreset, RegimeAwareScenario, run_regime_aware_stress_test(), SCENARIO_REGISTRY, REGIME_AWARE_REGISTRY
-
-### Tier 5 - Intelligence (MA-1..MA-4)
-- intelligence/ood_engine.py - AssetConditionalOOD (5-Sensor Majority Voting mit FeatureDrift)
-- intelligence/ood_config.py - AssetOODConfig, SENSOR_DETECTION_THRESHOLD, OOD_CONSENSUS_MINIMUM
-- intelligence/decision_quality_engine.py - DecisionQualityEngine (< 20ms/cycle)
-- intelligence/regime_duration_model.py - RegimeDurationModel
-- intelligence/bayesian_confidence.py - Bayesian confidence
-- intelligence/correlation_regime.py - Correlation regime detection
-- intelligence/cross_asset_layer.py - Cross-asset intelligence
-- intelligence/epistemic_uncertainty.py - Epistemic uncertainty
-- intelligence/global_regime.py - Global regime detection
-- intelligence/asset_regimes.py - Asset regime detection
-- intelligence/liquidity_layer.py - Liquidity analysis
-- intelligence/macro_layer.py - Macro event layer
-- intelligence/microstructure_layer.py - Microstructure analysis
-- intelligence/multi_broker_layer.py - Multi-broker layer
-- intelligence/news_layer.py - News event layer
-- intelligence/regime_memory.py - Regime memory
-- intelligence/regime_transition.py - Regime transition
-- intelligence/volatility_markov.py - Volatility Markov model
-- intelligence/weight_posterior.py - Weight posterior
-
-### Tier 6 - Decision Quality + Systems (Phase 3)
-- confidence/adaptive_selectivity_model.py - AdaptiveSelectivityModel
-- confidence/failure_impact.py - Failure impact analysis
-- core/decision_context_state.py - DecisionContextState (frozen dataclass)
-- core/system_mode.py - SystemMode Enum + GlobalSystemStateController
-- core/trading_calendar.py - is_trading_day(), NYSE/CME/EUREX Holiday-Listen (DET-06 Tuples)
-- systems/control_flow.py - Control flow management
-- systems/mode_controller.py - Mode controller
-- systems/reproducibility.py - Reproducibility guarantees
-- systems/validation_gates.py - Validation gates
-- models/calibration.py - Model calibration
-- learning/deterministic_learning.py - Deterministic learning
-- research/ - Feature pipeline, overfitting detector, sandbox runner, scenario sandbox
-- chart/ - Chart contract, chart data builder
-
-### Verification (DVH v1.0.0)
-- verification/ - Deterministic Verification Harness (run_harness, manifest_validator, input_vector_generator, execution_recorder, replay_engine, bit_comparator, clip_verifier, failure_handler, ci_dvh_gate)
-
-### Integration Tests
-- tests/integration/test_full_flow.py - 41 Tests, 2 Szenarien, Determinismus-Verifikation
-- tests/integration/test_e2e_fas_pipeline.py - End-to-end FAS pipeline
-
----
-
-## Entwicklungs-Workflow
-
-### Bei neuer Feature-Implementierung:
-1. FAS-Abschnitt lesen (JARVIS_FAS_v6_0_1_Phase6A.txt, relevante .docx Dateien)
-2. Import-Regeln pruefen (DAG oben)
-3. Determinismus-Garantien einhalten (DET-01 bis DET-07)
-4. PROHIBITED-Aktionen vermeiden
-5. Kanonische Funktionen importieren, NICHT reimplementieren
-6. Tests schreiben BEVOR Implementation (Test-First)
-7. pytest ausfuehren -> alle 7513+ Tests muessen gruen sein
-
-### Bei Aenderungen an Stable Core Layern (FREEZE):
-Diese duerfen NUR mit:
-- Version-Bump (CONTRACT-01)
-- Migration-Dokument fuer Konstanten-Aenderungen (CONTRACT-02)
-- Backward-compatible Signaturen (CONTRACT-03)
-- Audit aller Call-Sites bei Enum-Aenderungen (CONTRACT-04/05)
-- Vollstaendigem FAS-Revision bei Arithmetik-Aenderungen (CONTRACT-06)
-- Vollstaendigem FAS-Revision bei Clip Chain Aenderungen (CONTRACT-07)
-
-### Delegation-Regel:
-Wenn eine Berechnung in einem anderen Modul liegt: IMPORTIEREN und DELEGIEREN.
-**Niemals reimplementieren**, auch nicht als Einzeiler.
-
----
-
-## Wichtige Code-Muster
-
-### Richtig: Kanonische Funktion importieren
-```python
-# RICHTIG
-from jarvis.portfolio.portfolio_allocator import allocate_positions
-positions = allocate_positions(total_capital, exposure_fraction, asset_prices)
-
-# FALSCH - Reimplementierung verboten!
-allocated = total_capital * exposure_fraction
-```
-
-### Richtig: Regime-Vergleich mit Enum
-```python
-# RICHTIG
-from jarvis.core.regime import GlobalRegimeState
-if regime == GlobalRegimeState.CRISIS:
-    ...
-
-# FALSCH - String-Vergleich verboten!
-if regime == "CRISIS":
-    ...
-```
-
-### Richtig: Fresh Instanz pro Call (DET-02)
-```python
-# RICHTIG - Fresh per Call
-engine = RiskEngine()
-result = engine.assess(...)
-
-# FALSCH - Keine gecachten Instanzen!
-_cached_engine = RiskEngine()  # Globaler State verboten
-```
-
----
-
-## Verifikation nach Implementierung
-
-Nach jeder neuen Implementierung:
-```bash
-# 1. Tests laufen lassen
-pytest -v
-
-# 2. Coverage pruefen (Ziel: > 80%)
-pytest --cov=jarvis --cov-report=term-missing
-
-# 3. DVH laufen lassen (Determinismus pruefen)
-python -m jarvis.verification.run_harness \
-  --manifest-path jarvis/risk/THRESHOLD_MANIFEST.json \
-  --module-version 6.1.0 \
-  --runs-dir jarvis/verification/runs
-
-# 4. Quick Import Check
-python -c "from jarvis.risk.risk_engine import RiskEngine; print('OK')"
-```
-
----
-
-## Wichtigste FAS-Dokumente
+## 📂 WICHTIGE DATEIEN
 
 | Datei | Inhalt |
 |-------|--------|
-| `FAS/JARVIS_FAS_v6_0_1_Phase6A.txt` | Vollstaendige System-FAS (Hauptdokument, 500k+ Zeichen) |
-| `FAS/FAS_v6_1_0_Risk_Engine.docx` | Risk Engine Spezifikation (FREEZE) |
-| `FAS/DVH_Architecture_Risk_Engine_v6_1_0.docx` | Verification Harness Architektur |
-| `FAS/DVH_Implementation_Blueprint_Risk_Engine_v6_1_0.docx` | DVH Implementierungs-Blueprint |
-| `FAS/MASTER_FAS_v6_1_0_G_Governance_Integration.docx` | Governance Integration |
-| `docs/governance/MASTER_FAS_v6_1_0.docx` | Master FAS |
-| `jarvis/ARCHITECTURE.md` | Architektur-Spezifikation (Section 1-10) |
+| `CLAUDE.md` | Diese Datei |
+| `README.md` | Öffentliche Projektdoku |
+| `IMPLEMENTATION_STATUS.md` | FAS-Compliance-Tracking |
+| `FAS/JARVIS_FAS_v6_0_1_Phase6A...` | Vollständige Spezifikation |
+| `FAS/FAS_frontend.txt` | Frontend-Spezifikation (JARVIS-Trader) |
+| `jarvis/verification/` | DVH-Harness + Runs |
+| `jarvis/risk/THRESHOLD_MANIFEST.json` | Hash-geschützte Schwellwerte |
+| `.gitattributes` | LF-Enforcement |
+| `.gitignore` | incl. `FAS/*API*Key*`, `.coverage*` |
 
 ---
 
-*Projekt-Version: MASP v6.2.0 | Harness: 1.0.0 | Tests: 7513 | Status: ALLE MODULE IMPLEMENTIERT*
+## 🔜 NÄCHSTE SCHRITTE
+
+### Jetzt (Claude Code) — Sprint 2:
+```
+Starte Sprint 2: Implementiere S08 Uncertainty Layer (jarvis/models/uncertainty.py),
+S09 Calibration Extension (calibration.py erweitern) und
+S09.5 AutoRecalibrator (jarvis/models/auto_recalibrator.py)
+sequentiell nach FAS. Mit allen Tests.
+Nach Abschluss: pytest full suite + IMPLEMENTATION_STATUS.md aktualisieren.
+```
+
+### Nach ML-Layer abgeschlossen — S14 Frontend-Brücke:
+```
+Implementiere jarvis/api/routes.py, jarvis/api/models.py und jarvis/api/ws.py
+als FastAPI-Layer über JARVIS nach FAS S14 mit allen Tests.
+```
+
+### Sofort-Aktionen (parallel, ohne Code):
+1. Domain registrieren: jarvis-trader.app (~€15)
+2. Supabase Account erstellen: supabase.com (kostenlos)
+3. Railway Account: railway.app (kostenlos)
+4. Stripe Account: stripe.com
+5. Landing Page: Framer.com + Warteliste
+
+---
+
+*CLAUDE.md zuletzt aktualisiert: März 2026 | JARVIS v6.2.0 + JARVIS-Trader Vision*
+*Quellen: FAS v6.0.1, FAS_frontend.txt, ChatGPT Masterplan, Session-Protokoll*
