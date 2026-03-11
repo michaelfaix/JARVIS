@@ -50,7 +50,10 @@ from jarvis.core.regime import (
 )
 from jarvis.intelligence.ood_config import (
     AssetOODConfig,
+    FEATURE_DRIFT_OOD_WEIGHT,
+    OOD_CONSENSUS_MINIMUM,
     REGIME_OOD_WEIGHT,
+    SENSOR_DETECTION_THRESHOLD,
     classify_severity,
     get_ood_config,
 )
@@ -69,11 +72,15 @@ class OODComponentScores:
         event: Price-action event score [0, 1].
         macro: Macro event sensitivity score [0, 1].
         regime: Regime transition score [0, 1].
+        feature_drift: Feature distribution drift score [0, 1].
+            Defaults to 0.0 for backward compatibility when
+            FeatureDriftMonitor is not wired.
     """
     distribution: float
     event: float
     macro: float
     regime: float
+    feature_drift: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -183,8 +190,16 @@ class AssetConditionalOOD:
         liquidity_score: float,
         macro_event_scores: Dict[str, float],
         regime: HierarchicalRegime,
+        drift_score: Optional[float] = None,
     ) -> OODResult:
         """Detect OOD condition for a specific asset class.
+
+        When drift_score is None (default), uses the original 4-sensor
+        weighted-sum logic for full backward compatibility.
+
+        When drift_score is provided, activates 5-sensor majority voting:
+        each sensor votes OOD if its score > SENSOR_DETECTION_THRESHOLD,
+        and is_ood = True when >= OOD_CONSENSUS_MINIMUM (3) sensors vote OOD.
 
         Args:
             asset_class: Asset class to evaluate.
@@ -199,6 +214,9 @@ class AssetConditionalOOD:
             macro_event_scores: Dict mapping event type -> importance [0, 1].
                 Only include upcoming/active events. Empty dict = no events.
             regime: Current HierarchicalRegime for regime OOD detection.
+            drift_score: Optional feature drift score [0, 1] from
+                FeatureDriftMonitor.detect_drift().severity.
+                When provided, enables 5-sensor majority voting.
 
         Returns:
             OODResult with is_ood decision, score, severity, and components.
@@ -220,16 +238,31 @@ class AssetConditionalOOD:
         # 4. Regime OOD (regime transitions)
         regime_ood = self._regime_ood(regime, asset_class)
 
-        # Combine with asset-specific weighting
+        # 5. Feature drift OOD (optional)
+        drift_ood = _clip(drift_score, 0.0, 1.0) if drift_score is not None else 0.0
+
+        # Combine with asset-specific weighting (score always includes all)
         total_ood = (
             config.distribution_weight * dist_ood
             + config.event_weight * event_ood
             + config.macro_weight * macro_ood
             + REGIME_OOD_WEIGHT * regime_ood
+            + FEATURE_DRIFT_OOD_WEIGHT * drift_ood
         )
         total_ood = _clip(total_ood, 0.0, 1.0)
 
-        is_ood = total_ood > config.ood_threshold
+        # OOD decision: majority voting (5-sensor) or threshold (4-sensor)
+        if drift_score is not None:
+            # 5-sensor majority voting: >= OOD_CONSENSUS_MINIMUM votes
+            votes = sum(
+                1 for s in (dist_ood, event_ood, macro_ood, regime_ood, drift_ood)
+                if s > SENSOR_DETECTION_THRESHOLD
+            )
+            is_ood = votes >= OOD_CONSENSUS_MINIMUM
+        else:
+            # Backward-compatible: 4-sensor weighted-sum threshold
+            is_ood = total_ood > config.ood_threshold
+
         severity = classify_severity(total_ood)
 
         components = OODComponentScores(
@@ -237,6 +270,7 @@ class AssetConditionalOOD:
             event=round(event_ood, 8),
             macro=round(macro_ood, 8),
             regime=round(regime_ood, 8),
+            feature_drift=round(drift_ood, 8),
         )
 
         # Deterministic hash
@@ -249,6 +283,7 @@ class AssetConditionalOOD:
             "event": components.event,
             "macro": components.macro,
             "regime": components.regime,
+            "feature_drift": components.feature_drift,
         }
         result_hash = hashlib.sha256(
             json.dumps(payload, sort_keys=True).encode("utf-8")

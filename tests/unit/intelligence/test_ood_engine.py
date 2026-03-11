@@ -17,6 +17,9 @@ from jarvis.core.regime import (
     HierarchicalRegime,
 )
 from jarvis.intelligence.ood_config import (
+    FEATURE_DRIFT_OOD_WEIGHT,
+    OOD_CONSENSUS_MINIMUM,
+    SENSOR_DETECTION_THRESHOLD,
     SEVERITY_CRITICAL,
     SEVERITY_HIGH,
     SEVERITY_MEDIUM,
@@ -560,6 +563,228 @@ class TestEdgeCases:
 # PACKAGE IMPORT
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# FEATURE DRIFT (5th SENSOR) — BACKWARD COMPATIBILITY
+# ---------------------------------------------------------------------------
+
+class TestFeatureDriftBackwardCompat:
+    """drift_score=None preserves original 4-sensor behavior exactly."""
+
+    def test_no_drift_score_default(self):
+        """Omitting drift_score gives feature_drift=0.0 in components."""
+        r = _detect()
+        assert r.components.feature_drift == 0.0
+
+    def test_no_drift_score_uses_threshold_logic(self):
+        """Without drift_score, is_ood uses weighted-sum threshold (not voting)."""
+        # Calm market: 4-sensor weighted sum < threshold -> not OOD
+        r = _detect(asset_class=AssetClass.CRYPTO)
+        assert r.is_ood is False
+
+    def test_explicit_none_same_as_omitted(self):
+        r1 = _detect()
+        r2 = _detect(drift_score=None)
+        assert r1.score == r2.score
+        assert r1.is_ood == r2.is_ood
+        assert r1.result_hash == r2.result_hash
+
+    def test_component_scores_still_4_field_constructible(self):
+        """OODComponentScores can still be built with 4 args (default drift)."""
+        c = OODComponentScores(distribution=0.1, event=0.2, macro=0.3, regime=0.4)
+        assert c.feature_drift == 0.0
+
+
+# ---------------------------------------------------------------------------
+# FEATURE DRIFT (5th SENSOR) — INTEGRATION
+# ---------------------------------------------------------------------------
+
+class TestFeatureDriftSensor:
+    """Tests for drift_score as 5th OOD sensor."""
+
+    def test_drift_score_stored_in_components(self):
+        r = _detect(drift_score=0.7)
+        assert r.components.feature_drift == 0.7
+
+    def test_drift_score_zero(self):
+        r = _detect(drift_score=0.0)
+        assert r.components.feature_drift == 0.0
+
+    def test_drift_score_one(self):
+        r = _detect(drift_score=1.0)
+        assert r.components.feature_drift == 1.0
+
+    def test_drift_score_clamped_above(self):
+        r = _detect(drift_score=1.5)
+        assert r.components.feature_drift == 1.0
+
+    def test_drift_score_clamped_below(self):
+        r = _detect(drift_score=-0.3)
+        assert r.components.feature_drift == 0.0
+
+    def test_drift_increases_total_score(self):
+        r_no = _detect(drift_score=None)
+        r_hi = _detect(drift_score=0.9)
+        assert r_hi.score > r_no.score
+
+    def test_drift_score_in_hash_payload(self):
+        """Different drift scores produce different hashes."""
+        r1 = _detect(drift_score=0.0)
+        r2 = _detect(drift_score=0.9)
+        assert r1.result_hash != r2.result_hash
+
+    def test_drift_score_deterministic(self):
+        r1 = _detect(drift_score=0.42)
+        r2 = _detect(drift_score=0.42)
+        assert r1.score == r2.score
+        assert r1.result_hash == r2.result_hash
+        assert r1.components.feature_drift == r2.components.feature_drift
+
+
+# ---------------------------------------------------------------------------
+# MAJORITY VOTING (>= 3/5 CONSENSUS)
+# ---------------------------------------------------------------------------
+
+def _detect_with_drift(drift_score: float = 0.0, **overrides):
+    """Helper that always passes drift_score to activate 5-sensor voting."""
+    return _detect(drift_score=drift_score, **overrides)
+
+
+class TestMajorityVoting:
+    """5-sensor majority voting with SENSOR_DETECTION_THRESHOLD=0.5, consensus=3."""
+
+    def test_consensus_minimum_is_3(self):
+        assert OOD_CONSENSUS_MINIMUM == 3
+
+    def test_sensor_threshold_is_0_5(self):
+        assert SENSOR_DETECTION_THRESHOLD == 0.5
+
+    def test_all_calm_no_ood(self):
+        """0/5 sensors above threshold -> not OOD."""
+        r = _detect_with_drift(drift_score=0.0)
+        assert r.is_ood is False
+
+    def test_only_drift_high_not_ood(self):
+        """1/5 sensor (drift only) above threshold -> not OOD."""
+        r = _detect_with_drift(drift_score=0.9)
+        assert r.is_ood is False
+
+    def test_two_sensors_not_ood(self):
+        """2/5 sensors above threshold -> not OOD."""
+        # drift=0.9 (>0.5), regime=1.0 via CRISIS (>0.5), rest calm
+        r = _detect_with_drift(
+            drift_score=0.9,
+            regime=_make_regime(global_regime=GlobalRegimeState.CRISIS),
+            # distribution=0.0, event low, macro=0.0
+        )
+        # regime_ood=1.0 (>0.5), drift_ood=0.9 (>0.5) = 2 votes
+        # dist=0.0 (<0.5), event=low because return is small, macro=0.0
+        assert r.is_ood is False
+
+    def test_three_sensors_is_ood(self):
+        """3/5 sensors above threshold -> OOD (majority)."""
+        r = _detect_with_drift(
+            drift_score=0.9,
+            regime=_make_regime(global_regime=GlobalRegimeState.CRISIS),
+            macro_event_scores={"credit_event": 1.0},
+            # distribution still 0.0, event depends on return
+        )
+        # regime=1.0(>0.5), drift=0.9(>0.5), macro=0.7(>0.5) = 3 votes
+        assert r.is_ood is True
+
+    def test_four_sensors_is_ood(self):
+        """4/5 sensors -> OOD."""
+        r = _detect_with_drift(
+            drift_score=0.9,
+            regime=_make_regime(global_regime=GlobalRegimeState.CRISIS),
+            macro_event_scores={"credit_event": 1.0},
+            recent_return=-0.30,
+            current_volatility=1.0,
+            historical_volatility=0.1,
+            liquidity_score=0.0,
+        )
+        # regime(1.0), drift(0.9), macro(high), event(high) = 4 votes
+        assert r.is_ood is True
+
+    def test_five_sensors_is_ood(self):
+        """5/5 sensors (all extreme) -> OOD."""
+        r = _detect_with_drift(
+            asset_class=AssetClass.CRYPTO,
+            drift_score=0.9,
+            regime=_make_regime(global_regime=GlobalRegimeState.CRISIS),
+            macro_event_scores={"credit_event": 1.0},
+            recent_return=-0.30,
+            current_volatility=1.0,
+            historical_volatility=0.1,
+            liquidity_score=0.0,
+            features=[10.0] * 99,
+        )
+        assert r.is_ood is True
+        assert r.severity in (SEVERITY_CRITICAL, SEVERITY_HIGH)
+
+    def test_voting_ignores_weighted_threshold(self):
+        """With drift_score, is_ood uses voting, NOT config.ood_threshold."""
+        # High total score but only 1 sensor above threshold
+        r = _detect_with_drift(
+            asset_class=AssetClass.FOREX,  # threshold=0.5
+            drift_score=0.0,
+            # Only event sensor fires (big return for FX)
+            recent_return=-0.10,
+        )
+        # event is high but only 1/5 votes
+        assert r.is_ood is False
+
+    def test_majority_exact_boundary(self):
+        """Exactly 3 votes -> OOD (>= 3, not > 3)."""
+        # Need exactly 3 sensors > 0.5
+        r = _detect_with_drift(
+            asset_class=AssetClass.CRYPTO,
+            drift_score=0.9,                   # sensor 5: >0.5
+            regime=_make_regime(
+                global_regime=GlobalRegimeState.CRISIS,  # sensor 4: 1.0
+            ),
+            macro_event_scores={"credit_event": 1.0},   # sensor 3: 0.7
+        )
+        assert r.is_ood is True
+
+
+# ---------------------------------------------------------------------------
+# FEATURE DRIFT WEIGHT IN SCORE
+# ---------------------------------------------------------------------------
+
+class TestFeatureDriftWeight:
+    """FEATURE_DRIFT_OOD_WEIGHT contributes to total score."""
+
+    def test_weight_is_positive(self):
+        assert FEATURE_DRIFT_OOD_WEIGHT > 0.0
+
+    def test_weight_value(self):
+        assert FEATURE_DRIFT_OOD_WEIGHT == 0.2
+
+    def test_drift_contributes_to_score(self):
+        r0 = _detect(drift_score=0.0)
+        r1 = _detect(drift_score=1.0)
+        expected_diff = FEATURE_DRIFT_OOD_WEIGHT * 1.0
+        actual_diff = r1.score - r0.score
+        assert abs(actual_diff - expected_diff) < 1e-6
+
+    def test_score_still_clipped_to_1(self):
+        r = _detect_with_drift(
+            drift_score=1.0,
+            features=[10.0] * 99,
+            recent_return=-0.50,
+            current_volatility=2.0,
+            historical_volatility=0.1,
+            liquidity_score=0.0,
+            macro_event_scores={"credit_event": 1.0},
+            regime=_make_regime(global_regime=GlobalRegimeState.CRISIS),
+        )
+        assert r.score <= 1.0
+
+
+# ---------------------------------------------------------------------------
+# PACKAGE IMPORT
+# ---------------------------------------------------------------------------
+
 class TestPackageImport:
     def test_import_all(self):
         from jarvis.intelligence.ood_engine import (
@@ -570,3 +795,7 @@ class TestPackageImport:
         assert AssetConditionalOOD is not None
         assert OODResult is not None
         assert OODComponentScores is not None
+
+    def test_import_config_drift_weight(self):
+        from jarvis.intelligence.ood_config import FEATURE_DRIFT_OOD_WEIGHT
+        assert isinstance(FEATURE_DRIFT_OOD_WEIGHT, float)

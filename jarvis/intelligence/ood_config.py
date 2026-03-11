@@ -63,6 +63,9 @@ OOD_CONSENSUS_MINIMUM: int = 3
 # Regime OOD weight (fixed across all asset classes)
 REGIME_OOD_WEIGHT: float = 0.1
 
+# Feature drift OOD weight (fixed across all asset classes)
+FEATURE_DRIFT_OOD_WEIGHT: float = 0.2
+
 # Macro event types (FAS canonical list)
 MACRO_EVENT_TYPES: Tuple[str, ...] = (
     "fed_meeting",
