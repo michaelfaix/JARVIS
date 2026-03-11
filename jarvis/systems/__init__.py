@@ -34,6 +34,20 @@ from .reproducibility import (
     ReproducibilityController,
 )
 
+from .quality_scorer import (
+    QUALITY_WEIGHTS,
+    STABILITY_WINDOW,
+    QUALITY_FLOOR,
+    QUALITY_CEILING,
+    QualityScore,
+    QualityScorer,
+    calibration_score,
+    confidence_score,
+    stability_score,
+    data_quality_score,
+    regime_score,
+)
+
 __all__ = [
     "ControlSignal",
     "FlowState",
@@ -59,4 +73,15 @@ __all__ = [
     "TOLERANCE_FLOAT_COMPARE",
     "ReproducibilityResult",
     "ReproducibilityController",
+    "QUALITY_WEIGHTS",
+    "STABILITY_WINDOW",
+    "QUALITY_FLOOR",
+    "QUALITY_CEILING",
+    "QualityScore",
+    "QualityScorer",
+    "calibration_score",
+    "confidence_score",
+    "stability_score",
+    "data_quality_score",
+    "regime_score",
 ]
