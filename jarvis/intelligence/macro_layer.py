@@ -1,7 +1,7 @@
 # =============================================================================
 # JARVIS v6.1.0 -- MACRO SENSITIVITY LAYER
 # File:   jarvis/intelligence/macro_layer.py
-# Version: 1.0.0
+# Version: 1.1.0
 # Session: S23
 # =============================================================================
 #
@@ -24,6 +24,7 @@
 #
 # PROHIBITED ACTIONS CONFIRMED ABSENT
 # ------------------------------------
+#   No numpy / scipy
 #   No logging module
 #   No datetime.now() / time.time()
 #   No random / secrets / uuid
@@ -33,12 +34,50 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import Dict, List
 
-import numpy as np
-
 from jarvis.core.regime import MacroRegimeState
+
+
+# ---------------------------------------------------------------------------
+# HELPERS (stdlib-only replacements for numpy operations)
+# ---------------------------------------------------------------------------
+
+def _mean(values: List[float]) -> float:
+    return sum(values) / len(values)
+
+
+def _var(values: List[float]) -> float:
+    """Population variance (ddof=0), matching numpy.var default."""
+    n = len(values)
+    if n < 1:
+        return 0.0
+    m = _mean(values)
+    return sum((x - m) ** 2 for x in values) / n
+
+
+def _cov(xs: List[float], ys: List[float]) -> float:
+    """Sample covariance (ddof=1), matching numpy.cov default."""
+    n = len(xs)
+    if n < 2:
+        return 0.0
+    mx = _mean(xs)
+    my = _mean(ys)
+    return sum((x - mx) * (y - my) for x, y in zip(xs, ys)) / (n - 1)
+
+
+def _clip(value: float, lo: float, hi: float) -> float:
+    if value < lo:
+        return lo
+    if value > hi:
+        return hi
+    return value
+
+
+def _all_finite(values: List[float]) -> bool:
+    return all(math.isfinite(x) for x in values)
 
 
 # ---------------------------------------------------------------------------
@@ -91,27 +130,29 @@ class MacroSensitivityLayer:
         if len(asset_returns) < window:
             raise ValueError(f"Mindestens {window} Asset-Returns erforderlich")
 
-        target = np.array(asset_returns[-window:])
-        if not np.all(np.isfinite(target)):
+        target = asset_returns[-window:]
+        if not _all_finite(target):
             raise ValueError("Asset returns enthalten NaN/Inf")
 
         betas: Dict[str, float] = {}
         for factor_name, f_returns in factor_returns.items():
-            f_arr = np.array(f_returns[-window:])
-            if len(f_arr) < window or not np.all(np.isfinite(f_arr)):
+            f_slice = f_returns[-window:]
+            if len(f_slice) < window or not _all_finite(f_slice):
                 betas[factor_name] = 0.0
                 continue
             # Einfache OLS-Beta: Cov(y,x)/Var(x)
-            cov    = float(np.cov(target, f_arr)[0, 1])
-            var_x  = float(np.var(f_arr))
-            beta   = cov / max(var_x, 1e-12)
-            betas[factor_name] = float(np.clip(beta, -5.0, 5.0))
+            cov   = _cov(target, f_slice)
+            var_x = _var(f_slice)
+            beta  = cov / max(var_x, 1e-12)
+            betas[factor_name] = _clip(beta, -5.0, 5.0)
 
         # Makro-Risiko-Score: L2-Norm der Betas normalisiert
-        beta_arr = np.array(list(betas.values()))
-        macro_score = float(np.clip(
-            np.sqrt(np.sum(beta_arr ** 2)) / max(len(betas), 1), 0.0, 1.0
-        ))
+        beta_values = list(betas.values())
+        if beta_values:
+            l2 = math.sqrt(sum(b ** 2 for b in beta_values))
+            macro_score = _clip(l2 / max(len(betas), 1), 0.0, 1.0)
+        else:
+            macro_score = 0.0
 
         # Dominanter Faktor
         dominant = max(betas, key=lambda k: abs(betas[k])) if betas else "NONE"

@@ -1,7 +1,7 @@
 # =============================================================================
 # JARVIS v6.1.0 -- MARKET MICROSTRUCTURE LAYER
 # File:   jarvis/intelligence/microstructure_layer.py
-# Version: 1.0.0
+# Version: 1.1.0
 # Session: S19
 # =============================================================================
 #
@@ -27,6 +27,7 @@
 #
 # PROHIBITED ACTIONS CONFIRMED ABSENT
 # ------------------------------------
+#   No numpy / scipy
 #   No logging module
 #   No datetime.now() / time.time()
 #   No random / secrets / uuid
@@ -36,10 +37,38 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import List, Optional
 
-import numpy as np
+
+# ---------------------------------------------------------------------------
+# HELPERS (stdlib-only replacements for numpy operations)
+# ---------------------------------------------------------------------------
+
+def _clip(value: float, lo: float, hi: float) -> float:
+    if value < lo:
+        return lo
+    if value > hi:
+        return hi
+    return value
+
+
+def _mean(values: List[float]) -> float:
+    return sum(values) / len(values)
+
+
+def _std(values: List[float]) -> float:
+    """Population standard deviation (ddof=0)."""
+    n = len(values)
+    if n < 2:
+        return 0.0
+    m = _mean(values)
+    return math.sqrt(sum((x - m) ** 2 for x in values) / n)
+
+
+def _all_finite(values: List[float]) -> bool:
+    return all(math.isfinite(x) for x in values)
 
 
 # ---------------------------------------------------------------------------
@@ -103,15 +132,15 @@ class MarketMicrostructureLayer:
         if levels < 1:
             raise ValueError("Keine Order-Book-Levels fuer OFI-Berechnung")
 
-        bid_vol = float(np.sum(bid_volumes[:levels]))
-        ask_vol = float(np.sum(ask_volumes[:levels]))
+        bid_vol = sum(bid_volumes[:levels])
+        ask_vol = sum(ask_volumes[:levels])
         total   = bid_vol + ask_vol
 
         if total < 1e-10:
             return 0.0
 
         ofi = (bid_vol - ask_vol) / total
-        return float(np.clip(ofi, -1.0, 1.0))
+        return _clip(ofi, -1.0, 1.0)
 
     def compute_bid_ask_pressure(
         self,
@@ -127,17 +156,18 @@ class MarketMicrostructureLayer:
             return 0.5
 
         # Gewichte: Level 1 (best) hat hoechstes Gewicht
-        weights = np.array([1.0 / (i + 1) for i in range(levels)])
-        weights /= weights.sum()
+        raw_weights = [1.0 / (i + 1) for i in range(levels)]
+        w_sum = sum(raw_weights)
+        weights = [w / w_sum for w in raw_weights]
 
-        bid_weighted = float(np.sum(weights * np.array(snapshot.bid_volumes[:levels])))
-        ask_weighted = float(np.sum(weights * np.array(snapshot.ask_volumes[:levels])))
+        bid_weighted = sum(w * v for w, v in zip(weights, snapshot.bid_volumes[:levels]))
+        ask_weighted = sum(w * v for w, v in zip(weights, snapshot.ask_volumes[:levels]))
         total = bid_weighted + ask_weighted
 
         if total < 1e-10:
             return 0.5
 
-        return float(np.clip(bid_weighted / total, 0.0, 1.0))
+        return _clip(bid_weighted / total, 0.0, 1.0)
 
     def detect_liquidity_absorption(
         self,
@@ -152,21 +182,21 @@ class MarketMicrostructureLayer:
         if len(price_changes) < window or len(volume_changes) < window:
             raise ValueError(f"Mindestens {window} Ticks fuer Absorptions-Analyse")
 
-        price_arr  = np.array(price_changes[-window:], dtype=float)
-        volume_arr = np.array(volume_changes[-window:], dtype=float)
+        price_slice  = price_changes[-window:]
+        volume_slice = volume_changes[-window:]
 
-        if not np.all(np.isfinite(price_arr)) or not np.all(np.isfinite(volume_arr)):
+        if not _all_finite(price_slice) or not _all_finite(volume_slice):
             raise ValueError("Preis oder Volumen enthalten NaN/Inf")
 
-        price_std  = float(np.std(price_arr))
-        volume_std = float(np.std(volume_arr))
+        price_std  = _std(price_slice)
+        volume_std = _std(volume_slice)
 
         if volume_std < 1e-10:
             return 0.5
 
         # Hohe Vol, niedrige Preis-Reaktion = hohe Absorption
         sensitivity = price_std / volume_std
-        absorption  = float(np.clip(1.0 - sensitivity / max(sensitivity, 1e-10), 0.0, 1.0))
+        absorption  = _clip(1.0 - sensitivity / max(sensitivity, 1e-10), 0.0, 1.0)
         return absorption
 
     def estimate_spoofing_probability(
@@ -183,7 +213,7 @@ class MarketMicrostructureLayer:
             return 0.0
 
         # Vergleich Top-Level-Volumina ueber Snapshots
-        volume_changes = []
+        volume_changes: List[float] = []
         for prev, curr in zip(historical_snapshots[:-1], historical_snapshots[1:]):
             if not prev.bid_volumes or not curr.bid_volumes:
                 continue
@@ -196,11 +226,9 @@ class MarketMicrostructureLayer:
         if not volume_changes:
             return 0.0
 
-        mean_change = float(np.mean(volume_changes))
+        mean_change = _mean(volume_changes)
         # Hohe mittlere Aenderung = verdaechtig
-        spoof_score = float(np.clip(
-            mean_change / self.SPOOFING_VOLUME_RATIO, 0.0, 1.0
-        ))
+        spoof_score = _clip(mean_change / self.SPOOFING_VOLUME_RATIO, 0.0, 1.0)
         return spoof_score
 
     def filter_noise(
@@ -216,23 +244,24 @@ class MarketMicrostructureLayer:
         if len(tick_returns) < 3:
             return 0.5
 
-        arr = np.array(tick_returns, dtype=float)
-        if not np.all(np.isfinite(arr)):
+        if not _all_finite(tick_returns):
             return 0.5
 
-        decay = float(np.exp(-np.log(2.0) / max(halflife, 1)))
-        weights = np.array([decay ** i for i in range(len(arr) - 1, -1, -1)])
-        weights /= weights.sum()
+        decay = math.exp(-math.log(2.0) / max(halflife, 1))
+        n = len(tick_returns)
+        raw_weights = [decay ** i for i in range(n - 1, -1, -1)]
+        w_sum = sum(raw_weights)
+        weights = [w / w_sum for w in raw_weights]
 
-        ewma = float(np.abs(np.sum(weights * arr)))
-        raw_std = float(np.std(arr))
+        ewma = abs(sum(w * r for w, r in zip(weights, tick_returns)))
+        raw_std = _std(tick_returns)
 
         if raw_std < 1e-10:
             return 1.0
 
         # Signal-zu-Rauschen: EWMA-Signal vs. Gesamtschwankung
         snr = ewma / raw_std
-        return float(np.clip(snr, 0.0, 1.0))
+        return _clip(snr, 0.0, 1.0)
 
     def compute_microstructure_vol(
         self,
@@ -245,13 +274,14 @@ class MarketMicrostructureLayer:
         if len(tick_returns) < window:
             raise ValueError(f"Mindestens {window} Tick-Returns erforderlich")
 
-        arr = np.array(tick_returns[-window:], dtype=float)
-        if not np.all(np.isfinite(arr)):
+        arr = tick_returns[-window:]
+        if not _all_finite(arr):
             raise ValueError("Tick-Returns enthalten NaN/Inf")
 
-        rms = float(np.sqrt(np.mean(arr ** 2)))
+        mean_sq = sum(x ** 2 for x in arr) / len(arr)
+        rms = math.sqrt(mean_sq)
         # Annualisierung: ~23400 Ticks pro Tag (1-Sekunden-Ticks)
-        return rms * np.sqrt(23400.0)
+        return rms * math.sqrt(23400.0)
 
     def assess(
         self,
@@ -287,9 +317,9 @@ class MarketMicrostructureLayer:
 
         # Timing Quality: Kombination aller Signale
         # Gut: hohe Absorption, niedriges Spoofing, gutes Signal-Rauschen
-        timing = float(np.clip(
+        timing = _clip(
             absorption * noise_score * (1.0 - spoof_prob), 0.0, 1.0
-        ))
+        )
 
         # Regime Hint
         if abs(ofi) > 0.6 and absorption > 0.6:
@@ -303,9 +333,9 @@ class MarketMicrostructureLayer:
             order_flow_imbalance=ofi,
             bid_ask_pressure=bap,
             liquidity_absorption=absorption,
-            spoofing_probability=float(np.clip(spoof_prob, 0.0, 1.0)),
-            noise_filter_score=float(np.clip(noise_score, 0.0, 1.0)),
-            microstructure_vol_idx=float(max(ms_vol, 0.0)),
+            spoofing_probability=_clip(spoof_prob, 0.0, 1.0),
+            noise_filter_score=_clip(noise_score, 0.0, 1.0),
+            microstructure_vol_idx=max(ms_vol, 0.0),
             timing_quality=timing,
             regime_hint=regime_hint,
         )
