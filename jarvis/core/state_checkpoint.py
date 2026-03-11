@@ -63,6 +63,12 @@ from jarvis.core.global_state_controller import (
     GlobalSystemStateController,
     UPDATABLE_FIELDS,
 )
+from jarvis.core.schema_versions import (
+    CHECKPOINT_VERSION,
+    CONFIDENCE_BUNDLE_VERSION,
+    GLOBAL_STATE_VERSION,
+    STRATEGY_OBJECT_VERSION,
+)
 
 __all__ = [
     "CHECKPOINT_SCHEMA_VERSION",
@@ -78,13 +84,11 @@ __all__ = [
 
 
 # =============================================================================
-# SECTION 1 -- CONSTANTS
+# SECTION 1 -- CONSTANTS (delegated to schema_versions.py)
 # =============================================================================
 
-CHECKPOINT_SCHEMA_VERSION: str = "1.0.0"
-GLOBAL_STATE_VERSION: str = "1.0.0"
-STRATEGY_OBJECT_VERSION: str = "1.0.0"
-CONFIDENCE_BUNDLE_VERSION: str = "1.0.0"
+# Re-export from canonical source for backward compatibility
+CHECKPOINT_SCHEMA_VERSION: str = CHECKPOINT_VERSION
 
 
 # =============================================================================
