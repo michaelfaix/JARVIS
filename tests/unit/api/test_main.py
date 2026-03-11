@@ -27,16 +27,20 @@ class TestApp:
         data = resp.json()
         assert data["status"] == "ok"
 
-    def test_cors_headers(self):
+    def test_cors_localhost_any_port(self):
         client = TestClient(app)
-        resp = client.options(
-            "/api/v1/health",
-            headers={
-                "Origin": "http://localhost:3000",
-                "Access-Control-Request-Method": "GET",
-            },
-        )
-        assert resp.headers.get("access-control-allow-origin") == "http://localhost:3000"
+        for port in [3000, 3001, 3002, 8080]:
+            origin = f"http://localhost:{port}"
+            resp = client.options(
+                "/api/v1/health",
+                headers={
+                    "Origin": origin,
+                    "Access-Control-Request-Method": "GET",
+                },
+            )
+            assert resp.headers.get("access-control-allow-origin") == origin, (
+                f"CORS should allow {origin}"
+            )
 
     def test_status_endpoint(self):
         client = TestClient(app)

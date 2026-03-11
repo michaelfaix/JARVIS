@@ -21,7 +21,7 @@ export interface UncertaintyOutput {
 }
 
 export interface PredictionRequest {
-  features: number[];
+  features: Record<string, number>;
   regime: string;
   force_deep_path?: boolean;
 }
@@ -108,7 +108,7 @@ export interface AssetPrediction {
 }
 
 export async function batchPredict(
-  assets: { symbol: string; features: number[] }[],
+  assets: { symbol: string; features: Record<string, number> }[],
   regime: string
 ): Promise<AssetPrediction[]> {
   const results = await Promise.allSettled(

@@ -35,16 +35,21 @@ function predictionToSignal(
   };
 }
 
-// Generate deterministic synthetic features per asset
-function featuresForAsset(symbol: string): number[] {
+// Generate deterministic synthetic features per asset as Dict[str, float]
+function featuresForAsset(symbol: string): Record<string, number> {
   let hash = 0;
   for (let i = 0; i < symbol.length; i++) {
     hash = (hash * 31 + symbol.charCodeAt(i)) & 0xffff;
   }
-  return Array.from({ length: 10 }, (_, i) => {
-    const v = Math.sin(hash + i * 1.7) * 0.5;
-    return parseFloat(v.toFixed(4));
+  const keys = [
+    "momentum", "volatility", "trend", "volume", "rsi",
+    "macd", "bb_width", "atr", "obv", "vwap",
+  ];
+  const features: Record<string, number> = {};
+  keys.forEach((key, i) => {
+    features[key] = parseFloat((Math.sin(hash + i * 1.7) * 0.5).toFixed(4));
   });
+  return features;
 }
 
 export function useSignals(
