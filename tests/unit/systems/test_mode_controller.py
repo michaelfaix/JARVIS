@@ -242,6 +242,16 @@ class TestRejectedTransitions:
         assert "No transition" in r.reason
         assert "normal" in r.reason
 
+    def test_accepted_reason_contains_arrow(self):
+        """Kills L185: -> mutated to ->= or +> in reason f-string."""
+        ctrl = ModeController()
+        r = ctrl.transition(OperationalMode.NORMAL, "ood_detected")
+        assert r.accepted is True
+        assert " -> " in r.reason
+        # Verify no corruption of the arrow token
+        assert "->=" not in r.reason
+        assert "+>" not in r.reason
+
 
 # =============================================================================
 # SECTION 10 -- GET AVAILABLE TRIGGERS

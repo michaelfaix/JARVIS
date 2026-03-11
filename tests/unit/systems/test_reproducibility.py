@@ -353,3 +353,51 @@ class TestDeterminism:
         r1 = ReproducibilityController().verify_reproducibility(0.5, 0.5)
         r2 = ReproducibilityController().verify_reproducibility(0.5, 0.5)
         assert r1.reproducible == r2.reproducible
+
+
+# =============================================================================
+# SECTION 11 -- MISMATCH MESSAGE CONTENT (mutant killers)
+# =============================================================================
+
+class TestMismatchMessageContent:
+    """Assert on mismatch string content to kill display-text mutants."""
+
+    def test_float_mismatch_contains_neq_operator(self):
+        """Kills L195: != -> == in f-string."""
+        ctrl = ReproducibilityController()
+        result = ctrl.verify_reproducibility(1.0, 2.0)
+        assert result.reproducible is False
+        msg = result.mismatches[0]
+        assert "!=" in msg
+        assert "==" not in msg  # must NOT contain == (kills the mutant)
+
+    def test_float_mismatch_diff_value_is_correct(self):
+        """Kills L195: - -> + in abs(a - b)."""
+        ctrl = ReproducibilityController()
+        a, b = 1.0, 3.0
+        result = ctrl.verify_reproducibility(a, b)
+        assert result.reproducible is False
+        msg = result.mismatches[0]
+        # diff should be abs(1.0 - 3.0) = 2.0, not abs(1.0 + 3.0) = 4.0
+        assert "2.00e+00" in msg
+
+    def test_array_mismatch_max_diff_correct(self):
+        """Kills L203: a - b -> a + b in np.abs(...)."""
+        ctrl = ReproducibilityController()
+        a = np.array([0.0, 1.0])
+        b = np.array([0.0, 2.0])
+        result = ctrl.verify_reproducibility(a, b)
+        assert result.reproducible is False
+        msg = result.mismatches[0]
+        # max_diff = max(abs([0-0, 1-2])) = 1.0
+        # mutant:   max(abs([0+0, 1+2])) = 3.0
+        assert "1.00e+00" in msg
+
+    def test_generic_mismatch_contains_neq(self):
+        """Kills L229: != -> == in f-string for non-float/array/dict/list."""
+        ctrl = ReproducibilityController()
+        result = ctrl.verify_reproducibility("hello", "world")
+        assert result.reproducible is False
+        msg = result.mismatches[0]
+        assert "!=" in msg
+        assert "==" not in msg
