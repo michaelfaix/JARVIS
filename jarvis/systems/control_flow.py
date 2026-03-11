@@ -37,10 +37,12 @@
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 from enum import Enum, unique
-from typing import Dict, List
+from typing import Dict, List, Optional
 
+from jarvis.core.event_log import EventLog, EventLogEntry, EventType
 from jarvis.systems.validation_gates import (
     QualityGate,
     DriftGate,
@@ -124,6 +126,11 @@ LAYER_NAMES: Dict[int, str] = {
 # SECTION 4 -- CONTROL FLOW
 # =============================================================================
 
+def _state_hash(data: str) -> str:
+    """Deterministic SHA-256 hex digest of a string."""
+    return hashlib.sha256(data.encode("utf-8")).hexdigest()
+
+
 class SystemControlFlow:
     """
     Pipeline control flow through 11 sequential layers.
@@ -142,6 +149,8 @@ class SystemControlFlow:
         ece: float,
         is_ood: bool,
         var: float,
+        event_log: Optional[EventLog] = None,
+        timestamp: float = 0.0,
     ) -> List[FlowState]:
         """
         Execute the full 11-layer pipeline control flow.
@@ -150,6 +159,10 @@ class SystemControlFlow:
         control signal is emitted and processing halts (early exit).
         Non-gated layers (4, 6, 9, 10, 11) always produce CONTINUE.
 
+        When event_log is provided, an EventLogEntry with event_type
+        LAYER_TRANSITION is appended for every layer traversed, forming
+        a deterministic SHA-256 audit trail across the pipeline.
+
         Args:
             quality_score:    Layer 1 data quality metric [0, 1].
             drift_severity:   Layer 2 feature drift metric [0, 1].
@@ -157,6 +170,9 @@ class SystemControlFlow:
             ece:              Layer 5 Expected Calibration Error [0, 1].
             is_ood:           Layer 7 OOD detection result (bool).
             var:              Layer 8 Value at Risk (typically negative).
+            event_log:        Optional EventLog for audit trail.
+            timestamp:        Caller-provided timestamp for log entries
+                              (DET-05: never generated internally).
 
         Returns:
             List of FlowState objects, one per layer traversed.
@@ -196,16 +212,54 @@ class SystemControlFlow:
 
         states: List[FlowState] = []
 
+        # Audit trail bookkeeping
+        seq_base = event_log.entry_count if event_log is not None else 0
+        prev_hash = _state_hash(
+            f"{quality_score}|{drift_severity}|{condition_number}"
+            f"|{ece}|{is_ood}|{var}"
+        )
+
+        def _record(flow_state: FlowState) -> None:
+            """Append FlowState and, if event_log is present, emit entry."""
+            nonlocal prev_hash
+            states.append(flow_state)
+            if event_log is None:
+                prev_hash = _state_hash(
+                    f"{prev_hash}|{flow_state.layer}|"
+                    f"{flow_state.signal.value}|{flow_state.gate_passed}"
+                )
+                return
+            new_hash = _state_hash(
+                f"{prev_hash}|{flow_state.layer}|"
+                f"{flow_state.signal.value}|{flow_state.gate_passed}"
+            )
+            entry = EventLogEntry(
+                sequence_id=seq_base + len(states),
+                timestamp=timestamp,
+                event_type=EventType.LAYER_TRANSITION.value,
+                event_payload={
+                    "layer": flow_state.layer,
+                    "layer_name": flow_state.layer_name,
+                    "signal": flow_state.signal.value,
+                    "gate_passed": flow_state.gate_passed,
+                    "reason": flow_state.reason,
+                },
+                state_hash_before=prev_hash,
+                state_hash_after=new_hash,
+            )
+            event_log.append(entry)
+            prev_hash = new_hash
+
         # -- Layer 1: Data Ingestion (QualityGate) --
         gate_result = QualityGate().check(quality_score)
         if gate_result.passed:
-            states.append(FlowState(
+            _record(FlowState(
                 layer=1, layer_name=LAYER_NAMES[1],
                 signal=ControlSignal.CONTINUE,
                 gate_passed=True, reason=gate_result.reason,
             ))
         else:
-            states.append(FlowState(
+            _record(FlowState(
                 layer=1, layer_name=LAYER_NAMES[1],
                 signal=ControlSignal.STOP,
                 gate_passed=False, reason=gate_result.reason,
@@ -215,13 +269,13 @@ class SystemControlFlow:
         # -- Layer 2: Features (DriftGate) --
         gate_result = DriftGate().check(drift_severity)
         if gate_result.passed:
-            states.append(FlowState(
+            _record(FlowState(
                 layer=2, layer_name=LAYER_NAMES[2],
                 signal=ControlSignal.CONTINUE,
                 gate_passed=True, reason=gate_result.reason,
             ))
         else:
-            states.append(FlowState(
+            _record(FlowState(
                 layer=2, layer_name=LAYER_NAMES[2],
                 signal=ControlSignal.DEGRADE,
                 gate_passed=False, reason=gate_result.reason,
@@ -231,13 +285,13 @@ class SystemControlFlow:
         # -- Layer 3: State Estimation (KalmanGate) --
         gate_result = KalmanGate().check(condition_number)
         if gate_result.passed:
-            states.append(FlowState(
+            _record(FlowState(
                 layer=3, layer_name=LAYER_NAMES[3],
                 signal=ControlSignal.CONTINUE,
                 gate_passed=True, reason=gate_result.reason,
             ))
         else:
-            states.append(FlowState(
+            _record(FlowState(
                 layer=3, layer_name=LAYER_NAMES[3],
                 signal=ControlSignal.DEGRADE,
                 gate_passed=False, reason=gate_result.reason,
@@ -245,7 +299,7 @@ class SystemControlFlow:
             return states
 
         # -- Layer 4: Regime Detection (no gate) --
-        states.append(FlowState(
+        _record(FlowState(
             layer=4, layer_name=LAYER_NAMES[4],
             signal=ControlSignal.CONTINUE,
             gate_passed=True, reason="No gate — passthrough",
@@ -254,13 +308,13 @@ class SystemControlFlow:
         # -- Layer 5: Calibration (ECEGate) --
         gate_result = ECEGate().check(ece)
         if gate_result.passed:
-            states.append(FlowState(
+            _record(FlowState(
                 layer=5, layer_name=LAYER_NAMES[5],
                 signal=ControlSignal.CONTINUE,
                 gate_passed=True, reason=gate_result.reason,
             ))
         else:
-            states.append(FlowState(
+            _record(FlowState(
                 layer=5, layer_name=LAYER_NAMES[5],
                 signal=ControlSignal.STOP,
                 gate_passed=False, reason=gate_result.reason,
@@ -268,7 +322,7 @@ class SystemControlFlow:
             return states
 
         # -- Layer 6: Uncertainty Aggregation (no gate) --
-        states.append(FlowState(
+        _record(FlowState(
             layer=6, layer_name=LAYER_NAMES[6],
             signal=ControlSignal.CONTINUE,
             gate_passed=True, reason="No gate — passthrough",
@@ -277,13 +331,13 @@ class SystemControlFlow:
         # -- Layer 7: OOD Detection (OODGate) --
         gate_result = OODGate().check(is_ood)
         if gate_result.passed:
-            states.append(FlowState(
+            _record(FlowState(
                 layer=7, layer_name=LAYER_NAMES[7],
                 signal=ControlSignal.CONTINUE,
                 gate_passed=True, reason=gate_result.reason,
             ))
         else:
-            states.append(FlowState(
+            _record(FlowState(
                 layer=7, layer_name=LAYER_NAMES[7],
                 signal=ControlSignal.DEGRADE,
                 gate_passed=False, reason=gate_result.reason,
@@ -293,13 +347,13 @@ class SystemControlFlow:
         # -- Layer 8: Risk Engine (RiskGate) --
         gate_result = RiskGate().check(var)
         if gate_result.passed:
-            states.append(FlowState(
+            _record(FlowState(
                 layer=8, layer_name=LAYER_NAMES[8],
                 signal=ControlSignal.CONTINUE,
                 gate_passed=True, reason=gate_result.reason,
             ))
         else:
-            states.append(FlowState(
+            _record(FlowState(
                 layer=8, layer_name=LAYER_NAMES[8],
                 signal=ControlSignal.EMERGENCY,
                 gate_passed=False, reason=gate_result.reason,
@@ -307,21 +361,21 @@ class SystemControlFlow:
             return states
 
         # -- Layer 9: Strategy Selection (no gate) --
-        states.append(FlowState(
+        _record(FlowState(
             layer=9, layer_name=LAYER_NAMES[9],
             signal=ControlSignal.CONTINUE,
             gate_passed=True, reason="No gate — passthrough",
         ))
 
         # -- Layer 10: Degradation Control (no gate) --
-        states.append(FlowState(
+        _record(FlowState(
             layer=10, layer_name=LAYER_NAMES[10],
             signal=ControlSignal.CONTINUE,
             gate_passed=True, reason="No gate — passthrough",
         ))
 
         # -- Layer 11: Output Interface (no gate) --
-        states.append(FlowState(
+        _record(FlowState(
             layer=11, layer_name=LAYER_NAMES[11],
             signal=ControlSignal.CONTINUE,
             gate_passed=True, reason="No gate — passthrough",

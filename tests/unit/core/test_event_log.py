@@ -58,12 +58,13 @@ class TestConstants:
     """Test module-level constants."""
 
     def test_valid_event_types_count(self):
-        assert len(VALID_EVENT_TYPES) == 6
+        assert len(VALID_EVENT_TYPES) == 7
 
     def test_valid_event_types_contents(self):
         expected = {
             "market_data", "regime_change", "failure_mode",
             "exposure", "strategy_weight_change", "confidence_update",
+            "layer_transition",
         }
         assert set(VALID_EVENT_TYPES) == expected
 
@@ -84,7 +85,7 @@ class TestEventType:
     """Test EventType enum."""
 
     def test_all_members(self):
-        assert len(EventType) == 6
+        assert len(EventType) == 7
 
     def test_market_data(self):
         assert EventType.MARKET_DATA.value == "market_data"
@@ -288,7 +289,7 @@ class TestAppendEntries:
         log = _log()
         for i, et in enumerate(VALID_EVENT_TYPES, start=1):
             log.append(_entry(seq=i, event_type=et))
-        assert log.entry_count == 6
+        assert log.entry_count == 7
 
     def test_type_error_non_entry(self):
         log = _log()

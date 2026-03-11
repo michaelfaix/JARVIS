@@ -459,3 +459,226 @@ class TestDeterminism:
         r2 = flow.execute(**kwargs)
         assert r1 == r2
         assert r1[-1].signal == ControlSignal.DEGRADE
+
+
+# =============================================================================
+# SECTION 14 -- EVENT LOG INTEGRATION
+# =============================================================================
+
+from jarvis.core.event_log import EventLog, EventLogEntry, EventType
+
+
+def _make_event_log() -> EventLog:
+    """Create a fresh EventLog for testing."""
+    return EventLog(
+        session_id="test-session",
+        operating_mode="historical",
+        start_time=0.0,
+    )
+
+
+def _good_inputs():
+    return dict(
+        quality_score=0.8,
+        drift_severity=0.3,
+        condition_number=1e3,
+        ece=0.02,
+        is_ood=False,
+        var=-0.10,
+    )
+
+
+class TestEventLogIntegration:
+    """Tests for EventLog wiring in SystemControlFlow.execute()."""
+
+    def test_no_event_log_backward_compatible(self):
+        """Without event_log, execute() works exactly as before."""
+        flow = SystemControlFlow()
+        states = flow.execute(**_good_inputs())
+        assert len(states) == 11
+
+    def test_event_log_receives_entries(self):
+        log = _make_event_log()
+        flow = SystemControlFlow()
+        flow.execute(**_good_inputs(), event_log=log, timestamp=1.0)
+        assert log.entry_count == 11
+
+    def test_event_log_entry_count_matches_states(self):
+        log = _make_event_log()
+        flow = SystemControlFlow()
+        states = flow.execute(**_good_inputs(), event_log=log, timestamp=1.0)
+        assert log.entry_count == len(states)
+
+    def test_event_type_is_layer_transition(self):
+        log = _make_event_log()
+        flow = SystemControlFlow()
+        flow.execute(**_good_inputs(), event_log=log, timestamp=1.0)
+        for entry in log.get_entries():
+            assert entry.event_type == EventType.LAYER_TRANSITION.value
+
+    def test_entries_have_correct_timestamp(self):
+        log = _make_event_log()
+        flow = SystemControlFlow()
+        flow.execute(**_good_inputs(), event_log=log, timestamp=42.5)
+        for entry in log.get_entries():
+            assert entry.timestamp == 42.5
+
+    def test_payload_contains_layer_info(self):
+        log = _make_event_log()
+        flow = SystemControlFlow()
+        flow.execute(**_good_inputs(), event_log=log, timestamp=1.0)
+        entries = log.get_entries()
+        for i, entry in enumerate(entries):
+            assert entry.event_payload["layer"] == i + 1
+            assert entry.event_payload["layer_name"] == LAYER_NAMES[i + 1]
+            assert "signal" in entry.event_payload
+            assert "gate_passed" in entry.event_payload
+            assert "reason" in entry.event_payload
+
+    def test_payload_signal_values(self):
+        log = _make_event_log()
+        flow = SystemControlFlow()
+        flow.execute(**_good_inputs(), event_log=log, timestamp=1.0)
+        for entry in log.get_entries():
+            assert entry.event_payload["signal"] == "continue"
+            assert entry.event_payload["gate_passed"] is True
+
+    def test_sequence_ids_monotonic(self):
+        log = _make_event_log()
+        flow = SystemControlFlow()
+        flow.execute(**_good_inputs(), event_log=log, timestamp=1.0)
+        entries = log.get_entries()
+        for i in range(1, len(entries)):
+            assert entries[i].sequence_id > entries[i - 1].sequence_id
+
+    def test_state_hashes_are_sha256(self):
+        log = _make_event_log()
+        flow = SystemControlFlow()
+        flow.execute(**_good_inputs(), event_log=log, timestamp=1.0)
+        for entry in log.get_entries():
+            assert len(entry.state_hash_before) == 64
+            assert len(entry.state_hash_after) == 64
+            # Valid hex
+            int(entry.state_hash_before, 16)
+            int(entry.state_hash_after, 16)
+
+    def test_hash_chain_linked(self):
+        """state_hash_after of entry N == state_hash_before of entry N+1."""
+        log = _make_event_log()
+        flow = SystemControlFlow()
+        flow.execute(**_good_inputs(), event_log=log, timestamp=1.0)
+        entries = log.get_entries()
+        for i in range(1, len(entries)):
+            assert entries[i].state_hash_before == entries[i - 1].state_hash_after
+
+    def test_hashes_distinct_per_layer(self):
+        log = _make_event_log()
+        flow = SystemControlFlow()
+        flow.execute(**_good_inputs(), event_log=log, timestamp=1.0)
+        after_hashes = [e.state_hash_after for e in log.get_entries()]
+        assert len(set(after_hashes)) == 11
+
+    def test_early_exit_logs_only_traversed_layers(self):
+        log = _make_event_log()
+        flow = SystemControlFlow()
+        states = flow.execute(
+            quality_score=0.3,  # fails layer 1
+            drift_severity=0.3,
+            condition_number=1e3,
+            ece=0.02,
+            is_ood=False,
+            var=-0.10,
+            event_log=log,
+            timestamp=1.0,
+        )
+        assert len(states) == 1
+        assert log.entry_count == 1
+        entry = log.get_entries()[0]
+        assert entry.event_payload["layer"] == 1
+        assert entry.event_payload["signal"] == "stop"
+        assert entry.event_payload["gate_passed"] is False
+
+    def test_layer_2_failure_logs_two_entries(self):
+        log = _make_event_log()
+        flow = SystemControlFlow()
+        states = flow.execute(
+            quality_score=0.8,
+            drift_severity=0.9,  # fails layer 2
+            condition_number=1e3,
+            ece=0.02,
+            is_ood=False,
+            var=-0.10,
+            event_log=log,
+            timestamp=1.0,
+        )
+        assert len(states) == 2
+        assert log.entry_count == 2
+        assert log.get_entries()[1].event_payload["signal"] == "degrade"
+
+    def test_layer_8_emergency_logs_eight_entries(self):
+        log = _make_event_log()
+        flow = SystemControlFlow()
+        states = flow.execute(
+            quality_score=0.8,
+            drift_severity=0.3,
+            condition_number=1e3,
+            ece=0.02,
+            is_ood=False,
+            var=-0.20,  # fails layer 8
+            event_log=log,
+            timestamp=1.0,
+        )
+        assert len(states) == 8
+        assert log.entry_count == 8
+        assert log.get_entries()[-1].event_payload["signal"] == "emergency"
+
+    def test_deterministic_event_log(self):
+        """Same inputs produce identical event log entries."""
+        kwargs = _good_inputs()
+        log1 = _make_event_log()
+        log2 = _make_event_log()
+        SystemControlFlow().execute(**kwargs, event_log=log1, timestamp=1.0)
+        SystemControlFlow().execute(**kwargs, event_log=log2, timestamp=1.0)
+        entries1 = log1.get_entries()
+        entries2 = log2.get_entries()
+        assert len(entries1) == len(entries2)
+        for e1, e2 in zip(entries1, entries2):
+            assert e1.sequence_id == e2.sequence_id
+            assert e1.event_payload == e2.event_payload
+            assert e1.state_hash_before == e2.state_hash_before
+            assert e1.state_hash_after == e2.state_hash_after
+
+    def test_event_log_integrity_after_close(self):
+        log = _make_event_log()
+        log.set_genesis_state_hash("a" * 64)
+        flow = SystemControlFlow()
+        flow.execute(**_good_inputs(), event_log=log, timestamp=1.0)
+        last_hash = log.get_entries()[-1].state_hash_after
+        log.close(end_time=2.0, final_state_hash=last_hash)
+        assert log.is_closed
+        assert log.validate_integrity()
+
+    def test_multiple_executions_append_to_same_log(self):
+        log = _make_event_log()
+        flow = SystemControlFlow()
+        flow.execute(**_good_inputs(), event_log=log, timestamp=1.0)
+        assert log.entry_count == 11
+        # Second execution appends more entries
+        flow.execute(**_good_inputs(), event_log=log, timestamp=2.0)
+        assert log.entry_count == 22
+
+    def test_multiple_executions_sequence_ids_monotonic(self):
+        log = _make_event_log()
+        flow = SystemControlFlow()
+        flow.execute(**_good_inputs(), event_log=log, timestamp=1.0)
+        flow.execute(**_good_inputs(), event_log=log, timestamp=2.0)
+        entries = log.get_entries()
+        for i in range(1, len(entries)):
+            assert entries[i].sequence_id > entries[i - 1].sequence_id
+
+    def test_filter_by_layer_transition_type(self):
+        log = _make_event_log()
+        flow = SystemControlFlow()
+        flow.execute(**_good_inputs(), event_log=log, timestamp=1.0)
+        transitions = log.get_entries_by_type(EventType.LAYER_TRANSITION.value)
+        assert len(transitions) == 11

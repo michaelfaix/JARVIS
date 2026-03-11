@@ -84,6 +84,7 @@ class EventType(str, Enum):
     EXPOSURE          = "exposure"
     STRATEGY_WEIGHT   = "strategy_weight_change"
     CONFIDENCE_UPDATE = "confidence_update"
+    LAYER_TRANSITION  = "layer_transition"
 
 
 VALID_EVENT_TYPES: Tuple[str, ...] = tuple(e.value for e in EventType)
