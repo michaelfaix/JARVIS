@@ -56,6 +56,7 @@ from jarvis.governance.backtest_governance import (
 from jarvis.metrics.engine import compute_metrics, sharpe_ratio, max_drawdown
 from jarvis.orchestrator import run_full_pipeline
 from jarvis.risk.correlation import _pearson
+from jarvis.simulation.strategy_lab import SlippageModel, StrategyLab
 from jarvis.walkforward.engine import generate_windows, WalkForwardWindow
 
 
@@ -243,6 +244,7 @@ def run_multi_asset_backtest(
     initial_capital: float,
     regime: GlobalRegimeState,
     meta_uncertainty: float,
+    slippage_model: Optional[SlippageModel] = None,
 ) -> MultiAssetBacktestResult:
     """
     Deterministic rolling-window backtest across multiple assets.
@@ -272,6 +274,11 @@ def run_multi_asset_backtest(
         Regime held constant across all timesteps.
     meta_uncertainty : float
         Meta-uncertainty in [0.0, 1.0].
+    slippage_model : Optional[SlippageModel]
+        When provided, slippage is computed via StrategyLab.compute_slippage()
+        and subtracted from each per-asset equity update:
+        equity * (1.0 + return * position_size - slippage).
+        When None (default), no slippage is applied (backward compatible).
 
     Returns
     -------
@@ -349,6 +356,9 @@ def run_multi_asset_backtest(
     portfolio_equity_curve: List[float] = []
     realised_returns: Dict[str, List[float]] = {s: [] for s in symbols}
 
+    # Pre-create StrategyLab instance if slippage is active (one per call, DET-02)
+    lab: Optional[StrategyLab] = StrategyLab() if slippage_model is not None else None
+
     for t in range(window, n_total):
         # Build combined lookback returns (average across assets for pipeline)
         combined_returns: List[float] = []
@@ -374,12 +384,26 @@ def run_multi_asset_backtest(
             asset_prices=current_prices,
         )
 
+        # Compute window volatility once for slippage (if active)
+        if lab is not None and slippage_model is not None:
+            current_vol = _std_pop(combined_returns) * math.sqrt(252)
+        else:
+            current_vol = 0.0
+
         # Update per-asset equity
         for s in symbols:
             position_size = positions.get(s, 0.0)
             ret = asset_returns[s][t]
             old_eq = per_asset_equity[s]
-            new_eq = old_eq * (1.0 + ret * position_size)
+
+            if lab is not None and slippage_model is not None:
+                slippage = lab.compute_slippage(
+                    slippage_model, abs(position_size), current_vol,
+                )
+            else:
+                slippage = 0.0
+
+            new_eq = old_eq * (1.0 + ret * position_size - slippage)
             per_asset_equity[s] = max(EQUITY_FLOOR, new_eq)
             asset_equity_curves[s].append(per_asset_equity[s])
             realised_returns[s].append(ret * position_size)

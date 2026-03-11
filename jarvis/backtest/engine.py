@@ -31,8 +31,12 @@
 # Standard import pattern:
 #   from jarvis.backtest.engine import run_backtest
 
+import math
+from typing import Optional
+
 from jarvis.core.regime import GlobalRegimeState
 from jarvis.orchestrator import run_full_pipeline
+from jarvis.simulation.strategy_lab import SlippageModel, StrategyLab
 
 _SYNTHETIC_SYMBOL: str = "ASSET"
 
@@ -44,6 +48,7 @@ def run_backtest(
     asset_price_series: list[float],
     regime: GlobalRegimeState,
     meta_uncertainty: float,
+    slippage_model: Optional[SlippageModel] = None,
 ) -> list[float]:
     """
     Deterministic rolling-window backtest over a single-asset return series.
@@ -81,6 +86,11 @@ def run_backtest(
     meta_uncertainty : float
         Meta-uncertainty in [0.0, 1.0].
         Passed unchanged to run_full_pipeline() at every timestep.
+    slippage_model : Optional[SlippageModel]
+        When provided, slippage is computed via StrategyLab.compute_slippage()
+        and subtracted from the equity update at each timestep:
+        equity * (1.0 + return * position_size - slippage).
+        When None (default), no slippage is applied (backward compatible).
 
     Returns
     -------
@@ -134,6 +144,9 @@ def run_backtest(
 
     n: int = len(returns_series)
 
+    # Pre-create StrategyLab instance if slippage is active (one per call, DET-02)
+    lab: Optional[StrategyLab] = StrategyLab() if slippage_model is not None else None
+
     for t in range(window, n):
         window_returns: list[float] = returns_series[t - window : t]
 
@@ -151,7 +164,18 @@ def run_backtest(
 
         position_size: float = positions[_SYNTHETIC_SYMBOL]
 
-        updated_equity: float = equity * (1.0 + returns_series[t] * position_size)
+        # Compute slippage if model provided
+        if lab is not None and slippage_model is not None:
+            mean_ret = sum(window_returns) / len(window_returns)
+            variance = sum((r - mean_ret) ** 2 for r in window_returns) / len(window_returns)
+            current_vol = math.sqrt(max(variance, 0.0)) * math.sqrt(252)
+            slippage = lab.compute_slippage(
+                slippage_model, abs(position_size), current_vol,
+            )
+        else:
+            slippage = 0.0
+
+        updated_equity: float = equity * (1.0 + returns_series[t] * position_size - slippage)
         # Capital floor: equity must never be negative or zero per FAS contract.
         # A minimum of 1e-10 preserves the strictly-positive invariant required
         # by run_full_pipeline() at the next timestep.
