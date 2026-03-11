@@ -23,6 +23,11 @@ from .stress_scenarios import (
     get_historical_scenarios,
     get_synthetic_scenarios,
     get_scenario_names,
+    RegimeAwareScenario,
+    RegimeAwareStressResult,
+    REGIME_AWARE_REGISTRY,
+    get_regime_aware_scenario,
+    run_regime_aware_stress_test,
 )
 
 __all__ = [
@@ -47,4 +52,9 @@ __all__ = [
     "get_historical_scenarios",
     "get_synthetic_scenarios",
     "get_scenario_names",
+    "RegimeAwareScenario",
+    "RegimeAwareStressResult",
+    "REGIME_AWARE_REGISTRY",
+    "get_regime_aware_scenario",
+    "run_regime_aware_stress_test",
 ]
