@@ -256,11 +256,20 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 | `README.md` | Öffentliche Projektdoku |
 | `IMPLEMENTATION_STATUS.md` | FAS-Compliance (100% — abgeschlossen, nicht mehr updaten) |
 | `FAS/FAS_frontend.txt` | Frontend-Spezifikation (JARVIS-Trader) |
+| `jarvis/api/main.py` | FastAPI App Entry Point (CORS, Router Mount) |
 | `jarvis/api/routes.py` | FastAPI Endpoints — Frontend verbindet sich hier |
 | `jarvis/api/ws.py` | WebSocket Live-Stream |
 | `jarvis/validation/` | S15 Validation Layer |
 | `jarvis/verification/` | DVH-Harness + Runs |
 | `jarvis/risk/THRESHOLD_MANIFEST.json` | Hash-geschützte Schwellwerte |
+
+---
+
+## ✅ ABGESCHLOSSEN: FastAPI Entry Point
+
+- `jarvis/api/main.py` erstellt — CORS für localhost:3000, Router unter /api/v1
+- 8897 Tests grün (inkl. 7 neue main.py Tests)
+- Nächster Schritt: Frontend erstellen (Verzeichnis-Berechtigungen fixen: `icacls C:\Project\JARVIS /grant Benutzer:(OI)(CI)(F) /T`)
 
 ---
 
@@ -283,5 +292,5 @@ BTC/USD Chart mit TradingView Lightweight Charts + JARVIS Signal Overlay.
 
 ---
 
-*CLAUDE.md — Version 7.0.0 | März 2026*
+*CLAUDE.md — Version 7.0.1 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*
