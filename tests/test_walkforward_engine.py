@@ -393,7 +393,7 @@ class TestModuleAll:
 
     def test_all_length(self):
         from jarvis.walkforward import engine
-        assert len(engine.__all__) == 3
+        assert len(engine.__all__) == 4
 
     def test_init_exports_walkforwardwindow(self):
         from jarvis.walkforward import WalkForwardWindow as W

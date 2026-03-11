@@ -28,6 +28,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Sequence
 
+from jarvis.core.trading_calendar import (
+    EXCHANGE_NYSE,
+    is_trading_day,
+)
 from jarvis.governance.backtest_governance import (
     BacktestGovernanceEngine,
     OverfittingReport,
@@ -109,6 +113,77 @@ def generate_windows(
         ))
         fold += 1
         train_start += step
+    return windows
+
+
+# ---------------------------------------------------------------------------
+# GENERATE TRADING-DAY-ALIGNED WINDOWS
+# ---------------------------------------------------------------------------
+
+def generate_trading_windows(
+    date_ordinals: Sequence[int],
+    train_days:    int,
+    test_days:     int,
+    step_days:     int,
+    exchange:      str = EXCHANGE_NYSE,
+) -> List[WalkForwardWindow]:
+    """
+    Generate walk-forward windows where sizes count only trading days.
+
+    Filters date_ordinals to identify trading-day positions, then generates
+    windows where train_days, test_days, and step_days are measured in
+    trading days. Returned window indices reference positions in the
+    original date_ordinals sequence (not the filtered subset).
+
+    Args:
+        date_ordinals: Sequence of date ordinals (one per data point).
+        train_days:    Training window size in trading days.
+        test_days:     Test window size in trading days.
+        step_days:     Step size in trading days per fold.
+        exchange:      Exchange calendar to use (default NYSE).
+
+    Returns:
+        List of WalkForwardWindow. Empty if no complete fold fits.
+
+    Raises:
+        ValueError if any size argument < 1.
+    """
+    if train_days < 1:
+        raise ValueError(f"train_days must be >= 1; got {train_days}")
+    if test_days < 1:
+        raise ValueError(f"test_days must be >= 1; got {test_days}")
+    if step_days < 1:
+        raise ValueError(f"step_days must be >= 1; got {step_days}")
+
+    # Build list of original indices that are trading days
+    trading_indices: List[int] = [
+        i for i, d in enumerate(date_ordinals)
+        if is_trading_day(d, exchange)
+    ]
+
+    n_trading = len(trading_indices)
+    windows: List[WalkForwardWindow] = []
+    fold = 0
+    offset = 0
+
+    while True:
+        train_end_idx = offset + train_days
+        test_end_idx = train_end_idx + test_days
+
+        if test_end_idx > n_trading:
+            break
+
+        windows.append(WalkForwardWindow(
+            fold=fold,
+            train_start=trading_indices[offset],
+            train_end=trading_indices[train_end_idx - 1] + 1,
+            test_start=trading_indices[train_end_idx],
+            test_end=trading_indices[test_end_idx - 1] + 1,
+        ))
+
+        fold += 1
+        offset += step_days
+
     return windows
 
 
@@ -197,5 +272,6 @@ def run_walkforward(
 __all__ = [
     "WalkForwardWindow",
     "generate_windows",
+    "generate_trading_windows",
     "run_walkforward",
 ]
