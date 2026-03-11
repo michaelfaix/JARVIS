@@ -462,3 +462,318 @@ class TestDQEFailureWindow:
         ] + [_rec(seq=10, outcome="NEUTRAL")]
         b11b = _calm_compute(decision_snapshot=_snapshot(records_11b))
         assert abs(b11b.repeated_failure_penalty - 0.75) < 1e-9
+
+
+# ===================================================================
+# ROUND 2: Mutant killers from custom mutation testing script
+# ===================================================================
+
+import math
+import numpy as np
+
+
+# ---------------------------------------------------------------------------
+# fragility_index: compute_from_correlations boundary (L262, L266)
+# total_components=1 and max_recovery_bars=1 should NOT raise
+# ---------------------------------------------------------------------------
+
+class TestFragilityBoundaryValues:
+    def test_total_components_exactly_one_valid(self):
+        from jarvis.metrics.fragility_index import StructuralFragilityIndex
+        sfi = StructuralFragilityIndex()
+        result = sfi.compute_from_correlations(
+            pairwise_correlations=[0.5],
+            failure_count=0,
+            total_components=1,
+            recovery_time_bars=5,
+            max_recovery_bars=10,
+        )
+        assert result.fragility_index >= 0.0
+
+    def test_max_recovery_bars_exactly_one_valid(self):
+        from jarvis.metrics.fragility_index import StructuralFragilityIndex
+        sfi = StructuralFragilityIndex()
+        result = sfi.compute_from_correlations(
+            pairwise_correlations=[0.5],
+            failure_count=0,
+            total_components=5,
+            recovery_time_bars=1,
+            max_recovery_bars=1,
+        )
+        assert result.fragility_index >= 0.0
+
+    def test_total_components_zero_raises(self):
+        from jarvis.metrics.fragility_index import StructuralFragilityIndex
+        sfi = StructuralFragilityIndex()
+        with pytest.raises(ValueError, match="total_components must be >= 1"):
+            sfi.compute_from_correlations(
+                pairwise_correlations=[0.5],
+                failure_count=0,
+                total_components=0,
+                recovery_time_bars=5,
+                max_recovery_bars=10,
+            )
+
+    def test_max_recovery_bars_zero_raises(self):
+        from jarvis.metrics.fragility_index import StructuralFragilityIndex
+        sfi = StructuralFragilityIndex()
+        with pytest.raises(ValueError, match="max_recovery_bars must be >= 1"):
+            sfi.compute_from_correlations(
+                pairwise_correlations=[0.5],
+                failure_count=0,
+                total_components=5,
+                recovery_time_bars=5,
+                max_recovery_bars=0,
+            )
+
+
+# ---------------------------------------------------------------------------
+# trust_score: _clip01 boundary at exactly 0.0 and 1.0 (L142, L144)
+# ---------------------------------------------------------------------------
+
+class TestTrustScoreClip01Exact:
+    def test_clip01_exactly_zero(self):
+        from jarvis.metrics.trust_score import _clip01
+        assert _clip01(0.0) == 0.0
+
+    def test_clip01_exactly_one(self):
+        from jarvis.metrics.trust_score import _clip01
+        assert _clip01(1.0) == 1.0
+
+    def test_clip01_tiny_negative(self):
+        from jarvis.metrics.trust_score import _clip01
+        assert _clip01(-1e-10) == 0.0
+
+    def test_clip01_just_above_one(self):
+        from jarvis.metrics.trust_score import _clip01
+        assert _clip01(1.0 + 1e-10) == 1.0
+
+
+# ---------------------------------------------------------------------------
+# event_log: get_entries(last_n=0) boundary (L382: > 0 -> >= 0)
+# ---------------------------------------------------------------------------
+
+class TestEventLogLastNZero:
+    def _make_log_with_entries(self):
+        from jarvis.core.event_log import EventLog, EventLogEntry
+        log = EventLog(session_id="test", operating_mode="historical",
+                       start_time=1000.0)
+        log.set_genesis_state_hash("genesis_hash")
+        e1 = EventLogEntry(
+            sequence_id=0, timestamp=1001.0, event_type="market_data",
+            event_payload={"x": 1},
+            state_hash_before="h0", state_hash_after="h1",
+        )
+        e2 = EventLogEntry(
+            sequence_id=1, timestamp=1002.0, event_type="market_data",
+            event_payload={"x": 2},
+            state_hash_before="h1", state_hash_after="h2",
+        )
+        log.append(e1)
+        log.append(e2)
+        return log
+
+    def test_get_entries_last_n_zero_returns_all(self):
+        log = self._make_log_with_entries()
+        # Original (> 0): 0 > 0 is False -> returns all entries
+        # Mutant (>= 0): 0 >= 0 is True -> returns [] (empty)
+        entries = log.get_entries(last_n=0)
+        assert len(entries) == 2
+
+    def test_get_entries_last_n_1(self):
+        log = self._make_log_with_entries()
+        entries = log.get_entries(last_n=1)
+        assert len(entries) == 1
+        assert entries[0].event_type == "market_data"
+
+
+# ---------------------------------------------------------------------------
+# event_log: integrity hash encoding (L351: "utf-8" -> "utf+8")
+# ---------------------------------------------------------------------------
+
+class TestEventLogHashEncoding:
+    def test_integrity_hash_valid_hex(self):
+        from jarvis.core.event_log import EventLog, EventLogEntry
+        log = EventLog(session_id="test", operating_mode="historical",
+                       start_time=1000.0)
+        log.set_genesis_state_hash("genesis_hash")
+        e = EventLogEntry(
+            sequence_id=0, timestamp=1001.0, event_type="market_data",
+            event_payload={"key": "val"},
+            state_hash_before="h0", state_hash_after="h1",
+        )
+        log.append(e)
+        h = log.compute_integrity_hash()
+        assert len(h) == 64
+        assert all(c in "0123456789abcdef" for c in h)
+
+
+# ---------------------------------------------------------------------------
+# reproducibility: tolerance boundary (L193: >= -> >)
+# ---------------------------------------------------------------------------
+
+class TestReproducibilityTolerance:
+    def test_diff_exactly_at_tolerance_is_mismatch(self):
+        from jarvis.systems.reproducibility import (
+            ReproducibilityController, TOLERANCE_FLOAT_COMPARE,
+        )
+        ctrl = ReproducibilityController()
+        # Use small base so tolerance is distinguishable in FP
+        a = 0.0
+        b = TOLERANCE_FLOAT_COMPARE  # diff == tolerance exactly
+        result = ctrl.verify_reproducibility({"val": a}, {"val": b})
+        # abs(0.0 - tol) >= tol is True -> mismatch
+        assert not result.reproducible
+
+    def test_diff_below_tolerance_is_identical(self):
+        from jarvis.systems.reproducibility import (
+            ReproducibilityController, TOLERANCE_FLOAT_COMPARE,
+        )
+        ctrl = ReproducibilityController()
+        a = 0.0
+        b = TOLERANCE_FLOAT_COMPARE * 0.5
+        result = ctrl.verify_reproducibility({"val": a}, {"val": b})
+        assert result.reproducible
+
+
+# ---------------------------------------------------------------------------
+# reproducibility: shape mismatch (L198: != -> ==)
+# ---------------------------------------------------------------------------
+
+class TestReproducibilityShapeMismatch:
+    def test_array_shape_mismatch_detected(self):
+        from jarvis.systems.reproducibility import ReproducibilityController
+        checker = ReproducibilityController()
+        a = np.array([1.0, 2.0])
+        b = np.array([1.0, 2.0, 3.0])
+        result = checker.verify_reproducibility({"arr": a}, {"arr": b})
+        assert not result.reproducible
+        assert any("shape" in m for m in result.mismatches)
+
+
+# ---------------------------------------------------------------------------
+# reproducibility: array diff (L203: a - b -> a + b)
+# ---------------------------------------------------------------------------
+
+class TestReproducibilityArrayDiff:
+    def test_array_value_mismatch_detected(self):
+        from jarvis.systems.reproducibility import ReproducibilityController
+        checker = ReproducibilityController()
+        a = np.array([1.0, 2.0])
+        b = np.array([1.0, 999.0])
+        result = checker.verify_reproducibility({"arr": a}, {"arr": b})
+        assert not result.reproducible
+
+
+# ---------------------------------------------------------------------------
+# reproducibility: fingerprint encoding (L246: "utf-8" -> "utf+8")
+# ---------------------------------------------------------------------------
+
+class TestReproducibilityFingerprint:
+    def test_fingerprint_valid_hex(self):
+        from jarvis.systems.reproducibility import ReproducibilityController
+        checker = ReproducibilityController()
+        fp = checker.get_system_fingerprint()
+        assert len(fp) == 16
+        assert all(c in "0123456789abcdef" for c in fp)
+
+    def test_fingerprint_deterministic(self):
+        from jarvis.systems.reproducibility import ReproducibilityController
+        assert (ReproducibilityController().get_system_fingerprint()
+                == ReproducibilityController().get_system_fingerprint())
+
+
+# ---------------------------------------------------------------------------
+# regime_transition: default laplace_smoothing (L187: 0.1 -> 0.2)
+# ---------------------------------------------------------------------------
+
+class TestRegimeTransitionDefaultSmoothing:
+    def test_default_matches_explicit_01(self):
+        from jarvis.intelligence.regime_transition import RegimeTransitionEstimator
+        est = RegimeTransitionEstimator()
+        # Use a longer sequence with many transitions so smoothing matters
+        seq = (["TRENDING", "TRENDING", "RANGING", "TRENDING"] * 20 +
+               ["HIGH_VOL", "SHOCK", "UNKNOWN", "TRENDING"] * 5)
+        result_default = est.estimate(seq)
+        result_01 = est.estimate(seq, laplace_smoothing=0.1)
+        result_02 = est.estimate(seq, laplace_smoothing=0.2)
+        # Default should match 0.1, not 0.2
+        assert result_default.matrix == result_01.matrix
+        assert result_default.matrix != result_02.matrix
+
+
+# ---------------------------------------------------------------------------
+# bayesian_confidence: evidence=0 boundary (L225: > 0 -> >= 0)
+# and formula (L227: prior * likelihood -> prior / likelihood)
+# ---------------------------------------------------------------------------
+
+class TestBayesianConfidenceFormula:
+    def test_high_quality_gives_higher_posterior(self):
+        from jarvis.intelligence.bayesian_confidence import BayesianConfidenceEngine
+        eng = BayesianConfidenceEngine()
+        result_high = eng.update(
+            prior_confidence=0.8,
+            regime="TRENDING",
+            quality_score=0.95,
+            fm_active=False,
+            regime_stable=True,
+        )
+        result_low = eng.update(
+            prior_confidence=0.8,
+            regime="TRENDING",
+            quality_score=0.1,
+            fm_active=False,
+            regime_stable=True,
+        )
+        # With * formula: high quality -> higher likelihood -> higher posterior
+        # With / formula: high quality -> lower (inverted) -> LOWER posterior
+        assert result_high.posterior_confidence >= result_low.posterior_confidence
+
+    def test_formula_produces_reasonable_posterior(self):
+        from jarvis.intelligence.bayesian_confidence import BayesianConfidenceEngine
+        eng = BayesianConfidenceEngine()
+        result = eng.update(
+            prior_confidence=0.8,
+            regime="TRENDING",
+            quality_score=0.9,
+            fm_active=False,
+            regime_stable=True,
+        )
+        # With correct formula, posterior should be close to prior
+        assert 0.3 < result.posterior_confidence <= 1.0
+
+
+# ---------------------------------------------------------------------------
+# validation_gates: reason string operator content (L163, L219, L249, L302)
+# ---------------------------------------------------------------------------
+
+class TestValidationGatesReasonContent:
+    def test_quality_gate_fail_reason_has_lt(self):
+        from jarvis.systems.validation_gates import QualityGate
+        gate = QualityGate()
+        result = gate.check(quality_score=0.01)  # well below threshold
+        assert not result.passed
+        assert "<" in result.reason
+        assert "<=" not in result.reason  # mutant would use "<="
+
+    def test_kalman_gate_fail_reason_has_gte(self):
+        from jarvis.systems.validation_gates import KalmanGate
+        gate = KalmanGate()
+        result = gate.check(condition_number=1e12)  # well above threshold
+        assert not result.passed
+        assert ">=" in result.reason
+
+    def test_ece_gate_fail_reason_has_gte(self):
+        from jarvis.systems.validation_gates import ECEGate
+        gate = ECEGate()
+        result = gate.check(ece=0.5)  # well above threshold
+        assert not result.passed
+        assert ">=" in result.reason
+
+    def test_risk_gate_fail_reason_has_lt(self):
+        from jarvis.systems.validation_gates import RiskGate
+        gate = RiskGate()
+        result = gate.check(var=-1.0)  # well below threshold
+        assert not result.passed
+        assert "<" in result.reason
+        assert "<=" not in result.reason

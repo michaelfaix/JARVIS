@@ -87,7 +87,7 @@ class FlowState:
     State at a pipeline layer.
 
     Fields:
-        layer:       Current layer number (1-11).
+        layer:       Current layer number (1+11).
         layer_name:  Human-readable layer name.
         signal:      Control signal for this layer.
         gate_passed: Whether the validation gate passed (True if no gate).
