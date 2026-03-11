@@ -57,7 +57,7 @@ import hashlib
 import json
 import threading
 from dataclasses import asdict, dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional
 
 from jarvis.core.regime import GlobalRegimeState
@@ -141,7 +141,7 @@ class SystemState:
     def initial(cls) -> SystemState:
         """Create the initial system state at startup."""
         state = cls(
-            timestamp=datetime.utcnow().isoformat(),
+            timestamp=datetime.now(timezone.utc).isoformat(),
             mode="RUNNING",
             ood_status="NORMAL",
             calibration_status="OK",
@@ -387,7 +387,7 @@ class GlobalSystemStateController:
             _validate_update_values(current, kwargs)
 
             current.update(kwargs)
-            current["timestamp"] = datetime.utcnow().isoformat()
+            current["timestamp"] = datetime.now(timezone.utc).isoformat()
 
             # Resolve regime enum: accept enum or string (.value)
             raw_regime = current["regime"]
@@ -453,7 +453,7 @@ class GlobalSystemStateController:
                             "new_state_hash": new_state.state_hash,
                             "changed_fields": list(kwargs.keys()),
                         },
-                        timestamp=datetime.utcnow(),
+                        timestamp=datetime.now(timezone.utc),
                     )
                 except Exception:
                     pass
@@ -479,7 +479,7 @@ class GlobalSystemStateController:
                 self._log.log_event(
                     event_type="EMERGENCY_SHUTDOWN",
                     data={"reason": reason, "state_hash": self._state.state_hash},
-                    timestamp=datetime.utcnow(),
+                    timestamp=datetime.now(timezone.utc),
                 )
             except Exception:
                 pass

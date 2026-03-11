@@ -45,7 +45,7 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 import numpy as np
@@ -161,7 +161,7 @@ class NewsIntelligenceLayer:
         """
         Aggregiert News-Events zu strukturiertem Layer-Output.
         """
-        now = now or datetime.utcnow()
+        now = now or datetime.now(timezone.utc)
 
         # Zeitfenster: nur Events der letzten lookback_hours
         cutoff_seconds = lookback_hours * 3600.0

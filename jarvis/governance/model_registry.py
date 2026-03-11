@@ -18,7 +18,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import asdict, dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -163,7 +163,7 @@ class FullModelRegistry:
         model_version = ModelVersion(
             model_id=model_id,
             version=version,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
             created_by=created_by,
             status=ModelStatus.DEVELOPMENT,
             risk_tier=risk_tier,
@@ -241,7 +241,7 @@ class FullModelRegistry:
             )
 
         model_version.validator_name = validator_name
-        model_version.validation_date = datetime.utcnow()
+        model_version.validation_date = datetime.now(timezone.utc)
 
         if model_id not in self.validations:
             self.validations[model_id] = []
@@ -297,7 +297,7 @@ class FullModelRegistry:
 
         model_version.status = ModelStatus.APPROVED
         model_version.approved_by = approved_by
-        model_version.approval_date = datetime.utcnow()
+        model_version.approval_date = datetime.now(timezone.utc)
 
         if conditions:
             model_version.change_log.append(
@@ -331,11 +331,11 @@ class FullModelRegistry:
                     v.status = ModelStatus.DEPRECATED
                     v.change_log.append(
                         f"Deprecated by deployment of v{version} "
-                        f"at {datetime.utcnow()}"
+                        f"at {datetime.now(timezone.utc)}"
                     )
 
         model_version.status = ModelStatus.DEPLOYED
-        model_version.change_log.append(f"Deployed at {datetime.utcnow()}")
+        model_version.change_log.append(f"Deployed at {datetime.now(timezone.utc)}")
 
         self.save()
 
@@ -365,13 +365,13 @@ class FullModelRegistry:
 
         current_version.status = ModelStatus.SUSPENDED
         current_version.change_log.append(
-            f"Suspended and rolled back from at {datetime.utcnow()}. "
+            f"Suspended and rolled back from at {datetime.now(timezone.utc)}. "
             f"Reason: {reason}"
         )
 
         target_version.status = ModelStatus.DEPLOYED
         target_version.change_log.append(
-            f"Rolled back to from v{from_version} at {datetime.utcnow()}. "
+            f"Rolled back to from v{from_version} at {datetime.now(timezone.utc)}. "
             f"Reason: {reason}"
         )
 
@@ -697,7 +697,7 @@ class ModelRegistry:
         entry = ModelEntry(
             model_id=model_id,
             version=version,
-            created_at=datetime.utcnow().isoformat(),
+            created_at=datetime.now(timezone.utc).isoformat(),
             deployed_at=None,
             status="CANDIDATE",
             ece=1.0,
@@ -805,7 +805,7 @@ class ModelRegistry:
 
         entry.status = "ACTIVE"
         entry.is_active = True
-        entry.deployed_at = datetime.utcnow().isoformat()
+        entry.deployed_at = datetime.now(timezone.utc).isoformat()
         self._active_model_id = model_id
         return entry
 

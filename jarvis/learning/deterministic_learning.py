@@ -19,7 +19,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
@@ -103,7 +103,7 @@ class DeterministicLearningOrchestrator:
             RuntimeError: On ECE-Gate or Stress-Test failure.
         """
         # Step 1 — Generate cycle_id & timestamp
-        timestamp = datetime.utcnow().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
         raw = f"{chunk_id}{timestamp}"
         cycle_id = hashlib.sha256(raw.encode()).hexdigest()[:12]
 

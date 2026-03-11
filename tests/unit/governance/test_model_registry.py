@@ -10,7 +10,7 @@
 
 import json
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from jarvis.governance.model_registry import (
@@ -43,7 +43,7 @@ def _make_validation_report(
         model_id=model_id,
         version=version,
         validator_name=validator,
-        validation_date=datetime.utcnow(),
+        validation_date=datetime.now(timezone.utc),
         conceptual_soundness=True,
         data_quality_verified=True,
         implementation_correct=True,
@@ -124,7 +124,7 @@ class TestModelVersion:
     def test_post_init_defaults(self):
         mv = ModelVersion(
             model_id="m1", version="1.0",
-            created_at=datetime.utcnow(), created_by="dev",
+            created_at=datetime.now(timezone.utc), created_by="dev",
             status=ModelStatus.DEVELOPMENT,
             risk_tier=ModelRiskTier.TIER_1_HIGH,
             code_hash="abc", config_hash="def", dependency_hash="ghi",
@@ -137,7 +137,7 @@ class TestModelVersion:
     def test_optional_fields_none(self):
         mv = ModelVersion(
             model_id="m1", version="1.0",
-            created_at=datetime.utcnow(), created_by="dev",
+            created_at=datetime.now(timezone.utc), created_by="dev",
             status=ModelStatus.DEVELOPMENT,
             risk_tier=ModelRiskTier.TIER_1_HIGH,
             code_hash="abc", config_hash="def", dependency_hash="ghi",

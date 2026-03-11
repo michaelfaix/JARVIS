@@ -14,7 +14,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import asdict, dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -113,7 +113,7 @@ class FeatureRegistry:
 
         feature_def = f"{feature_id}{name}{version}{regime_valid}"
         feat_hash = hashlib.sha256(feature_def.encode()).hexdigest()[:16]
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         entry = FeatureEntry(
             feature_id=feature_id,
@@ -151,7 +151,7 @@ class FeatureRegistry:
             raise KeyError(f"Feature '{feature_id}' not in registry")
         entry = self._registry[feature_id]
         entry.importance_score = float(np.clip(new_importance, 0.0, 1.0))
-        entry.last_validated = datetime.utcnow().isoformat()
+        entry.last_validated = datetime.now(timezone.utc).isoformat()
         return entry
 
     def compute_decayed_importance(

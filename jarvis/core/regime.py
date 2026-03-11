@@ -14,7 +14,7 @@
 #   )
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum, unique
 from typing import Dict, Optional, Tuple
 import hashlib
@@ -273,7 +273,7 @@ class HierarchicalRegime:
             json.dumps(payload, sort_keys=True).encode("utf-8")
         ).hexdigest()[:16]
 
-        ts = datetime.utcnow().isoformat()
+        ts = datetime.now(timezone.utc).isoformat()
 
         return HierarchicalRegime(
             global_regime=global_regime,

@@ -14,7 +14,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 
 
@@ -176,7 +176,7 @@ class PerformanceCertificationEngine:
 
         result = CertificationResult(
             model_id=model_id,
-            timestamp=datetime.utcnow().isoformat(),
+            timestamp=datetime.now(timezone.utc).isoformat(),
             calibration_ok=calibration_ok,
             ood_ok=ood_ok,
             stress_ok=stress_ok,
