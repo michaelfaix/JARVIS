@@ -4,6 +4,7 @@
 
 "use client";
 
+import { useEffect } from "react";
 import { AppHeader } from "@/components/layout/app-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,20 +20,31 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { usePortfolio } from "@/hooks/use-portfolio";
 import { useSystemStatus } from "@/hooks/use-jarvis";
+import { usePrices } from "@/hooks/use-prices";
 import { inferRegime, REGIME_COLORS, type RegimeState } from "@/lib/types";
 import {
   TrendingUp,
   TrendingDown,
   Wallet,
   ShieldAlert,
+  Wifi,
+  WifiOff,
   X,
 } from "lucide-react";
 
 export default function PortfolioPage() {
-  const { state, closePosition, resetPortfolio, unrealizedPnl, totalValue } =
+  const { state, closePosition, updatePrices, resetPortfolio, unrealizedPnl, totalValue } =
     usePortfolio();
   const { status } = useSystemStatus(5000);
   const regime: RegimeState = status ? inferRegime(status.modus) : "RISK_ON";
+  const { prices, binanceConnected } = usePrices(5000);
+
+  // Update position prices whenever live prices change
+  useEffect(() => {
+    if (state.positions.length > 0) {
+      updatePrices(prices);
+    }
+  }, [prices, state.positions.length, updatePrices]);
 
   const totalPnl = state.realizedPnl + unrealizedPnl;
   const totalPnlPercent =
@@ -69,7 +81,7 @@ export default function PortfolioPage() {
       <AppHeader title="Portfolio" subtitle="Paper Trading Account" />
       <div className="p-6 space-y-6">
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Card className="bg-card/50 border-border/50">
             <CardContent className="pt-4 pb-3 px-4">
               <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
@@ -156,6 +168,29 @@ export default function PortfolioPage() {
               </div>
               <div className="text-xs text-muted-foreground">
                 of ${state.totalCapital.toLocaleString()}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-card/50 border-border/50">
+            <CardContent className="pt-4 pb-3 px-4">
+              <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                {binanceConnected ? (
+                  <Wifi className="h-3 w-3 text-green-400" />
+                ) : (
+                  <WifiOff className="h-3 w-3 text-yellow-500" />
+                )}
+                Price Feed
+              </div>
+              <div className="text-sm font-mono text-white">
+                {binanceConnected ? (
+                  <span className="text-green-400">Binance Live</span>
+                ) : (
+                  <span className="text-yellow-400">Synthetic</span>
+                )}
+              </div>
+              <div className="text-[10px] text-muted-foreground">
+                Updates every 5s
               </div>
             </CardContent>
           </Card>

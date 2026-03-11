@@ -296,8 +296,21 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 - **Strategy Lab**: 3 Strategien (Momentum, Mean Reversion, Combined), Backtest Panel (Coming Soon)
 - **Settings**: Paper Capital, Strategy-Wahl, Asset Tracking, Dark/Light Theme, Poll Interval, Reset
 - 11 shadcn/ui Komponenten (Card, Badge, Button, Table, Input, Label, Select, Separator, Tabs, Progress, Switch)
-- 6 Custom Hooks (use-jarvis, use-signals, use-portfolio, use-settings, use-sidebar)
+- 7 Custom Hooks (use-jarvis, use-signals, use-portfolio, use-settings, use-sidebar, use-prices)
 - Route Group `(app)/` mit shared Sidebar Layout
+- Build: 0 Errors, 6 Routes | Backend: 8897 Tests grün
+
+---
+
+## ✅ ABGESCHLOSSEN: Paper Trading Engine + Live Prices
+
+### Erstellt:
+- **Paper Trading Accept/Close**: Accept-Button auf Signals-Seite öffnet Trade (10% des verfügbaren Kapitals), Close-Button schließt Position
+- **Live Binance Preise**: `use-prices.ts` Hook holt BTC, ETH, SOL Preise von Binance REST API (kostenlos, kein API-Key)
+- **Synthetic Fallback**: Nicht-Crypto Assets (SPY, AAPL, etc.) nutzen synthetische Random-Walk-Preise
+- **Portfolio Real-Time P&L**: Portfolio-Seite aktualisiert Positionen automatisch mit Live-Preisen alle 5s
+- **Binance Status Indicator**: Wifi-Icon zeigt ob Live- oder Synthetic-Preise aktiv sind
+- Signals-Seite: Live Price Spalte, Open Trades Counter, Available Capital Anzeige
 - Build: 0 Errors, 6 Routes | Backend: 8897 Tests grün
 
 ---
@@ -321,5 +334,5 @@ BTC/USD Chart mit TradingView Lightweight Charts + JARVIS Signal Overlay.
 
 ---
 
-*CLAUDE.md — Version 7.2.0 | März 2026*
+*CLAUDE.md — Version 7.3.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*
