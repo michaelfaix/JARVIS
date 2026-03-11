@@ -1,10 +1,9 @@
 // =============================================================================
 // src/lib/api.ts — JARVIS Backend API Client
-//
-// Connects to FastAPI backend at localhost:8000/api/v1
 // =============================================================================
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
 // ---------------------------------------------------------------------------
 // Types matching jarvis/api/models.py
@@ -59,7 +58,7 @@ export interface MetricsResponse {
 }
 
 // ---------------------------------------------------------------------------
-// API Functions
+// Core fetch
 // ---------------------------------------------------------------------------
 
 async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
@@ -72,6 +71,10 @@ async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
   }
   return res.json() as Promise<T>;
 }
+
+// ---------------------------------------------------------------------------
+// Endpoints
+// ---------------------------------------------------------------------------
 
 export async function getHealth(): Promise<HealthResponse> {
   return fetchApi<HealthResponse>("/health");
@@ -91,5 +94,39 @@ export async function postPrediction(
   return fetchApi<PredictionResponse>("/predict", {
     method: "POST",
     body: JSON.stringify(req),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Batch predictions for multiple assets
+// ---------------------------------------------------------------------------
+
+export interface AssetPrediction {
+  asset: string;
+  prediction: PredictionResponse | null;
+  error: string | null;
+}
+
+export async function batchPredict(
+  assets: { symbol: string; features: number[] }[],
+  regime: string
+): Promise<AssetPrediction[]> {
+  const results = await Promise.allSettled(
+    assets.map((a) =>
+      postPrediction({ features: a.features, regime }).then((pred) => ({
+        asset: a.symbol,
+        prediction: pred,
+        error: null as string | null,
+      }))
+    )
+  );
+
+  return results.map((r, i) => {
+    if (r.status === "fulfilled") return r.value;
+    return {
+      asset: assets[i].symbol,
+      prediction: null,
+      error: r.reason instanceof Error ? r.reason.message : "Unknown error",
+    };
   });
 }

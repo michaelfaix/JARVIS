@@ -286,6 +286,22 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 
 ---
 
+## ✅ ABGESCHLOSSEN: Frontend Navigation + 6 Seiten
+
+### Erstellt:
+- Sidebar Navigation mit Icons (lucide-react): Dashboard, Signals, Portfolio, Radar, Strategy Lab, Settings
+- **Signals-Seite**: Live Signal Feed (8 Assets), Direction Badges, Entry/SL/TP, Confidence Bars, Quality Score, OOD Warning
+- **Portfolio-Seite**: Paper Trading Konto, Asset Allocation, P&L, Risk Score, Open Positions mit Close-Button
+- **Opportunity Radar**: Top Opportunities, Tabs (All/Long/Short/Top), Momentum Scanner
+- **Strategy Lab**: 3 Strategien (Momentum, Mean Reversion, Combined), Backtest Panel (Coming Soon)
+- **Settings**: Paper Capital, Strategy-Wahl, Asset Tracking, Dark/Light Theme, Poll Interval, Reset
+- 11 shadcn/ui Komponenten (Card, Badge, Button, Table, Input, Label, Select, Separator, Tabs, Progress, Switch)
+- 6 Custom Hooks (use-jarvis, use-signals, use-portfolio, use-settings, use-sidebar)
+- Route Group `(app)/` mit shared Sidebar Layout
+- Build: 0 Errors, 6 Routes | Backend: 8897 Tests grün
+
+---
+
 ## 🔜 NÄCHSTER SCHRITT
 
 ### Sofort (ohne Code, diese Woche):
@@ -305,5 +321,5 @@ BTC/USD Chart mit TradingView Lightweight Charts + JARVIS Signal Overlay.
 
 ---
 
-*CLAUDE.md — Version 7.1.0 | März 2026*
+*CLAUDE.md — Version 7.2.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*

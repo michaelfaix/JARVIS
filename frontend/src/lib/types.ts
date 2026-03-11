@@ -2,6 +2,10 @@
 // src/lib/types.ts — Shared frontend types
 // =============================================================================
 
+// ---------------------------------------------------------------------------
+// Regime & System
+// ---------------------------------------------------------------------------
+
 export type RegimeState =
   | "RISK_ON"
   | "RISK_OFF"
@@ -19,20 +23,6 @@ export type SystemModus =
   | "DATEN_QUARANTAENE"
   | "MODELL_ROLLBACK"
   | "KONFIDENZ_KOLLAPS";
-
-export interface CandlestickData {
-  time: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-}
-
-export interface SignalOverlay {
-  time: string;
-  value: number;
-  color: string;
-}
 
 export const REGIME_COLORS: Record<RegimeState, string> = {
   RISK_ON: "#22c55e",
@@ -61,3 +51,106 @@ export const MODUS_COLORS: Record<string, string> = {
   MODELL_ROLLBACK: "#dc2626",
   KONFIDENZ_KOLLAPS: "#991b1b",
 };
+
+// ---------------------------------------------------------------------------
+// Signals
+// ---------------------------------------------------------------------------
+
+export interface Signal {
+  id: string;
+  asset: string;
+  direction: "LONG" | "SHORT";
+  entry: number;
+  stopLoss: number;
+  takeProfit: number;
+  confidence: number;
+  qualityScore: number;
+  regime: string;
+  isOod: boolean;
+  timestamp: Date;
+}
+
+// ---------------------------------------------------------------------------
+// Portfolio (Paper Trading)
+// ---------------------------------------------------------------------------
+
+export interface Position {
+  id: string;
+  asset: string;
+  direction: "LONG" | "SHORT";
+  entryPrice: number;
+  currentPrice: number;
+  size: number;
+  capitalAllocated: number;
+  openedAt: string; // ISO string for serialization
+  pnl: number;
+  pnlPercent: number;
+}
+
+export interface PortfolioState {
+  totalCapital: number;
+  availableCapital: number;
+  positions: Position[];
+  realizedPnl: number;
+}
+
+// ---------------------------------------------------------------------------
+// Opportunity Radar
+// ---------------------------------------------------------------------------
+
+export interface Opportunity {
+  asset: string;
+  direction: "LONG" | "SHORT";
+  score: number;
+  confidence: number;
+  momentum: number;
+  regime: RegimeState;
+  qualityScore: number;
+  price: number;
+}
+
+// ---------------------------------------------------------------------------
+// Settings
+// ---------------------------------------------------------------------------
+
+export interface AppSettings {
+  paperCapital: number;
+  strategy: "momentum" | "mean_reversion" | "combined";
+  theme: "dark" | "light";
+  pollIntervalMs: number;
+  trackedAssets: string[];
+}
+
+// ---------------------------------------------------------------------------
+// Chart
+// ---------------------------------------------------------------------------
+
+export interface CandlestickData {
+  time: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+export function inferRegime(modus: string): RegimeState {
+  switch (modus) {
+    case "NORMAL":
+      return "RISK_ON";
+    case "ERHOEHTE_VORSICHT":
+    case "REDUZIERTES_VERTRAUEN":
+      return "RISK_OFF";
+    case "NOTFALL_MODUS":
+    case "KONFIDENZ_KOLLAPS":
+      return "CRISIS";
+    case "MINIMALE_EXPOSITION":
+    case "NUR_MONITORING":
+      return "TRANSITION";
+    default:
+      return "RISK_ON";
+  }
+}
