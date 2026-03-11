@@ -5,3 +5,4 @@ __pycache__/
 .mutmut-cache
 .mutmut-cache-journal
 .coverage
+.coverage.*
