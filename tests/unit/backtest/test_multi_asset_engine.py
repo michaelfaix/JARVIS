@@ -25,6 +25,7 @@ from jarvis.backtest.multi_asset_engine import (
     _mean,
     _std_pop,
     _compute_correlation_snapshot,
+    OverfittingReport,
 )
 
 
@@ -909,3 +910,172 @@ class TestWalkForwardWindowImport:
         from jarvis.walkforward.engine import generate_windows as canonical
         from jarvis.backtest.multi_asset_engine import generate_windows as used
         assert canonical is used
+
+
+# =============================================================================
+# SECTION 15 -- OVERFITTING GOVERNANCE INTEGRATION
+# =============================================================================
+
+class TestWalkForwardOverfittingIntegration:
+    """Tests for BacktestGovernanceEngine integration in walk-forward."""
+
+    def test_fold_has_overfitting_report(self):
+        n = 120
+        returns, prices = _two_asset_data(n)
+        result = run_multi_asset_walkforward(
+            asset_returns=returns,
+            asset_prices=prices,
+            window=20,
+            train_size=40,
+            test_size=20,
+            step=20,
+            initial_capital=10000.0,
+            regime=GlobalRegimeState.RISK_ON,
+            meta_uncertainty=0.2,
+        )
+        for fold in result.folds:
+            assert fold.overfitting_report is not None
+            assert isinstance(fold.overfitting_report, OverfittingReport)
+
+    def test_overfitting_report_strategy_id_per_fold(self):
+        n = 120
+        returns, prices = _two_asset_data(n)
+        result = run_multi_asset_walkforward(
+            asset_returns=returns,
+            asset_prices=prices,
+            window=20,
+            train_size=40,
+            test_size=20,
+            step=20,
+            initial_capital=10000.0,
+            regime=GlobalRegimeState.RISK_ON,
+            meta_uncertainty=0.2,
+        )
+        for fold in result.folds:
+            report = fold.overfitting_report
+            assert report is not None
+            expected_id = f"walkforward_fold_{fold.fold}"
+            assert report.strategy_id == expected_id
+
+    def test_overfitting_report_has_valid_fields(self):
+        n = 120
+        returns, prices = _two_asset_data(n)
+        result = run_multi_asset_walkforward(
+            asset_returns=returns,
+            asset_prices=prices,
+            window=20,
+            train_size=40,
+            test_size=20,
+            step=20,
+            initial_capital=10000.0,
+            regime=GlobalRegimeState.RISK_ON,
+            meta_uncertainty=0.2,
+        )
+        for fold in result.folds:
+            report = fold.overfitting_report
+            assert report is not None
+            assert isinstance(report.performance_spike, bool)
+            assert isinstance(report.param_sensitivity, bool)
+            assert isinstance(report.overfitting_flag, bool)
+            assert math.isfinite(report.is_to_oos_ratio) or report.is_to_oos_ratio == float("inf")
+            assert report.sensitivity_score == 0.0
+
+    def test_any_overfitting_is_bool(self):
+        n = 120
+        returns, prices = _two_asset_data(n)
+        result = run_multi_asset_walkforward(
+            asset_returns=returns,
+            asset_prices=prices,
+            window=20,
+            train_size=40,
+            test_size=20,
+            step=20,
+            initial_capital=10000.0,
+            regime=GlobalRegimeState.RISK_ON,
+            meta_uncertainty=0.2,
+        )
+        assert isinstance(result.any_overfitting, bool)
+
+    def test_any_overfitting_consistent_with_folds(self):
+        n = 120
+        returns, prices = _two_asset_data(n)
+        result = run_multi_asset_walkforward(
+            asset_returns=returns,
+            asset_prices=prices,
+            window=20,
+            train_size=40,
+            test_size=20,
+            step=20,
+            initial_capital=10000.0,
+            regime=GlobalRegimeState.RISK_ON,
+            meta_uncertainty=0.2,
+        )
+        fold_flags = [
+            f.overfitting_report.overfitting_flag
+            for f in result.folds
+            if f.overfitting_report is not None
+        ]
+        assert result.any_overfitting == any(fold_flags)
+
+    def test_no_folds_no_overfitting(self):
+        n = 40
+        returns, prices = _two_asset_data(n)
+        result = run_multi_asset_walkforward(
+            asset_returns=returns,
+            asset_prices=prices,
+            window=20,
+            train_size=30,
+            test_size=20,
+            step=10,
+            initial_capital=10000.0,
+            regime=GlobalRegimeState.RISK_ON,
+            meta_uncertainty=0.2,
+        )
+        assert result.n_folds == 0
+        assert result.any_overfitting is False
+
+    def test_overfitting_report_frozen(self):
+        from jarvis.governance.backtest_governance import OverfittingReport
+        n = 120
+        returns, prices = _two_asset_data(n)
+        result = run_multi_asset_walkforward(
+            asset_returns=returns,
+            asset_prices=prices,
+            window=20,
+            train_size=40,
+            test_size=20,
+            step=20,
+            initial_capital=10000.0,
+            regime=GlobalRegimeState.RISK_ON,
+            meta_uncertainty=0.2,
+        )
+        assert result.n_folds > 0
+        report = result.folds[0].overfitting_report
+        assert report is not None
+        with pytest.raises(AttributeError):
+            report.overfitting_flag = True  # type: ignore
+
+    def test_overfitting_deterministic(self):
+        n = 120
+        returns, prices = _two_asset_data(n)
+        kwargs = dict(
+            asset_returns=returns,
+            asset_prices=prices,
+            window=20,
+            train_size=40,
+            test_size=20,
+            step=20,
+            initial_capital=10000.0,
+            regime=GlobalRegimeState.RISK_ON,
+            meta_uncertainty=0.2,
+        )
+        r1 = run_multi_asset_walkforward(**kwargs)
+        r2 = run_multi_asset_walkforward(**kwargs)
+        assert r1.any_overfitting == r2.any_overfitting
+        for f1, f2 in zip(r1.folds, r2.folds):
+            assert f1.overfitting_report == f2.overfitting_report
+
+    def test_import_overfitting_report(self):
+        from jarvis.governance.backtest_governance import OverfittingReport
+        from jarvis.backtest.multi_asset_engine import OverfittingReport as OR
+        assert OverfittingReport is OR

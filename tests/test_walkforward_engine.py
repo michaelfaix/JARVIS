@@ -402,3 +402,134 @@ class TestModuleAll:
     def test_init_exports_generate_windows(self):
         from jarvis.walkforward import generate_windows as gw
         assert gw is generate_windows
+
+
+# ===================================================================
+# TestRunWalkforwardOverfittingDetection
+# ===================================================================
+
+class TestRunWalkforwardOverfittingDetection:
+    """Tests for optional overfitting detection in run_walkforward."""
+
+    def test_default_no_overfitting_key(self):
+        """Without detect_overfitting=True, no report is added."""
+        data = list(range(20))
+        results = run_walkforward(
+            data, train_size=5, test_size=5, step=5,
+            evaluate_fn=lambda tr, te: {"is_sharpe": 2.0, "oos_sharpe": 1.0},
+        )
+        for r in results:
+            assert "overfitting_report" not in r
+
+    def test_detect_overfitting_adds_report(self):
+        """With detect_overfitting=True and sharpe keys, report is added."""
+        data = list(range(20))
+        results = run_walkforward(
+            data, train_size=5, test_size=5, step=5,
+            evaluate_fn=lambda tr, te: {"is_sharpe": 2.0, "oos_sharpe": 1.0},
+            detect_overfitting=True,
+        )
+        for r in results:
+            assert "overfitting_report" in r
+            report = r["overfitting_report"]
+            assert report is not None
+            assert isinstance(report.overfitting_flag, bool)
+
+    def test_detect_overfitting_no_sharpe_keys_gives_none(self):
+        """If evaluate_fn doesn't return sharpe keys, report is None."""
+        data = list(range(20))
+        results = run_walkforward(
+            data, train_size=5, test_size=5, step=5,
+            evaluate_fn=lambda tr, te: {"metric": 42},
+            detect_overfitting=True,
+        )
+        for r in results:
+            assert r["overfitting_report"] is None
+
+    def test_detect_overfitting_high_spike(self):
+        """IS/OOS ratio > 3.0 should flag overfitting."""
+        data = list(range(20))
+        results = run_walkforward(
+            data, train_size=5, test_size=5, step=5,
+            evaluate_fn=lambda tr, te: {"is_sharpe": 10.0, "oos_sharpe": 1.0},
+            detect_overfitting=True,
+        )
+        for r in results:
+            report = r["overfitting_report"]
+            assert report is not None
+            assert report.performance_spike is True
+            assert report.overfitting_flag is True
+
+    def test_detect_overfitting_no_spike(self):
+        """IS/OOS ratio <= 3.0 should not flag performance spike."""
+        data = list(range(20))
+        results = run_walkforward(
+            data, train_size=5, test_size=5, step=5,
+            evaluate_fn=lambda tr, te: {"is_sharpe": 1.5, "oos_sharpe": 1.0},
+            detect_overfitting=True,
+        )
+        for r in results:
+            report = r["overfitting_report"]
+            assert report is not None
+            assert report.performance_spike is False
+            assert report.overfitting_flag is False
+
+    def test_detect_overfitting_uses_sensitivity_score(self):
+        """If evaluate_fn provides sensitivity_score, it is used."""
+        data = list(range(20))
+        results = run_walkforward(
+            data, train_size=5, test_size=5, step=5,
+            evaluate_fn=lambda tr, te: {
+                "is_sharpe": 1.0, "oos_sharpe": 1.0,
+                "sensitivity_score": 0.8,
+            },
+            detect_overfitting=True,
+        )
+        for r in results:
+            report = r["overfitting_report"]
+            assert report is not None
+            assert report.sensitivity_score == 0.8
+            assert report.param_sensitivity is True
+            assert report.overfitting_flag is True
+
+    def test_detect_overfitting_strategy_id(self):
+        """Strategy ID should contain fold index."""
+        data = list(range(20))
+        results = run_walkforward(
+            data, train_size=5, test_size=5, step=5,
+            evaluate_fn=lambda tr, te: {"is_sharpe": 1.0, "oos_sharpe": 1.0},
+            detect_overfitting=True,
+        )
+        for r in results:
+            report = r["overfitting_report"]
+            assert report is not None
+            assert report.strategy_id == f"walkforward_fold_{r['fold']}"
+
+    def test_detect_overfitting_deterministic(self):
+        """Same inputs produce same overfitting reports."""
+        data = list(range(30))
+        fn = lambda tr, te: {"is_sharpe": 2.5, "oos_sharpe": 0.5}
+        r1 = run_walkforward(data, 10, 5, 5, fn, detect_overfitting=True)
+        r2 = run_walkforward(data, 10, 5, 5, fn, detect_overfitting=True)
+        for a, b in zip(r1, r2):
+            assert a["overfitting_report"] == b["overfitting_report"]
+
+    def test_detect_overfitting_empty_folds(self):
+        """No folds -> empty list, no crash."""
+        data = [1, 2]
+        results = run_walkforward(
+            data, train_size=5, test_size=5, step=1,
+            evaluate_fn=lambda tr, te: {"is_sharpe": 1.0, "oos_sharpe": 1.0},
+            detect_overfitting=True,
+        )
+        assert results == []
+
+    def test_backward_compatible_without_flag(self):
+        """Existing calls without detect_overfitting still work."""
+        data = list(range(20))
+        results = run_walkforward(
+            data, train_size=5, test_size=5, step=5,
+            evaluate_fn=lambda tr, te: {"sum": sum(tr)},
+        )
+        assert len(results) >= 1
+        assert "overfitting_report" not in results[0]

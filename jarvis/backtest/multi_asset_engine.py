@@ -49,6 +49,10 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Sequence, Tuple
 
 from jarvis.core.regime import GlobalRegimeState
+from jarvis.governance.backtest_governance import (
+    BacktestGovernanceEngine,
+    OverfittingReport,
+)
 from jarvis.metrics.engine import compute_metrics, sharpe_ratio, max_drawdown
 from jarvis.orchestrator import run_full_pipeline
 from jarvis.risk.correlation import _pearson
@@ -128,17 +132,19 @@ class WalkForwardFoldResult:
     """Result of a single walk-forward fold.
 
     Attributes:
-        fold:            Fold index.
-        window:          WalkForwardWindow descriptor.
-        train_metrics:   Portfolio metrics on training period.
-        test_metrics:    Portfolio metrics on test (OOS) period.
-        oos_sharpe:      Out-of-sample Sharpe ratio.
+        fold:               Fold index.
+        window:             WalkForwardWindow descriptor.
+        train_metrics:      Portfolio metrics on training period.
+        test_metrics:       Portfolio metrics on test (OOS) period.
+        oos_sharpe:         Out-of-sample Sharpe ratio.
+        overfitting_report: Overfitting detection report for this fold.
     """
-    fold:          int
-    window:        WalkForwardWindow
-    train_metrics: Dict[str, float]
-    test_metrics:  Dict[str, float]
-    oos_sharpe:    float
+    fold:               int
+    window:             WalkForwardWindow
+    train_metrics:      Dict[str, float]
+    test_metrics:       Dict[str, float]
+    oos_sharpe:         float
+    overfitting_report: Optional[OverfittingReport] = None
 
 
 @dataclass(frozen=True)
@@ -151,12 +157,14 @@ class MultiAssetWalkForwardResult:
         std_oos_sharpe:   Std of OOS Sharpe across folds.
         n_folds:          Number of folds.
         full_backtest:    Full-period backtest result (no split).
+        any_overfitting:  True if any fold was flagged for overfitting.
     """
     folds:           Tuple[WalkForwardFoldResult, ...]
     mean_oos_sharpe: float
     std_oos_sharpe:  float
     n_folds:         int
     full_backtest:   MultiAssetBacktestResult
+    any_overfitting: bool = False
 
 
 # =============================================================================
@@ -538,8 +546,18 @@ def run_multi_asset_walkforward(
             meta_uncertainty=meta_uncertainty,
         )
 
-        # Extract OOS Sharpe
+        # Extract IS and OOS Sharpe
+        is_sharpe = train_result.portfolio_metrics.get("sharpe", 0.0)
         oos_sharpe = test_result.portfolio_metrics.get("sharpe", 0.0)
+
+        # Overfitting detection via governance engine
+        governance = BacktestGovernanceEngine()
+        overfitting_report = governance.detect_overfitting(
+            strategy_id=f"walkforward_fold_{wf_window.fold}",
+            is_sharpe=is_sharpe,
+            oos_sharpe=oos_sharpe,
+            sensitivity_score=0.0,
+        )
 
         folds.append(WalkForwardFoldResult(
             fold=wf_window.fold,
@@ -547,6 +565,7 @@ def run_multi_asset_walkforward(
             train_metrics=train_result.portfolio_metrics,
             test_metrics=test_result.portfolio_metrics,
             oos_sharpe=oos_sharpe,
+            overfitting_report=overfitting_report,
         ))
 
     # ------------------------------------------------------------------
@@ -568,12 +587,19 @@ def run_multi_asset_walkforward(
         meta_uncertainty=meta_uncertainty,
     )
 
+    # Aggregate overfitting flag across all folds
+    any_overfitting = any(
+        f.overfitting_report is not None and f.overfitting_report.overfitting_flag
+        for f in folds
+    )
+
     return MultiAssetWalkForwardResult(
         folds=tuple(folds),
         mean_oos_sharpe=mean_oos,
         std_oos_sharpe=std_oos,
         n_folds=len(folds),
         full_backtest=full_backtest,
+        any_overfitting=any_overfitting,
     )
 
 

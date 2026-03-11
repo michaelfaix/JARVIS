@@ -26,7 +26,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Sequence
+from typing import Any, Callable, Dict, List, Optional, Sequence
+
+from jarvis.governance.backtest_governance import (
+    BacktestGovernanceEngine,
+    OverfittingReport,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -117,6 +122,7 @@ def run_walkforward(
     test_size:   int,
     step:        int,
     evaluate_fn: Callable[[Sequence[Any], Sequence[Any]], Dict[str, Any]],
+    detect_overfitting: bool = False,
 ) -> List[Dict[str, Any]]:
     """
     Run deterministic walk-forward validation.
@@ -129,21 +135,32 @@ def run_walkforward(
     evaluate_fn must be a pure, deterministic function. Its signature:
         evaluate_fn(train: Sequence[Any], test: Sequence[Any]) -> Dict[str, Any]
 
+    When detect_overfitting is True and evaluate_fn returns both
+    'is_sharpe' and 'oos_sharpe' keys, an OverfittingReport is computed
+    via BacktestGovernanceEngine and added under the 'overfitting_report'
+    key. sensitivity_score defaults to 0.0. If the required keys are
+    absent, 'overfitting_report' is set to None.
+
     Args:
-        data:        Full dataset as a sequence.
-        train_size:  Training window size.
-        test_size:   Test window size.
-        step:        Step size per fold.
-        evaluate_fn: Caller-supplied deterministic evaluation function.
+        data:               Full dataset as a sequence.
+        train_size:         Training window size.
+        test_size:          Test window size.
+        step:               Step size per fold.
+        evaluate_fn:        Caller-supplied deterministic evaluation function.
+        detect_overfitting: If True, run overfitting detection per fold.
 
     Returns:
         List of dicts, one per fold, each containing:
             'fold':   fold index (int)
             'window': WalkForwardWindow
             **result: all keys from evaluate_fn's return dict
+            'overfitting_report': OverfittingReport or None (if detect_overfitting)
     """
     windows = generate_windows(len(data), train_size, test_size, step)
     results: List[Dict[str, Any]] = []
+    governance: Optional[BacktestGovernanceEngine] = (
+        BacktestGovernanceEngine() if detect_overfitting else None
+    )
     for window in windows:
         train_slice = data[window.train_start : window.train_end]
         test_slice  = data[window.test_start  : window.test_end]
@@ -153,6 +170,26 @@ def run_walkforward(
             "window": window,
         }
         entry.update(fold_result)
+
+        if governance is not None:
+            is_sharpe = fold_result.get("is_sharpe")
+            oos_sharpe = fold_result.get("oos_sharpe")
+            if (
+                is_sharpe is not None
+                and oos_sharpe is not None
+                and isinstance(is_sharpe, (int, float))
+                and isinstance(oos_sharpe, (int, float))
+            ):
+                sensitivity = fold_result.get("sensitivity_score", 0.0)
+                entry["overfitting_report"] = governance.detect_overfitting(
+                    strategy_id=f"walkforward_fold_{window.fold}",
+                    is_sharpe=float(is_sharpe),
+                    oos_sharpe=float(oos_sharpe),
+                    sensitivity_score=float(sensitivity),
+                )
+            else:
+                entry["overfitting_report"] = None
+
         results.append(entry)
     return results
 
