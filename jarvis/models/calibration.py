@@ -46,6 +46,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Sequence, Tuple
 
 from jarvis.metrics.ece_calculator import compute_ece, ECEResult
+from jarvis.utils.exceptions import CalibrationGateViolation
 
 __all__ = [
     "CONFIDENCE_FLOOR",
@@ -57,12 +58,19 @@ __all__ = [
     "ISOTONIC_MIN_SAMPLES",
     "BETA_MAX_ITER",
     "BETA_LR",
+    "ONLINE_WINDOW_SIZE",
+    "ONLINE_UPDATE_FREQUENCY",
+    "TEMPERATURE_SCALING_T",
     "CalibrationMetrics",
     "CalibrationResult",
     "platt_scaling",
     "isotonic_regression",
     "beta_calibration",
     "evaluate_calibration",
+    "temperature_scaling",
+    "CalibrationHardGate",
+    "CalibrationLayer",
+    "OnlineCalibrator",
 ]
 
 
@@ -521,3 +529,359 @@ def evaluate_calibration(
         return isotonic_regression(confidences, outcomes)
     else:
         return beta_calibration(confidences, outcomes)
+
+
+# =============================================================================
+# SECTION 8 -- S09 EXTENSION CONSTANTS (DET-06: fixed literals)
+# =============================================================================
+
+ONLINE_WINDOW_SIZE: int = 500
+"""Maximum number of samples retained in the online calibrator sliding window."""
+
+ONLINE_UPDATE_FREQUENCY: int = 100
+"""Number of new samples required before triggering a recalibration."""
+
+TEMPERATURE_SCALING_T: float = 2.5
+"""Temperature parameter for CRISIS regime temperature scaling."""
+
+
+# =============================================================================
+# SECTION 9 -- TEMPERATURE SCALING
+# =============================================================================
+
+def temperature_scaling(
+    confidences: Sequence[float],
+    outcomes: Sequence[float],
+    T: float = TEMPERATURE_SCALING_T,
+) -> CalibrationResult:
+    """
+    Temperature scaling: soften logits by dividing by T before sigmoid.
+
+    calibrated_i = sigmoid(logit(conf_i) / T)
+
+    Higher T pushes calibrated values closer to 0.5 (more conservative).
+    T = 1.0 is the identity transform (no change).
+
+    Args:
+        confidences: Raw predicted probabilities in [0, 1].
+        outcomes:    Binary outcomes in [0, 1].
+        T:           Temperature parameter (> 0). Default TEMPERATURE_SCALING_T.
+
+    Returns:
+        CalibrationResult with method="temperature".
+
+    Raises:
+        TypeError:  If inputs are not list/tuple or contain non-numeric.
+        ValueError: If inputs are empty, lengths differ, values invalid,
+                    or T is not positive / not finite.
+    """
+    _validate_inputs(confidences, outcomes)
+
+    if not isinstance(T, (int, float)):
+        raise TypeError(f"T must be numeric, got {type(T).__name__}")
+    if not math.isfinite(T):
+        raise ValueError(f"T must be finite, got {T!r}")
+    if T <= 0.0:
+        raise ValueError(f"T must be positive, got {T!r}")
+
+    n = len(confidences)
+    logits = [_logit(c) for c in confidences]
+
+    calibrated = []
+    for j in range(n):
+        scaled_logit = logits[j] / T
+        val = _sigmoid(scaled_logit)
+        val = _clamp(val)
+        # NaN/Inf guard
+        if not math.isfinite(val):
+            val = 0.5
+        calibrated.append(val)
+
+    metrics = _compute_metrics(calibrated, outcomes)
+    return CalibrationResult(
+        method="temperature",
+        calibrated_confidences=tuple(calibrated),
+        metrics=metrics,
+        parameters={"T": T},
+    )
+
+
+# =============================================================================
+# SECTION 10 -- CALIBRATION HARD GATE
+# =============================================================================
+
+class CalibrationHardGate:
+    """
+    Enforces hard calibration gates.
+
+    Raises CalibrationGateViolation if ECE >= ECE_HARD_GATE or
+    drift > ECE_REGIME_DRIFT_GATE.
+    """
+
+    def enforce(self, metrics: CalibrationMetrics) -> bool:
+        """
+        Check metrics against the ECE hard gate.
+
+        Args:
+            metrics: CalibrationMetrics to check.
+
+        Returns:
+            True if calibration passes the gate (ECE < ECE_HARD_GATE).
+
+        Raises:
+            CalibrationGateViolation: If ECE >= ECE_HARD_GATE.
+        """
+        if not isinstance(metrics, CalibrationMetrics):
+            raise TypeError(
+                f"metrics must be a CalibrationMetrics instance, "
+                f"got {type(metrics).__name__}"
+            )
+        ece = metrics.ece
+        # NaN/Inf guard: treat non-finite as violation
+        if not math.isfinite(ece):
+            raise CalibrationGateViolation(
+                f"ECE is non-finite ({ece!r}); hard gate blocks deployment."
+            )
+        if ece >= ECE_HARD_GATE:
+            raise CalibrationGateViolation(
+                f"ECE {ece:.6f} >= hard gate {ECE_HARD_GATE}; "
+                f"deployment blocked."
+            )
+        return True
+
+    def check_drift(
+        self, current_ece: float, previous_ece: float
+    ) -> bool:
+        """
+        Check if ECE drift between regimes exceeds the gate.
+
+        Args:
+            current_ece:  Current ECE value.
+            previous_ece: Previous ECE value.
+
+        Returns:
+            True if drift is within limits.
+
+        Raises:
+            CalibrationGateViolation: If |current - previous| > ECE_REGIME_DRIFT_GATE.
+        """
+        for name, val in [("current_ece", current_ece),
+                          ("previous_ece", previous_ece)]:
+            if not isinstance(val, (int, float)):
+                raise TypeError(f"{name} must be numeric, got {type(val).__name__}")
+            if not math.isfinite(val):
+                raise CalibrationGateViolation(
+                    f"{name} is non-finite ({val!r}); drift check fails."
+                )
+        drift = abs(current_ece - previous_ece)
+        if drift > ECE_REGIME_DRIFT_GATE:
+            raise CalibrationGateViolation(
+                f"ECE drift {drift:.6f} > drift gate {ECE_REGIME_DRIFT_GATE}; "
+                f"recalibration required."
+            )
+        return True
+
+
+# =============================================================================
+# SECTION 11 -- CALIBRATION LAYER (regime-specific dispatch)
+# =============================================================================
+
+# Regime -> calibration method mapping (deterministic, no global mutable state)
+_REGIME_METHOD_MAP: Dict[str, str] = {
+    "RISK_ON": "platt",
+    "RISK_OFF": "isotonic",
+    "TRANSITION": "beta",
+    "CRISIS": "temperature",
+    "UNKNOWN": "platt",
+}
+
+
+class CalibrationLayer:
+    """
+    Dispatches to the appropriate calibration method based on regime.
+
+    Regime -> Method mapping:
+      RISK_ON     -> platt_scaling (stable, well-calibrated)
+      RISK_OFF    -> isotonic_regression (more flexible for stressed markets)
+      TRANSITION  -> beta_calibration (handles distribution shifts)
+      CRISIS      -> temperature_scaling with T=2.5 (conservative widening)
+      UNKNOWN     -> platt_scaling (safe default)
+    """
+
+    def calibrate(
+        self,
+        confidences: tuple,
+        outcomes: tuple,
+        regime: str = "RISK_ON",
+    ) -> CalibrationResult:
+        """
+        Dispatch to regime-appropriate calibration method.
+
+        Args:
+            confidences: Raw predicted probabilities in [0, 1] (tuple or list).
+            outcomes:    Binary outcomes in [0, 1] (tuple or list).
+            regime:      Regime string. Default "RISK_ON".
+
+        Returns:
+            CalibrationResult from the selected method.
+
+        Raises:
+            ValueError: If regime is not recognised.
+            TypeError:  If inputs are invalid.
+        """
+        method_name = self.get_method_for_regime(regime)
+
+        if method_name == "platt":
+            return platt_scaling(confidences, outcomes)
+        elif method_name == "isotonic":
+            return isotonic_regression(confidences, outcomes)
+        elif method_name == "beta":
+            return beta_calibration(confidences, outcomes)
+        elif method_name == "temperature":
+            return temperature_scaling(
+                confidences, outcomes, T=TEMPERATURE_SCALING_T
+            )
+        else:
+            # Defensive fallback (should not be reachable)
+            return platt_scaling(confidences, outcomes)
+
+    def get_method_for_regime(self, regime: str) -> str:
+        """
+        Return method name for the given regime string.
+
+        Args:
+            regime: Regime string.
+
+        Returns:
+            Method name string.
+
+        Raises:
+            ValueError: If regime is not in the known mapping.
+        """
+        if not isinstance(regime, str):
+            raise TypeError(
+                f"regime must be a string, got {type(regime).__name__}"
+            )
+        if regime not in _REGIME_METHOD_MAP:
+            raise ValueError(
+                f"Unknown regime {regime!r}. "
+                f"Must be one of {tuple(_REGIME_METHOD_MAP.keys())}"
+            )
+        return _REGIME_METHOD_MAP[regime]
+
+
+# =============================================================================
+# SECTION 12 -- ONLINE CALIBRATOR
+# =============================================================================
+
+class OnlineCalibrator:
+    """
+    Online calibration with a sliding window.
+
+    Maintains the last ONLINE_WINDOW_SIZE samples. Triggers recalibration
+    every ONLINE_UPDATE_FREQUENCY new samples.
+
+    Instance state is per-object (no global mutable state). A fresh
+    OnlineCalibrator should be created per session (DET-02).
+    """
+
+    def __init__(self) -> None:
+        self._confidences: List[float] = []
+        self._outcomes: List[float] = []
+        self._sample_count: int = 0
+        self._last_calibration_count: int = 0
+
+    def add_sample(self, confidence: float, outcome: float) -> None:
+        """
+        Add a single (confidence, outcome) sample.
+
+        Values are clamped to [0, 1]. Non-finite values are silently
+        replaced with 0.5 (confidence) or 0.0 (outcome).
+
+        Trims the window to ONLINE_WINDOW_SIZE after insertion.
+
+        Args:
+            confidence: Predicted probability.
+            outcome:    Observed outcome.
+        """
+        # NaN/Inf guard
+        if not isinstance(confidence, (int, float)) or not math.isfinite(confidence):
+            confidence = 0.5
+        if not isinstance(outcome, (int, float)) or not math.isfinite(outcome):
+            outcome = 0.0
+
+        # Clamp to [0, 1]
+        confidence = max(0.0, min(1.0, float(confidence)))
+        outcome = max(0.0, min(1.0, float(outcome)))
+
+        self._confidences.append(confidence)
+        self._outcomes.append(outcome)
+        self._sample_count += 1
+
+        # Trim to window size
+        if len(self._confidences) > ONLINE_WINDOW_SIZE:
+            excess = len(self._confidences) - ONLINE_WINDOW_SIZE
+            self._confidences = self._confidences[excess:]
+            self._outcomes = self._outcomes[excess:]
+
+    def should_recalibrate(self) -> bool:
+        """
+        Check whether enough new samples have arrived since last calibration.
+
+        Returns:
+            True if ONLINE_UPDATE_FREQUENCY new samples have been added
+            since the last recalibration call.
+        """
+        return (
+            self._sample_count - self._last_calibration_count
+            >= ONLINE_UPDATE_FREQUENCY
+        )
+
+    def recalibrate(self, regime: str = "RISK_ON") -> CalibrationResult:
+        """
+        Run calibration on the current window using CalibrationLayer.
+
+        Updates the internal counter so should_recalibrate() resets.
+
+        Args:
+            regime: Regime string for CalibrationLayer dispatch.
+
+        Returns:
+            CalibrationResult from CalibrationLayer.calibrate().
+
+        Raises:
+            ValueError: If the window is empty.
+        """
+        if len(self._confidences) == 0:
+            raise ValueError(
+                "Cannot recalibrate: no samples in window."
+            )
+        self._last_calibration_count = self._sample_count
+
+        layer = CalibrationLayer()
+        return layer.calibrate(
+            tuple(self._confidences),
+            tuple(self._outcomes),
+            regime=regime,
+        )
+
+    def get_current_ece(self) -> float:
+        """
+        Compute ECE on the current window.
+
+        Returns 0.0 if the window has fewer than 2 samples (not enough
+        for meaningful ECE computation).
+
+        Returns:
+            ECE value as float in [0, 1].
+        """
+        if len(self._confidences) < 2:
+            return 0.0
+        ece_result = compute_ece(
+            list(self._confidences), list(self._outcomes)
+        )
+        ece = ece_result.ece
+        # NaN/Inf guard
+        if not math.isfinite(ece):
+            return 0.0
+        return ece

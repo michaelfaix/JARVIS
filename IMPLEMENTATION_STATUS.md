@@ -11,7 +11,7 @@
 | Category | Spec Points | Implemented | Partial | Missing | Rate |
 |----------|-------------|-------------|---------|---------|------|
 | S01-S05 Core Foundation | 106 | 103 | 2 | 1 | **97%** |
-| S06-S15 Model Layer + Systems | 106 | 45 | 3 | 58 | **42%** |
+| S06-S15 Model Layer + Systems | 106 | 87 | 3 | 16 | **82%** |
 | S16-S25 Risk + Intelligence | 129 | 125 | 3 | 1 | **97%** |
 | S26-S37+ Strategy + Gov + DQ | 190 | 190 | 0 | 0 | **100%** |
 | Multi-Asset Upgrades | 210 | 205 | 3 | 2 | **98%** |
@@ -19,8 +19,8 @@
 | DOCX: DVH Architecture | ~35 | ~35 | 0 | 0 | **100%** |
 | DOCX: DVH Blueprint | ~40 | ~40 | 0 | 0 | **100%** |
 | DOCX: Governance Integration | ~20 | ~19 | 0 | 1 | **95%** |
-| **TOTAL (TXT FAS)** | **741** | **668** | **8** | **65** | **90%** |
-| **TOTAL (inkl. DOCX)** | **~876** | **~801** | **~9** | **~66** | **~91%** |
+| **TOTAL (TXT FAS)** | **741** | **710** | **8** | **23** | **96%** |
+| **TOTAL (inkl. DOCX)** | **~876** | **~843** | **~9** | **~24** | **~96%** |
 
 **Bottom line:** Core Platform (S01-S05, S16-S37+, Multi-Asset) ist zu **~98%** implementiert.
 Die ML-Layer (S06-S15) sind zu **~11%** implementiert — das ist der Hauptgrund
@@ -545,7 +545,7 @@ All 8 spec points IMPLEMENTED: `ConfidenceZone`, `ConfidenceZoneRequest`, `Confi
 - Core layers never import from external layers
 - All PROHIBITED import rules respected
 
-### Test Coverage: 8127 tests
+### Test Coverage: 8313 tests
 - Unit tests for all implemented modules
 - Integration tests for pipeline + backtest
 - Mutation testing infrastructure (mutmut)

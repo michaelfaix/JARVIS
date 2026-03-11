@@ -8,12 +8,24 @@ from .calibration import (
     ISOTONIC_MIN_SAMPLES,
     BETA_MAX_ITER,
     BETA_LR,
+    ONLINE_WINDOW_SIZE,
+    ONLINE_UPDATE_FREQUENCY,
+    TEMPERATURE_SCALING_T,
     CalibrationMetrics,
     CalibrationResult,
     platt_scaling,
     isotonic_regression,
     beta_calibration,
     evaluate_calibration,
+    temperature_scaling,
+    CalibrationHardGate,
+    CalibrationLayer,
+    OnlineCalibrator,
+)
+
+from .auto_recalibrator import (
+    RecalibrationTrigger,
+    AutoRecalibrator,
 )
 
 from .fast_path import (
@@ -51,6 +63,24 @@ from .deep_path import (
     DeepPathEnsemble,
 )
 
+from .uncertainty import (
+    META_U_RECALIBRATION,
+    META_U_CONSERVATIVE,
+    META_U_COLLAPSE,
+    CI_Z_50,
+    CI_Z_90,
+    CI_Z_95,
+    UNCERTAINTY_MAX,
+    UncertaintyBreakdown,
+    Intervals,
+    MetaUncertaintyState,
+    UncertaintyLayer,
+    MetaUncertaintyEstimator,
+    InformationQualityEstimator,
+    compute_aleatoric,
+    compute_epistemic,
+)
+
 __all__ = [
     # calibration
     "CONFIDENCE_FLOOR",
@@ -62,12 +92,22 @@ __all__ = [
     "ISOTONIC_MIN_SAMPLES",
     "BETA_MAX_ITER",
     "BETA_LR",
+    "ONLINE_WINDOW_SIZE",
+    "ONLINE_UPDATE_FREQUENCY",
+    "TEMPERATURE_SCALING_T",
     "CalibrationMetrics",
     "CalibrationResult",
     "platt_scaling",
     "isotonic_regression",
     "beta_calibration",
     "evaluate_calibration",
+    "temperature_scaling",
+    "CalibrationHardGate",
+    "CalibrationLayer",
+    "OnlineCalibrator",
+    # auto_recalibrator
+    "RecalibrationTrigger",
+    "AutoRecalibrator",
     # fast_path
     "ENSEMBLE_WEIGHTS",
     "UNCERTAINTY_TRIGGER_DEEP_PATH",
@@ -99,4 +139,20 @@ __all__ = [
     "TransformerPredictor",
     "ParticleFilter",
     "DeepPathEnsemble",
+    # uncertainty
+    "META_U_RECALIBRATION",
+    "META_U_CONSERVATIVE",
+    "META_U_COLLAPSE",
+    "CI_Z_50",
+    "CI_Z_90",
+    "CI_Z_95",
+    "UNCERTAINTY_MAX",
+    "UncertaintyBreakdown",
+    "Intervals",
+    "MetaUncertaintyState",
+    "UncertaintyLayer",
+    "MetaUncertaintyEstimator",
+    "InformationQualityEstimator",
+    "compute_aleatoric",
+    "compute_epistemic",
 ]
