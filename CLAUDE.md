@@ -1319,5 +1319,31 @@ npm run test:ci    # CI-Modus mit Coverage
 
 ---
 
-*CLAUDE.md — Version 11.3.0 | März 2026*
+## ✅ ABGESCHLOSSEN: Multi-Market Sentiment
+
+### Tab-Switcher: Crypto | Stocks | Commodities
+Jeder Tab hat eigene Fear & Greed Gauge, 7d-History-Sparkline, Momentum, Volatility, und ein marktspezifisches Extra-Indikator.
+
+### Datenquellen pro Markt:
+| Markt | F&G Quelle | Extra-Indikator | Momentum/Vol |
+|-------|-----------|-----------------|--------------|
+| **Crypto** | alternative.me API (7d) | BTC Dominance (CoinGecko) | BTC/ETH/SOL priceHistory |
+| **Stocks** | CNN Fear & Greed Index | VIX (berechnet aus Stock-Volatility) | SPY/AAPL/NVDA/TSLA priceHistory |
+| **Commodities** | Preis-Trend (berechnet) | Gold Trend (Bullish/Bearish) | GLD priceHistory |
+
+### Features:
+- **Tab-Switcher**: 3 Tabs mit aktivem Highlighting
+- **Pro Tab**: F&G Gauge (150px) + 7d-Sparkline + 3-Column Indicator Grid (Momentum, Extra, Volatility)
+- **Correlation Badge**: "Crypto & Stocks correlating" / "diverging" wenn Momentum-Richtung übereinstimmt/divergiert (>30 Score)
+- **VIX-Proxy**: Stock-Volatility auf VIX-Skala (12-40) gemappt, Farbe: grün(<18), gelb(18-25), rot(>25)
+- **Glossar erweitert**: VIX, Gold Trend, BTC Dom. in MetricTooltip-Glossar
+- **Exported helpers**: classify, momentumLabel, volatilityLabel, calculateMomentumFromHistory, calculateVolatilityFromHistory — für Tests importierbar
+
+### Tests:
+- 173 Tests in 20 Suiten (Tests nutzen jetzt direkte Imports statt Re-Implementierung + neue Tests für Stock/Commodity Symbols)
+- Build: 0 Errors, **31 Routes** + Middleware
+
+---
+
+*CLAUDE.md — Version 11.4.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*

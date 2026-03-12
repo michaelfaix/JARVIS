@@ -1,17 +1,15 @@
 /**
- * Tests for sentiment calculation helpers (momentum, volatility, classify).
+ * Tests for multi-market sentiment calculation helpers.
  */
+import {
+  classify,
+  momentumLabel,
+  volatilityLabel,
+  calculateMomentumFromHistory,
+  calculateVolatilityFromHistory,
+} from "@/hooks/use-sentiment";
 
-describe("Sentiment helpers", () => {
-  // --- classify ---
-  function classify(value: number): string {
-    if (value <= 25) return "Extreme Fear";
-    if (value <= 45) return "Fear";
-    if (value <= 55) return "Neutral";
-    if (value <= 75) return "Greed";
-    return "Extreme Greed";
-  }
-
+describe("classify", () => {
   it.each([
     [0, "Extreme Fear"],
     [10, "Extreme Fear"],
@@ -27,16 +25,9 @@ describe("Sentiment helpers", () => {
   ])("classify(%i) = %s", (value, expected) => {
     expect(classify(value)).toBe(expected);
   });
+});
 
-  // --- momentumLabel ---
-  function momentumLabel(score: number): string {
-    if (score <= -50) return "Strong Bearish";
-    if (score <= -15) return "Bearish";
-    if (score <= 15) return "Neutral";
-    if (score <= 50) return "Bullish";
-    return "Strong Bullish";
-  }
-
+describe("momentumLabel", () => {
   it.each([
     [-100, "Strong Bearish"],
     [-50, "Strong Bearish"],
@@ -48,14 +39,9 @@ describe("Sentiment helpers", () => {
   ])("momentumLabel(%i) = %s", (score, expected) => {
     expect(momentumLabel(score)).toBe(expected);
   });
+});
 
-  // --- volatilityLabel ---
-  function volatilityLabel(score: number): string {
-    if (score < 33) return "Low";
-    if (score < 66) return "Medium";
-    return "High";
-  }
-
+describe("volatilityLabel", () => {
   it.each([
     [0, "Low"],
     [32, "Low"],
@@ -68,104 +54,91 @@ describe("Sentiment helpers", () => {
   });
 });
 
-describe("Momentum from price history", () => {
-  function calculateMomentumFromHistory(
-    priceHistory: Record<string, number[]>
-  ): number {
-    const symbols = ["BTC", "ETH", "SOL"];
-    let totalPct = 0;
-    let count = 0;
-    for (const sym of symbols) {
-      const hist = priceHistory[sym];
-      if (!hist || hist.length < 2) continue;
-      const first = hist[0];
-      const last = hist[hist.length - 1];
-      if (first > 0) {
-        totalPct += ((last - first) / first) * 100;
-        count++;
-      }
-    }
-    if (count === 0) return 0;
-    const avg = totalPct / count;
-    return Math.max(-100, Math.min(100, Math.round(avg * 200)));
-  }
-
+describe("calculateMomentumFromHistory", () => {
   it("returns 0 for empty history", () => {
-    expect(calculateMomentumFromHistory({})).toBe(0);
+    expect(calculateMomentumFromHistory({}, ["BTC"])).toBe(0);
   });
 
   it("returns positive for rising prices", () => {
-    const result = calculateMomentumFromHistory({
-      BTC: [60000, 60500, 61000],
-      ETH: [3000, 3050, 3100],
-    });
+    const result = calculateMomentumFromHistory(
+      { BTC: [60000, 60500, 61000], ETH: [3000, 3050, 3100] },
+      ["BTC", "ETH"]
+    );
     expect(result).toBeGreaterThan(0);
   });
 
   it("returns negative for falling prices", () => {
-    const result = calculateMomentumFromHistory({
-      BTC: [61000, 60500, 60000],
-      ETH: [3100, 3050, 3000],
-    });
+    const result = calculateMomentumFromHistory(
+      { BTC: [61000, 60500, 60000], ETH: [3100, 3050, 3000] },
+      ["BTC", "ETH"]
+    );
     expect(result).toBeLessThan(0);
   });
 
-  it("clamps to -100..100", () => {
-    const result = calculateMomentumFromHistory({
-      BTC: [50000, 55000], // +10%
-    });
+  it("clamps to ±100", () => {
+    const result = calculateMomentumFromHistory(
+      { BTC: [50000, 55000] },
+      ["BTC"]
+    );
     expect(result).toBe(100);
+  });
+
+  it("works for stock symbols", () => {
+    const result = calculateMomentumFromHistory(
+      { SPY: [520, 525, 530], AAPL: [195, 197, 199] },
+      ["SPY", "AAPL"]
+    );
+    expect(result).toBeGreaterThan(0);
+  });
+
+  it("works for commodity symbols", () => {
+    const result = calculateMomentumFromHistory(
+      { GLD: [215, 213, 211] },
+      ["GLD"]
+    );
+    expect(result).toBeLessThan(0);
   });
 });
 
-describe("Volatility from price history", () => {
-  function calculateVolatilityFromHistory(
-    priceHistory: Record<string, number[]>
-  ): number {
-    const symbols = ["BTC", "ETH", "SOL"];
-    let totalCV = 0;
-    let count = 0;
-    for (const sym of symbols) {
-      const hist = priceHistory[sym];
-      if (!hist || hist.length < 3) continue;
-      const mean = hist.reduce((s, v) => s + v, 0) / hist.length;
-      if (mean <= 0) continue;
-      const variance = hist.reduce((s, v) => s + (v - mean) ** 2, 0) / hist.length;
-      const cv = Math.sqrt(variance) / mean;
-      totalCV += cv;
-      count++;
-    }
-    if (count === 0) return 30;
-    const avgCV = totalCV / count;
-    return Math.max(0, Math.min(100, Math.round(avgCV * 20000)));
-  }
-
+describe("calculateVolatilityFromHistory", () => {
   it("returns default 30 for empty history", () => {
-    expect(calculateVolatilityFromHistory({})).toBe(30);
+    expect(calculateVolatilityFromHistory({}, ["BTC"])).toBe(30);
   });
 
   it("returns 0 for flat prices", () => {
-    const result = calculateVolatilityFromHistory({
-      BTC: [60000, 60000, 60000, 60000],
-    });
+    const result = calculateVolatilityFromHistory(
+      { BTC: [60000, 60000, 60000, 60000] },
+      ["BTC"]
+    );
     expect(result).toBe(0);
   });
 
   it("returns higher score for volatile prices", () => {
-    const flat = calculateVolatilityFromHistory({
-      BTC: [60000, 60010, 60020],
-    });
-    const wild = calculateVolatilityFromHistory({
-      BTC: [60000, 61000, 59000],
-    });
+    const flat = calculateVolatilityFromHistory(
+      { BTC: [60000, 60010, 60020] },
+      ["BTC"]
+    );
+    const wild = calculateVolatilityFromHistory(
+      { BTC: [60000, 61000, 59000] },
+      ["BTC"]
+    );
     expect(wild).toBeGreaterThan(flat);
   });
 
   it("clamps to 0-100", () => {
-    const result = calculateVolatilityFromHistory({
-      BTC: [10000, 50000, 10000], // extreme swing
-    });
+    const result = calculateVolatilityFromHistory(
+      { BTC: [10000, 50000, 10000] },
+      ["BTC"]
+    );
     expect(result).toBeGreaterThanOrEqual(0);
     expect(result).toBeLessThanOrEqual(100);
+  });
+
+  it("works across multiple symbol groups", () => {
+    const result = calculateVolatilityFromHistory(
+      { SPY: [520, 521, 519, 522], NVDA: [890, 895, 885, 900] },
+      ["SPY", "NVDA"]
+    );
+    expect(result).toBeGreaterThanOrEqual(0);
   });
 });

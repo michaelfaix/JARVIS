@@ -34,6 +34,9 @@ const GLOSSARY: Record<string, string> = {
   "Momentum": "Directional price strength across tracked assets. Bullish = prices rising, Bearish = prices falling.",
   "Volatility": "Price fluctuation intensity. High volatility = larger price swings = higher risk and opportunity.",
   "BTC Dominance": "Bitcoin's share of total crypto market cap. Rising = risk-off (money flows to BTC), Falling = altcoin season.",
+  "BTC Dom.": "Bitcoin's share of total crypto market cap. Rising = risk-off (money flows to BTC), Falling = altcoin season.",
+  "VIX": "Volatility Index — measures expected market volatility. <18 = calm, 18-25 = moderate, >25 = high fear. Often called the 'fear gauge'.",
+  "Gold Trend": "Gold price trend direction. Bullish gold often signals risk-off sentiment or inflation hedging across markets.",
   "Predictions": "Whether the JARVIS prediction engine is actively generating signals. Disabled during Crisis or maintenance modes.",
   "System Mode": "JARVIS degradation level. NORMAL = full operation. Higher modes progressively reduce risk exposure.",
 };
