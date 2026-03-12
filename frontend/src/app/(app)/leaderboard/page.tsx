@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/table";
 import { usePortfolio } from "@/hooks/use-portfolio";
 import { useProfile } from "@/hooks/use-profile";
+import { Button } from "@/components/ui/button";
+import { useSocialTrading } from "@/hooks/use-social-trading";
 import {
   Trophy,
   Medal,
@@ -27,6 +29,8 @@ import {
   BarChart3,
   Crown,
   User,
+  Heart,
+  Copy,
 } from "lucide-react";
 
 // Simulated leaderboard data (in production, this comes from Supabase)
@@ -102,6 +106,7 @@ const TIER_BADGE: Record<string, string> = {
 export default function LeaderboardPage() {
   const { state: portfolio, winRate, drawdown, totalValue } = usePortfolio();
   const { profile, tier } = useProfile();
+  const { followCount, isFollowing, followTrader, unfollowTrader, canFollow } = useSocialTrading();
 
   const totalReturn =
     portfolio.totalCapital > 0
@@ -129,7 +134,7 @@ export default function LeaderboardPage() {
 
   return (
     <>
-      <AppHeader title="Leaderboard" subtitle="Community Rankings" />
+      <AppHeader title="Leaderboard" subtitle={`Community Rankings · ${followCount} Following`} />
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Top 3 Podium */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -226,12 +231,20 @@ export default function LeaderboardPage() {
                 (a, b) => b.totalReturn - a.totalReturn
               )}
               sortKey="totalReturn"
+              isFollowing={isFollowing}
+              followTrader={followTrader}
+              unfollowTrader={unfollowTrader}
+              canFollow={canFollow}
             />
           </TabsContent>
           <TabsContent value="winrate">
             <RankingTable
               entries={[...leaderboard].sort((a, b) => b.winRate - a.winRate)}
               sortKey="winRate"
+              isFollowing={isFollowing}
+              followTrader={followTrader}
+              unfollowTrader={unfollowTrader}
+              canFollow={canFollow}
             />
           </TabsContent>
           <TabsContent value="risk">
@@ -244,6 +257,10 @@ export default function LeaderboardPage() {
                 return bScore - aScore;
               })}
               sortKey="riskAdjusted"
+              isFollowing={isFollowing}
+              followTrader={followTrader}
+              unfollowTrader={unfollowTrader}
+              canFollow={canFollow}
             />
           </TabsContent>
         </Tabs>
@@ -255,9 +272,17 @@ export default function LeaderboardPage() {
 function RankingTable({
   entries,
   sortKey,
+  isFollowing,
+  followTrader,
+  unfollowTrader,
+  canFollow,
 }: {
   entries: LeaderboardEntry[];
   sortKey: string;
+  isFollowing: (id: string) => boolean;
+  followTrader: (id: string) => void;
+  unfollowTrader: (id: string) => void;
+  canFollow: boolean;
 }) {
   return (
     <Card className="bg-card/50 border-border/50 mt-4">
@@ -276,10 +301,13 @@ function RankingTable({
               {sortKey === "riskAdjusted" && (
                 <TableHead className="text-right">Score</TableHead>
               )}
+              <TableHead className="text-center w-20">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {entries.map((entry, i) => (
+            {entries.map((entry, i) => {
+              const following = !entry.isCurrentUser && isFollowing(entry.name);
+              return (
               <TableRow
                 key={entry.name}
                 className={
@@ -344,8 +372,42 @@ function RankingTable({
                       : "—"}
                   </TableCell>
                 )}
+                <TableCell className="text-center">
+                  {!entry.isCurrentUser && (
+                    <div className="flex items-center justify-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        onClick={() => following ? unfollowTrader(entry.name) : followTrader(entry.name)}
+                        disabled={!following && !canFollow}
+                        title={following ? "Unfollow" : canFollow ? "Follow" : "Max follows reached"}
+                      >
+                        <Heart
+                          className={`h-3.5 w-3.5 ${
+                            following
+                              ? "fill-red-500 text-red-500"
+                              : "text-muted-foreground hover:text-red-400"
+                          }`}
+                        />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        title="Copy trades"
+                        onClick={() => {
+                          if (!following) followTrader(entry.name);
+                        }}
+                      >
+                        <Copy className="h-3.5 w-3.5 text-muted-foreground hover:text-blue-400" />
+                      </Button>
+                    </div>
+                  )}
+                </TableCell>
               </TableRow>
-            ))}
+              );
+            })}
           </TableBody>
         </Table>
         </div>

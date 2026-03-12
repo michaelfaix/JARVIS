@@ -12,6 +12,11 @@ import { AppHeader } from "@/components/layout/app-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AssetChart } from "@/components/chart/asset-chart";
+import {
+  IndicatorPanel,
+  DEFAULT_INDICATORS,
+  type IndicatorConfig,
+} from "@/components/chart/indicator-panel";
 import { usePrices } from "@/hooks/use-prices";
 import { useSystemStatus } from "@/hooks/use-jarvis";
 import { useSignals } from "@/hooks/use-signals";
@@ -42,6 +47,9 @@ export default function ChartsPage() {
 
   const [selectedAsset, setSelectedAsset] = useState(0);
   const [chartInterval, setChartInterval] = useState("1d");
+  const [indicators, setIndicators] = useState<IndicatorConfig>({
+    ...DEFAULT_INDICATORS,
+  });
 
   // Live price from chart WebSocket (updates ~1/s)
   const [wsPrice, setWsPrice] = useState<number | null>(null);
@@ -113,6 +121,12 @@ export default function ChartsPage() {
                     </button>
                   ))}
                 </div>
+
+                {/* Indicator selector */}
+                <IndicatorPanel
+                  value={indicators}
+                  onChange={setIndicators}
+                />
 
                 {/* Feed status */}
                 <div className="flex items-center gap-1.5">
@@ -187,6 +201,7 @@ export default function ChartsPage() {
               height={500}
               interval={chartInterval}
               onPriceChange={handlePriceChange}
+              indicators={indicators}
             />
           </CardContent>
         </Card>

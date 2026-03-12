@@ -793,6 +793,37 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 
 ---
 
+## ✅ ABGESCHLOSSEN: Technical Indicators + Social Trading + Multi-Language
+
+### Erstellt:
+- **Technical Analysis Indicators** (`lib/indicators.ts` + `chart/indicator-panel.tsx` + `asset-chart.tsx`):
+  - Pure calculation functions: `calcSMA`, `calcEMA`, `calcRSI`, `calcMACD`, `calcBollingerBands`
+  - **SMA** (20/50/200): Yellow, Cyan, Magenta overlay lines
+  - **EMA** (12/26): Orange, Blue overlay lines
+  - **Bollinger Bands** (20, 2): Gray dashed upper/lower + solid middle
+  - **RSI** (14): Separate sub-panel, purple line, 30/70 reference lines
+  - **MACD** (12, 26, 9): Histogram + signal line in separate sub-panel
+  - Indicator dropdown panel on Charts page with toggle checkboxes
+  - Active indicator legend below chart
+  - All overlays added in Effect 2, removed on re-render, no impact on live candle effects
+- **Social Trading** (`/social` page + hooks + components):
+  - `hooks/use-social-trading.ts` — Follow/unfollow, copy settings, max 10 (free) / unlimited (Pro)
+  - `components/social/trader-profile-card.tsx` — Avatar, stats, follow button, risk badge, strategy tags, copy toggle
+  - `components/social/trader-feed.tsx` — Activity feed for followed traders, "Copy This Trade" buttons
+  - `/social` page with 3 tabs: Following, Activity Feed, Copy Trading
+  - Leaderboard: Follow/Unfollow heart + Copy buttons per trader
+  - Sidebar: New "Social Trading" nav item with Users icon (15 Nav-Items)
+- **Multi-Language Support** (DE/EN):
+  - `lib/i18n.ts` — 105 translation keys, `t()` function with interpolation, `TranslationKey` union type
+  - `hooks/use-locale.ts` — React Context provider, localStorage persistence, browser auto-detect
+  - Layout wrapped with `LocaleProvider`
+  - Settings: Language selector (🇬🇧 English / 🇩🇪 Deutsch) with active highlight
+  - Sidebar: All nav labels translated via `t()`
+  - App Header: EN/DE toggle button, translated labels
+- Build: 0 Errors, **30 Routes** (18 App + 4 Legal + 5 API + 3 Stripe) + Middleware
+
+---
+
 ## 🔜 NÄCHSTER SCHRITT
 
 ### Sofort (ohne Code):
@@ -804,13 +835,13 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 ### Nächste Code-Features (Post-MVP):
 1. Deployment auf Railway (Frontend + Backend)
 2. Capacitor.js (PWA → App Store)
-3. Social Trading: Top-Trader folgen + kopieren
-4. Leaderboard mit Supabase (echte User-Daten)
-5. Real-time Notifications via WebSocket (statt Polling)
-6. Advanced Charting: Drawing Tools, Indicators (MA, RSI, MACD)
-7. Multi-Language Support (DE/EN)
+3. Leaderboard mit Supabase (echte User-Daten)
+4. Real-time Notifications via WebSocket (statt Polling)
+5. Drawing Tools für Charts (Trendlinien, Fibonacci, etc.)
+6. Advanced Backtesting mit Walk-Forward Validation
+7. Broker-Integration (Read-Only Portfolio Sync)
 
 ---
 
-*CLAUDE.md — Version 9.4.0 | März 2026*
+*CLAUDE.md — Version 9.5.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*

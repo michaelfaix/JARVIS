@@ -11,6 +11,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { Footer } from "@/components/layout/footer";
 import { ToastProvider } from "@/components/ui/toast";
 import { NotificationProvider } from "@/hooks/use-notifications";
+import { LocaleProvider } from "@/hooks/use-locale";
 import { useBackendHealth } from "@/hooks/use-jarvis";
 import { useSidebar } from "@/hooks/use-sidebar";
 import { cn } from "@/lib/utils";
@@ -55,6 +56,7 @@ export default function AppLayout({
       : toggle;
 
   return (
+    <LocaleProvider>
     <NotificationProvider>
     <ToastProvider>
       <div className="min-h-screen bg-background overflow-x-hidden">
@@ -108,5 +110,6 @@ export default function AppLayout({
       </div>
     </ToastProvider>
     </NotificationProvider>
+    </LocaleProvider>
   );
 }

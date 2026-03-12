@@ -17,6 +17,7 @@ import {
   MessageSquare,
   BellRing,
   Trophy,
+  Users,
   Globe,
   BookOpen,
   Settings,
@@ -28,22 +29,25 @@ import {
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/use-auth";
+import { useLocale } from "@/hooks/use-locale";
+import type { TranslationKey } from "@/lib/i18n";
 
-const NAV_ITEMS = [
-  { label: "Dashboard", icon: LayoutDashboard, path: "/" },
-  { label: "Charts", icon: CandlestickChart, path: "/charts" },
-  { label: "Signals", icon: Radio, path: "/signals" },
-  { label: "Portfolio", icon: PieChart, path: "/portfolio" },
-  { label: "Risk Guardian", icon: ShieldAlert, path: "/risk" },
-  { label: "Opportunity Radar", icon: Radar, path: "/radar" },
-  { label: "Strategy Lab", icon: FlaskConical, path: "/strategy-lab" },
-  { label: "AI Chat", icon: MessageSquare, path: "/chat" },
-  { label: "Markets", icon: Globe, path: "/markets" },
-  { label: "Trade Journal", icon: BookOpen, path: "/journal" },
-  { label: "Price Alerts", icon: BellRing, path: "/alerts" },
-  { label: "Leaderboard", icon: Trophy, path: "/leaderboard" },
-  { label: "Settings", icon: Settings, path: "/settings" },
-] as const;
+const NAV_ITEMS: { key: TranslationKey; icon: typeof LayoutDashboard; path: string }[] = [
+  { key: "nav_dashboard", icon: LayoutDashboard, path: "/" },
+  { key: "nav_charts", icon: CandlestickChart, path: "/charts" },
+  { key: "nav_signals", icon: Radio, path: "/signals" },
+  { key: "nav_portfolio", icon: PieChart, path: "/portfolio" },
+  { key: "nav_risk_guardian", icon: ShieldAlert, path: "/risk" },
+  { key: "nav_opportunity_radar", icon: Radar, path: "/radar" },
+  { key: "nav_strategy_lab", icon: FlaskConical, path: "/strategy-lab" },
+  { key: "nav_ai_chat", icon: MessageSquare, path: "/chat" },
+  { key: "nav_markets", icon: Globe, path: "/markets" },
+  { key: "nav_trade_journal", icon: BookOpen, path: "/journal" },
+  { key: "nav_price_alerts", icon: BellRing, path: "/alerts" },
+  { key: "nav_leaderboard", icon: Trophy, path: "/leaderboard" },
+  { key: "nav_social_trading", icon: Users, path: "/social" },
+  { key: "nav_settings", icon: Settings, path: "/settings" },
+];
 
 interface SidebarProps {
   collapsed: boolean;
@@ -56,6 +60,7 @@ interface SidebarProps {
 export function Sidebar({ collapsed, onToggle, connected, mobile, mobileOpen }: SidebarProps) {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
+  const { t } = useLocale();
 
   // On mobile: hidden by default, slides in when open
   if (mobile && !mobileOpen) return null;
@@ -102,7 +107,7 @@ export function Sidebar({ collapsed, onToggle, connected, mobile, mobileOpen }: 
             >
               <Icon className="h-5 w-5 shrink-0" />
               {!collapsed && (
-                <span className="truncate">{item.label}</span>
+                <span className="truncate">{t(item.key)}</span>
               )}
             </Link>
           );
@@ -133,7 +138,7 @@ export function Sidebar({ collapsed, onToggle, connected, mobile, mobileOpen }: 
             )}
           >
             <LogOut className="h-4 w-4 shrink-0" />
-            {!collapsed && <span>Sign Out</span>}
+            {!collapsed && <span>{t('nav_sign_out')}</span>}
           </button>
         </div>
       )}
@@ -152,7 +157,7 @@ export function Sidebar({ collapsed, onToggle, connected, mobile, mobileOpen }: 
           />
           {!collapsed && (
             <span className="text-[10px] text-muted-foreground">
-              {connected ? "API Connected" : "Offline"}
+              {connected ? t('common_api_connected') : t('common_offline')}
             </span>
           )}
         </div>

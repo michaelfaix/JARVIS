@@ -16,11 +16,20 @@ import {
   ColorType,
   type CandlestickData as LWCandlestickData,
   type Time,
+  LineStyle,
 } from "lightweight-charts";
 import type { RegimeState } from "@/lib/types";
 import { REGIME_COLORS } from "@/lib/types";
 import { useBinanceKlines, type Kline } from "@/hooks/use-binance-klines";
 import { useBinanceWsKline } from "@/hooks/use-binance-ws-kline";
+import type { IndicatorConfig } from "@/components/chart/indicator-panel";
+import {
+  calcSMA,
+  calcEMA,
+  calcBollingerBands,
+  calcRSI,
+  calcMACD,
+} from "@/lib/indicators";
 
 // ---------------------------------------------------------------------------
 // Synthetic data generation — for non-crypto assets
@@ -235,6 +244,21 @@ function generateVolumeData(
 }
 
 // ---------------------------------------------------------------------------
+// Indicator color map
+// ---------------------------------------------------------------------------
+
+const SMA_COLORS: Record<number, string> = {
+  20: "#facc15",  // yellow
+  50: "#06b6d4",  // cyan
+  200: "#d946ef", // magenta
+};
+
+const EMA_COLORS: Record<number, string> = {
+  12: "#f97316", // orange
+  26: "#3b82f6", // blue
+};
+
+// ---------------------------------------------------------------------------
 // Chart Component
 // ---------------------------------------------------------------------------
 
@@ -247,6 +271,7 @@ interface AssetChartProps {
   height?: number;
   interval?: string;
   onPriceChange?: (price: number) => void;
+  indicators?: IndicatorConfig;
 }
 
 export function AssetChart({
@@ -258,6 +283,7 @@ export function AssetChart({
   height = 400,
   interval = "1d",
   onPriceChange,
+  indicators,
 }: AssetChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -266,6 +292,10 @@ export function AssetChart({
   const [lastPrice, setLastPrice] = useState<number>(0);
   const [priceChange, setPriceChange] = useState<number>(0);
   const [wsLive, setWsLive] = useState(false);
+
+  // Indicator series refs — stored so we can remove them on re-render
+  const indicatorSeriesRef = useRef<ISeriesApi<"Line">[]>([]);
+  const indicatorHistogramRef = useRef<ISeriesApi<"Histogram">[]>([]);
 
   // Stable ref for the onPriceChange callback
   const onPriceChangeRef = useRef(onPriceChange);
@@ -348,13 +378,28 @@ export function AssetChart({
       chartRef.current = null;
       candleSeriesRef.current = null;
       volumeSeriesRef.current = null;
+      indicatorSeriesRef.current = [];
+      indicatorHistogramRef.current = [];
     };
   }, [symbol, interval, height]);
 
-  // Effect 2: Load initial chart data when klines arrive
+  // Effect 2: Load initial chart data when klines arrive + indicator overlays
   useEffect(() => {
-    if (!candleSeriesRef.current || !volumeSeriesRef.current) return;
+    if (!candleSeriesRef.current || !volumeSeriesRef.current || !chartRef.current) return;
 
+    const chart = chartRef.current;
+
+    // --- Remove previous indicator series ---
+    for (const s of indicatorSeriesRef.current) {
+      try { chart.removeSeries(s); } catch { /* already removed */ }
+    }
+    for (const s of indicatorHistogramRef.current) {
+      try { chart.removeSeries(s); } catch { /* already removed */ }
+    }
+    indicatorSeriesRef.current = [];
+    indicatorHistogramRef.current = [];
+
+    // --- Set candle data ---
     const assetData =
       isCrypto && klines.length > 0
         ? klinesToCandles(klines)
@@ -385,10 +430,185 @@ export function AssetChart({
     setLastPrice(last.close);
     setPriceChange(((last.close - prev.close) / prev.close) * 100);
 
+    // --- Indicator overlays ---
+    if (indicators) {
+      const times = assetData.map((d) => d.time);
+
+      // Helper: create a line series on main price scale and set data
+      const addOverlayLine = (
+        values: (number | null)[],
+        color: string,
+        lineWidth: number = 2,
+        lineStyle: LineStyle = LineStyle.Solid
+      ) => {
+        const series = chart.addLineSeries({
+          color,
+          lineWidth: lineWidth as 1 | 2 | 3 | 4,
+          lineStyle,
+          priceScaleId: "right",
+          lastValueVisible: false,
+          priceLineVisible: false,
+        });
+        const lineData = values
+          .map((v, i) =>
+            v !== null ? { time: times[i] as Time, value: v } : null
+          )
+          .filter(Boolean) as { time: Time; value: number }[];
+        series.setData(lineData);
+        indicatorSeriesRef.current.push(series);
+        return series;
+      };
+
+      // SMA lines
+      for (const period of indicators.sma) {
+        const values = calcSMA(assetData, period);
+        addOverlayLine(values, SMA_COLORS[period] ?? "#facc15");
+      }
+
+      // EMA lines
+      for (const period of indicators.ema) {
+        const values = calcEMA(assetData, period);
+        addOverlayLine(values, EMA_COLORS[period] ?? "#f97316");
+      }
+
+      // Bollinger Bands
+      if (indicators.bollinger) {
+        const bb = calcBollingerBands(assetData, 20, 2);
+        addOverlayLine(bb.upper, "rgba(156, 163, 175, 0.6)", 1, LineStyle.Dashed);
+        addOverlayLine(bb.middle, "rgba(156, 163, 175, 0.8)", 1, LineStyle.Solid);
+        addOverlayLine(bb.lower, "rgba(156, 163, 175, 0.6)", 1, LineStyle.Dashed);
+      }
+
+      // RSI — separate price scale
+      if (indicators.rsi) {
+        const rsiValues = calcRSI(assetData, 14);
+
+        const rsiSeries = chart.addLineSeries({
+          color: "#a855f7",
+          lineWidth: 2,
+          priceScaleId: "rsi",
+          lastValueVisible: true,
+          priceLineVisible: false,
+        });
+        chart.priceScale("rsi").applyOptions({
+          scaleMargins: { top: 0.78, bottom: 0.02 },
+          borderVisible: false,
+        });
+
+        const rsiData = rsiValues
+          .map((v, i) =>
+            v !== null ? { time: times[i] as Time, value: v } : null
+          )
+          .filter(Boolean) as { time: Time; value: number }[];
+        rsiSeries.setData(rsiData);
+        indicatorSeriesRef.current.push(rsiSeries);
+
+        // RSI 70 line
+        const rsi70 = chart.addLineSeries({
+          color: "rgba(239, 68, 68, 0.3)",
+          lineWidth: 1,
+          lineStyle: LineStyle.Dashed,
+          priceScaleId: "rsi",
+          lastValueVisible: false,
+          priceLineVisible: false,
+        });
+        const rsi70Data = rsiData.length > 0
+          ? [
+              { time: rsiData[0].time, value: 70 },
+              { time: rsiData[rsiData.length - 1].time, value: 70 },
+            ]
+          : [];
+        rsi70.setData(rsi70Data);
+        indicatorSeriesRef.current.push(rsi70);
+
+        // RSI 30 line
+        const rsi30 = chart.addLineSeries({
+          color: "rgba(34, 197, 94, 0.3)",
+          lineWidth: 1,
+          lineStyle: LineStyle.Dashed,
+          priceScaleId: "rsi",
+          lastValueVisible: false,
+          priceLineVisible: false,
+        });
+        const rsi30Data = rsiData.length > 0
+          ? [
+              { time: rsiData[0].time, value: 30 },
+              { time: rsiData[rsiData.length - 1].time, value: 30 },
+            ]
+          : [];
+        rsi30.setData(rsi30Data);
+        indicatorSeriesRef.current.push(rsi30);
+      }
+
+      // MACD — separate price scale
+      if (indicators.macd) {
+        const macd = calcMACD(assetData, 12, 26, 9);
+
+        // MACD histogram
+        const macdHist = chart.addHistogramSeries({
+          priceScaleId: "macd",
+          lastValueVisible: false,
+          priceLineVisible: false,
+        });
+        chart.priceScale("macd").applyOptions({
+          scaleMargins: { top: 0.85, bottom: 0.0 },
+          borderVisible: false,
+        });
+        const histData = macd.histogram
+          .map((v, i) =>
+            v !== null
+              ? {
+                  time: times[i] as Time,
+                  value: v,
+                  color:
+                    v >= 0
+                      ? "rgba(34, 197, 94, 0.5)"
+                      : "rgba(239, 68, 68, 0.5)",
+                }
+              : null
+          )
+          .filter(Boolean) as { time: Time; value: number; color: string }[];
+        macdHist.setData(histData);
+        indicatorHistogramRef.current.push(macdHist);
+
+        // MACD line
+        const macdLine = chart.addLineSeries({
+          color: "#06b6d4",
+          lineWidth: 1,
+          priceScaleId: "macd",
+          lastValueVisible: false,
+          priceLineVisible: false,
+        });
+        const macdLineData = macd.macd
+          .map((v, i) =>
+            v !== null ? { time: times[i] as Time, value: v } : null
+          )
+          .filter(Boolean) as { time: Time; value: number }[];
+        macdLine.setData(macdLineData);
+        indicatorSeriesRef.current.push(macdLine);
+
+        // Signal line
+        const sigLine = chart.addLineSeries({
+          color: "#f97316",
+          lineWidth: 1,
+          priceScaleId: "macd",
+          lastValueVisible: false,
+          priceLineVisible: false,
+        });
+        const sigLineData = macd.signal
+          .map((v, i) =>
+            v !== null ? { time: times[i] as Time, value: v } : null
+          )
+          .filter(Boolean) as { time: Time; value: number }[];
+        sigLine.setData(sigLineData);
+        indicatorSeriesRef.current.push(sigLine);
+      }
+    }
+
     if (chartRef.current) {
       chartRef.current.timeScale().fitContent();
     }
-  }, [klines, isCrypto, symbol, basePrice, regime, seed, interval]);
+  }, [klines, isCrypto, symbol, basePrice, regime, seed, interval, indicators]);
 
   // Effect 3: Live candle update from WebSocket tick (crypto only)
   useEffect(() => {
@@ -592,6 +812,43 @@ export function AssetChart({
         </span>
         {!isCrypto && (
           <span className="text-yellow-400">Synthetic Data</span>
+        )}
+        {/* Active indicator legend */}
+        {indicators?.sma.map((p) => (
+          <span key={`sma-${p}`} className="flex items-center gap-1.5">
+            <span
+              className="w-2 h-2 rounded-full"
+              style={{ backgroundColor: SMA_COLORS[p] ?? "#facc15" }}
+            />
+            SMA {p}
+          </span>
+        ))}
+        {indicators?.ema.map((p) => (
+          <span key={`ema-${p}`} className="flex items-center gap-1.5">
+            <span
+              className="w-2 h-2 rounded-full"
+              style={{ backgroundColor: EMA_COLORS[p] ?? "#f97316" }}
+            />
+            EMA {p}
+          </span>
+        ))}
+        {indicators?.bollinger && (
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-gray-400" />
+            BB (20, 2)
+          </span>
+        )}
+        {indicators?.rsi && (
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-purple-500" />
+            RSI (14)
+          </span>
+        )}
+        {indicators?.macd && (
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-cyan-500" />
+            MACD
+          </span>
         )}
       </div>
     </div>

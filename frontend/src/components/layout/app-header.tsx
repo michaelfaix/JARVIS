@@ -7,6 +7,7 @@
 import { useRef, useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { useNotifications, type NotificationType } from "@/hooks/use-notifications";
+import { useLocale } from "@/hooks/use-locale";
 import { Bell, Check, Trash2 } from "lucide-react";
 
 interface AppHeaderProps {
@@ -25,6 +26,7 @@ const TYPE_COLORS: Record<NotificationType, string> = {
 export function AppHeader({ title, subtitle }: AppHeaderProps) {
   const { notifications, unreadCount, markAllRead, clearAll } =
     useNotifications();
+  const { locale, setLocale, t } = useLocale();
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -57,14 +59,39 @@ export function AppHeader({ title, subtitle }: AppHeaderProps) {
           variant="outline"
           className="text-[10px] text-muted-foreground"
         >
-          Paper Trading
+          {t('common_paper_trading')}
         </Badge>
         <Badge
           variant="outline"
           className="text-[10px] text-green-400 border-green-400/30"
         >
-          RESEARCH ONLY
+          {t('common_research_only')}
         </Badge>
+
+        {/* Language toggle */}
+        <div className="flex items-center rounded-md border border-border/50 overflow-hidden">
+          <button
+            onClick={() => setLocale('en')}
+            className={`px-2 py-1 text-[10px] font-medium transition-colors ${
+              locale === 'en'
+                ? 'bg-blue-600/20 text-blue-400'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+            }`}
+          >
+            EN
+          </button>
+          <div className="w-px h-4 bg-border/50" />
+          <button
+            onClick={() => setLocale('de')}
+            className={`px-2 py-1 text-[10px] font-medium transition-colors ${
+              locale === 'de'
+                ? 'bg-blue-600/20 text-blue-400'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+            }`}
+          >
+            DE
+          </button>
+        </div>
 
         {/* Notification Bell */}
         <div className="relative" ref={dropdownRef}>
@@ -85,7 +112,7 @@ export function AppHeader({ title, subtitle }: AppHeaderProps) {
               {/* Header */}
               <div className="flex items-center justify-between border-b border-border/30 px-3 py-2">
                 <span className="text-xs font-medium text-white">
-                  Notifications
+                  {t('common_notifications')}
                 </span>
                 <div className="flex items-center gap-1">
                   {unreadCount > 0 && (
@@ -94,7 +121,7 @@ export function AppHeader({ title, subtitle }: AppHeaderProps) {
                       className="text-[10px] text-muted-foreground hover:text-white transition-colors px-1.5 py-0.5 rounded flex items-center gap-1"
                     >
                       <Check className="h-2.5 w-2.5" />
-                      Read all
+                      {t('common_read_all')}
                     </button>
                   )}
                   {notifications.length > 0 && (
@@ -103,7 +130,7 @@ export function AppHeader({ title, subtitle }: AppHeaderProps) {
                       className="text-[10px] text-muted-foreground hover:text-red-400 transition-colors px-1.5 py-0.5 rounded flex items-center gap-1"
                     >
                       <Trash2 className="h-2.5 w-2.5" />
-                      Clear
+                      {t('common_clear')}
                     </button>
                   )}
                 </div>
@@ -113,7 +140,7 @@ export function AppHeader({ title, subtitle }: AppHeaderProps) {
               <div className="max-h-80 overflow-y-auto">
                 {notifications.length === 0 ? (
                   <div className="px-3 py-6 text-center text-xs text-muted-foreground">
-                    No notifications yet
+                    {t('common_no_notifications')}
                   </div>
                 ) : (
                   notifications.slice(0, 20).map((n) => (

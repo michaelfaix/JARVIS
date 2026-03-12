@@ -20,6 +20,7 @@ import { useSettings } from "@/hooks/use-settings";
 import { usePortfolio } from "@/hooks/use-portfolio";
 import { useProfile } from "@/hooks/use-profile";
 import { useSubscription } from "@/hooks/use-subscription";
+import { useLocale } from "@/hooks/use-locale";
 import { PricingModal } from "@/components/upgrade/pricing-modal";
 import { STRATEGIES, DEFAULT_ASSETS, TIER_LIMITS, FREE_ASSETS } from "@/lib/constants";
 import { Settings, RotateCcw, Save, Lock, Crown, CreditCard } from "lucide-react";
@@ -36,6 +37,7 @@ export default function SettingsPage() {
   const { tier, isPro } = useProfile();
   const { manageSubscription, loading: subLoading } = useSubscription();
   const { toast } = useToast();
+  const { locale, setLocale, t } = useLocale();
   const searchParams = useSearchParams();
   const limits = TIER_LIMITS[tier];
   const [capitalInput, setCapitalInput] = useState("");
@@ -77,7 +79,7 @@ export default function SettingsPage() {
 
   return (
     <>
-      <AppHeader title="Settings" subtitle="Configuration" />
+      <AppHeader title={t('settings_title')} subtitle={t('settings_configuration')} />
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6 max-w-3xl">
         {/* Subscription Info */}
         <Card className="bg-card/50 border-border/50">
@@ -98,7 +100,7 @@ export default function SettingsPage() {
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {isPro
-                      ? "All features unlocked"
+                      ? t('settings_all_features_unlocked')
                       : `${limits.maxAssets} assets, $${limits.maxCapital.toLocaleString()} capital, ${limits.signalDelayMinutes}min signal delay`}
                   </div>
                 </div>
@@ -113,7 +115,7 @@ export default function SettingsPage() {
                     disabled={subLoading}
                   >
                     <CreditCard className="h-3 w-3" />
-                    {subLoading ? "Loading..." : "Manage Subscription"}
+                    {subLoading ? `${t('common_loading')}...` : t('settings_manage_subscription')}
                   </Button>
                 ) : (
                   <Button
@@ -122,7 +124,7 @@ export default function SettingsPage() {
                     onClick={() => setPricingOpen(true)}
                   >
                     <Crown className="h-3 w-3" />
-                    Upgrade
+                    {t('settings_upgrade')}
                   </Button>
                 )}
               </div>
@@ -135,13 +137,13 @@ export default function SettingsPage() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <Settings className="h-4 w-4" />
-              Paper Trading
+              {t('settings_paper_trading')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Capital */}
             <div className="space-y-2">
-              <Label>Starting Capital (USD)</Label>
+              <Label>{t('settings_starting_capital')}</Label>
               <div className="flex gap-2">
                 <Input
                   type="number"
@@ -159,12 +161,11 @@ export default function SettingsPage() {
                   className="gap-1"
                 >
                   <Save className="h-3 w-3" />
-                  Apply
+                  {t('settings_apply')}
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Resets portfolio to the new capital amount. All open positions
-                will be closed.
+                {t('settings_capital_hint')}
                 {!isPro && (
                   <span className="text-yellow-400">
                     {" "}Max ${limits.maxCapital.toLocaleString()} on {tier} plan.
@@ -177,7 +178,7 @@ export default function SettingsPage() {
 
             {/* Strategy */}
             <div className="space-y-2">
-              <Label>Active Strategy</Label>
+              <Label>{t('settings_active_strategy')}</Label>
               <Select
                 value={settings.strategy}
                 onChange={(e) =>
@@ -194,7 +195,7 @@ export default function SettingsPage() {
                 ))}
               </Select>
               <p className="text-xs text-muted-foreground">
-                Determines how signals are generated on the Signals page.
+                {t('settings_strategy_hint')}
               </p>
             </div>
 
@@ -202,7 +203,7 @@ export default function SettingsPage() {
 
             {/* Tracked Assets */}
             <div className="space-y-2">
-              <Label>Tracked Assets</Label>
+              <Label>{t('settings_tracked_assets')}</Label>
               <div className="flex flex-wrap gap-2">
                 {DEFAULT_ASSETS.map((asset) => {
                   const isTracked = settings.trackedAssets.includes(
@@ -237,7 +238,7 @@ export default function SettingsPage() {
                 })}
               </div>
               <p className="text-xs text-muted-foreground">
-                Click to toggle. These assets appear on Signals and Radar pages.
+                {t('settings_tracked_assets_hint')}
                 {!isPro && (
                   <span className="text-yellow-400">
                     {" "}Free plan: {limits.maxAssets} assets only.
@@ -252,15 +253,15 @@ export default function SettingsPage() {
         <Card className="bg-card/50 border-border/50">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Appearance
+              {t('settings_appearance')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <Label>Dark Mode</Label>
+                <Label>{t('settings_dark_mode')}</Label>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Toggle between dark and light theme
+                  {t('settings_dark_mode_hint')}
                 </p>
               </div>
               <Switch
@@ -273,9 +274,9 @@ export default function SettingsPage() {
 
             <div className="flex items-center justify-between">
               <div>
-                <Label>Poll Interval</Label>
+                <Label>{t('settings_poll_interval')}</Label>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  How often to fetch new data from the backend
+                  {t('settings_poll_interval_hint')}
                 </p>
               </div>
               <Select
@@ -294,20 +295,54 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
+        {/* Language */}
+        <Card className="bg-card/50 border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {t('settings_language')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setLocale('en')}
+                className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors border ${
+                  locale === 'en'
+                    ? 'border-blue-500 bg-blue-600/20 text-blue-400'
+                    : 'border-border/50 text-muted-foreground hover:bg-muted hover:text-foreground'
+                }`}
+              >
+                <span className="text-base">&#x1F1EC;&#x1F1E7;</span>
+                English
+              </button>
+              <button
+                onClick={() => setLocale('de')}
+                className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors border ${
+                  locale === 'de'
+                    ? 'border-blue-500 bg-blue-600/20 text-blue-400'
+                    : 'border-border/50 text-muted-foreground hover:bg-muted hover:text-foreground'
+                }`}
+              >
+                <span className="text-base">&#x1F1E9;&#x1F1EA;</span>
+                Deutsch
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Danger Zone */}
         <Card className="bg-card/50 border-red-500/20">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-red-400">
-              Danger Zone
+              {t('settings_danger_zone')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-white">Reset All Settings</p>
+                <p className="text-sm text-white">{t('settings_reset_all')}</p>
                 <p className="text-xs text-muted-foreground">
-                  Restore defaults for capital, strategy, theme, and tracked
-                  assets
+                  {t('settings_reset_all_hint')}
                 </p>
               </div>
               <Button
@@ -320,7 +355,7 @@ export default function SettingsPage() {
                 }}
               >
                 <RotateCcw className="h-3 w-3" />
-                Reset
+                {t('settings_reset')}
               </Button>
             </div>
           </CardContent>
