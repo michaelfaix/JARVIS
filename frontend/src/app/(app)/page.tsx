@@ -18,6 +18,8 @@ import { useMetrics, useSystemStatus } from "@/hooks/use-jarvis";
 import { useSignals } from "@/hooks/use-signals";
 import { usePortfolio } from "@/hooks/use-portfolio";
 import { usePrices } from "@/hooks/use-prices";
+import { useSentiment } from "@/hooks/use-sentiment";
+import { MarketPulse } from "@/components/dashboard/market-pulse";
 // useWebSocket for backend stream (optional)
 import { inferRegime, type RegimeState } from "@/lib/types";
 import { Watchlist } from "@/components/dashboard/watchlist";
@@ -49,6 +51,7 @@ export default function DashboardPage() {
   const { state: portfolio, unrealizedPnl, totalValue, winRate, drawdown } =
     usePortfolio();
   const { prices, wsConnected, binanceConnected } = usePrices(5000);
+  const sentimentData = useSentiment(prices);
   const [selectedAsset, setSelectedAsset] = useState(0);
   const [timeframeIdx, setTimeframeIdx] = useState(4); // default: 4H Combined
 
@@ -73,8 +76,8 @@ export default function DashboardPage() {
     <>
       <AppHeader title="Dashboard" subtitle="Market Overview" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
-        {/* Top Row: Regime + System Mode + Quality */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Top Row: Regime + System Mode + Quality + Sentiment */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           <RegimeDisplay
             regime={regime}
             metaUncertainty={status?.meta_unsicherheit ?? 0}
@@ -88,6 +91,7 @@ export default function DashboardPage() {
             entscheidungsCount={status?.entscheidungs_count ?? 0}
           />
           <QualityScoreCard metrics={metrics} />
+          <MarketPulse data={sentimentData} />
         </div>
 
         {/* USP: Timeframe Slider */}

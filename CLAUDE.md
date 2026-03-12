@@ -750,23 +750,67 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 
 ---
 
+## ✅ ABGESCHLOSSEN: Stripe Integration + Advanced Orders + Market Sentiment
+
+### Erstellt:
+- **Stripe Subscription Integration**:
+  - `src/lib/stripe.ts` — Client + Server Stripe config, graceful placeholder handling
+  - `/api/stripe/checkout` — POST: Creates Checkout Session (Pro €29/mo, Enterprise €199/mo)
+  - `/api/stripe/webhook` — POST: Handles `checkout.session.completed` + `subscription.deleted`, updates Supabase tier
+  - `/api/stripe/portal` — POST: Creates Billing Portal session for subscription management
+  - `components/upgrade/pricing-modal.tsx` — Reusable modal with Pro/Enterprise comparison, feature lists, "Current Plan" badge
+  - `hooks/use-subscription.ts` — `subscribe(tier)`, `manageSubscription()`, loading state
+  - Settings page: Tier badge, Upgrade button → PricingModal, Manage Subscription → Stripe Portal
+  - `upgrade-gate.tsx` updated: Opens PricingModal instead of linking to landing page
+  - ENV: 5 Stripe placeholder keys in `.env.local`
+- **Advanced Paper Trading Orders**:
+  - `hooks/use-orders.ts` — Order management: market, limit, stop_limit types
+    - `placeOrder()` — market fills immediately, limit/stop go to pending
+    - `cancelOrder()` — cancels pending orders
+    - `checkOrders(prices)` — evaluates pending orders against live prices, fills when conditions met
+    - localStorage persistence under `jarvis-orders`
+  - `hooks/use-auto-sl-tp.ts` — Auto Stop-Loss/Take-Profit execution
+    - `setSLTP()` — registers SL/TP per position
+    - `checkSLTP(prices)` — monitors positions, auto-closes on SL/TP hit
+    - Push notifications on auto-close
+    - Auto-close history (up to 50 events)
+  - `components/trading/order-dialog.tsx` — Order placement modal
+    - 3 tabs: Market Order, Limit Order, Stop Limit
+    - Capital % slider (5%, 10%, 25%, 50%)
+    - Risk preview: Entry, SL, TP, Risk/Reward ratio
+  - Signals page: "Trade" button → OrderDialog, pending orders section, cancel buttons
+  - Portfolio page: SL/TP column, "Auto SL/TP" badge, auto-close history section
+- **Market Sentiment Widget**:
+  - `hooks/use-sentiment.ts` — Crypto Fear & Greed Index from alternative.me API
+    - Synthetic fallback from BTC/ETH/SOL price deltas
+    - Market momentum, volatility, BTC dominance calculations
+  - `components/dashboard/sentiment-gauge.tsx` — SVG semi-circular gauge
+    - Color gradient (red→green), needle, tick marks, classification text
+  - `components/dashboard/market-pulse.tsx` — Compact dashboard card
+    - Fear & Greed gauge + 3 indicators (Momentum, BTC Dominance, Volatility)
+  - Dashboard: MarketPulse as 4th card in top row (responsive grid: 2-col md, 4-col xl)
+- Build: 0 Errors, **29 Routes** (17 App + 4 Legal + 5 API + 3 Stripe) + Middleware
+
+---
+
 ## 🔜 NÄCHSTER SCHRITT
 
 ### Sofort (ohne Code):
 1. Domain: **jarvis-trader.app** registrieren (~€15)
 2. **Railway** Account: railway.app (kostenlos)
 3. **Anthropic API Credits** aufladen für AI Chat
+4. **Stripe** Account: Keys in `.env.local` eintragen
 
 ### Nächste Code-Features (Post-MVP):
 1. Deployment auf Railway (Frontend + Backend)
-2. Stripe Integration (Subscriptions, Checkout)
-3. Capacitor.js (PWA → App Store)
-4. Social Trading: Top-Trader folgen + kopieren
-5. Leaderboard mit Supabase (echte User-Daten)
-6. News Feed / Market Sentiment Widget
-7. Advanced Order Types (Limit, OCO, Trailing Stop)
+2. Capacitor.js (PWA → App Store)
+3. Social Trading: Top-Trader folgen + kopieren
+4. Leaderboard mit Supabase (echte User-Daten)
+5. Real-time Notifications via WebSocket (statt Polling)
+6. Advanced Charting: Drawing Tools, Indicators (MA, RSI, MACD)
+7. Multi-Language Support (DE/EN)
 
 ---
 
-*CLAUDE.md — Version 9.3.0 | März 2026*
+*CLAUDE.md — Version 9.4.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*

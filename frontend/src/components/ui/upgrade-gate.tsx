@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { Lock, Sparkles } from "lucide-react";
 import type { Tier } from "@/hooks/use-profile";
+import { PricingModal } from "@/components/upgrade/pricing-modal";
 
 interface UpgradeGateProps {
   currentTier: Tier;
@@ -21,6 +23,7 @@ export function UpgradeGate({
   feature,
   children,
 }: UpgradeGateProps) {
+  const [pricingOpen, setPricingOpen] = useState(false);
   const tierRank = { free: 0, pro: 1, enterprise: 2 };
 
   if (tierRank[currentTier] >= tierRank[requiredTier]) {
@@ -37,13 +40,14 @@ export function UpgradeGate({
         This feature requires a {TIER_LABELS[requiredTier]} subscription.
         Upgrade to unlock {feature.toLowerCase()} and more.
       </p>
-      <a
-        href="/landing#pricing"
+      <button
+        onClick={() => setPricingOpen(true)}
         className="mt-6 flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/25 hover:bg-blue-700 transition-colors"
       >
         <Sparkles className="h-4 w-4" />
         Upgrade to {TIER_LABELS[requiredTier]}
-      </a>
+      </button>
+      <PricingModal open={pricingOpen} onClose={() => setPricingOpen(false)} />
     </div>
   );
 }

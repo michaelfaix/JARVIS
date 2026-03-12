@@ -4,7 +4,7 @@
 
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppHeader } from "@/components/layout/app-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,24 +23,27 @@ import { useSystemStatus } from "@/hooks/use-jarvis";
 import { usePortfolio } from "@/hooks/use-portfolio";
 import { usePrices } from "@/hooks/use-prices";
 import { useProfile } from "@/hooks/use-profile";
+import { useOrders } from "@/hooks/use-orders";
+import { useAutoSLTP } from "@/hooks/use-auto-sl-tp";
 import { inferRegime } from "@/lib/types";
+import type { Signal } from "@/lib/types";
 import { DEFAULT_ASSETS, FREE_ASSETS, TIER_LIMITS } from "@/lib/constants";
 import { useToast } from "@/components/ui/toast";
 import { useSignalAlerts } from "@/hooks/use-signal-alerts";
 import { useNotifications } from "@/hooks/use-notifications";
+import { OrderDialog } from "@/components/trading/order-dialog";
 import {
   AlertTriangle,
   Radio,
   RefreshCw,
-  Check,
   X,
   Wifi,
   WifiOff,
   Clock,
   Lock,
+  ShoppingCart,
+  ListOrdered,
 } from "lucide-react";
-
-const TRADE_CAPITAL_PERCENT = 0.1; // 10% of available capital per trade
 
 export default function SignalsPage() {
   const { status } = useSystemStatus(5000);
@@ -54,10 +57,49 @@ export default function SignalsPage() {
   const { push: pushNotification } = useNotifications();
   const limits = TIER_LIMITS[tier];
 
+  // Order management
+  const {
+    pendingOrders,
+    placeOrder,
+    cancelOrder,
+    checkOrders,
+  } = useOrders(openPosition);
+
+  // Auto SL/TP
+  const { setSLTP, checkSLTP } = useAutoSLTP(
+    portfolio.positions,
+    closePosition,
+    pushNotification
+  );
+
+  // Order dialog state
+  const [orderDialogSignal, setOrderDialogSignal] = useState<Signal | null>(null);
+
   // Notify on high-confidence signals
   useEffect(() => {
     if (allSignals.length > 0) checkSignals(allSignals);
   }, [allSignals, checkSignals]);
+
+  // Auto-check pending orders whenever prices update
+  useEffect(() => {
+    if (pendingOrders.length > 0 && Object.keys(prices).length > 0) {
+      const filled = checkOrders(prices);
+      for (const order of filled) {
+        toast(
+          "success",
+          `${order.type.replace("_", "-")} order filled: ${order.direction} ${order.asset}`
+        );
+        // SL/TP for filled limit orders will be set via the order dialog flow
+      }
+    }
+  }, [prices, pendingOrders.length, checkOrders, toast]);
+
+  // Auto-check SL/TP for open positions
+  useEffect(() => {
+    if (portfolio.positions.length > 0 && Object.keys(prices).length > 0) {
+      checkSLTP(prices);
+    }
+  }, [prices, portfolio.positions.length, checkSLTP]);
 
   // Filter signals by tier
   const signals = useMemo(
@@ -90,30 +132,39 @@ export default function SignalsPage() {
       ? signals.reduce((sum, s) => sum + s.confidence, 0) / signals.length
       : 0;
 
-  function handleAccept(signal: (typeof signals)[number]) {
-    const livePrice = prices[signal.asset] ?? signal.entry;
-    const capitalForTrade = Math.min(
-      portfolio.availableCapital * TRADE_CAPITAL_PERCENT,
-      portfolio.availableCapital
-    );
-    if (capitalForTrade < 1) return;
+  function handleTrade(signal: Signal) {
+    setOrderDialogSignal(signal);
+  }
 
-    const size = capitalForTrade / livePrice;
-
-    openPosition({
-      asset: signal.asset,
-      direction: signal.direction,
-      entryPrice: livePrice,
-      size,
-      capitalAllocated: capitalForTrade,
-      openedAt: new Date().toISOString(),
-    });
-    toast("success", `Opened ${signal.direction} ${signal.asset} at $${livePrice.toLocaleString()}`);
-    pushNotification(
-      "trade",
-      `${signal.direction} ${signal.asset} Opened`,
-      `Entry $${livePrice.toLocaleString()} · Size ${size.toFixed(4)} · Capital $${capitalForTrade.toFixed(0)}`
-    );
+  function handlePlaceOrder(order: Parameters<typeof placeOrder>[0]) {
+    const placed = placeOrder(order);
+    if (placed.status === "filled") {
+      const livePrice = order.limitPrice ?? prices[order.asset] ?? 0;
+      toast(
+        "success",
+        `Opened ${order.direction} ${order.asset} at $${livePrice.toLocaleString()}`
+      );
+      pushNotification(
+        "trade",
+        `${order.direction} ${order.asset} Opened`,
+        `Entry $${livePrice.toLocaleString()} · Size ${order.size.toFixed(4)} · Capital $${order.capitalAllocated.toFixed(0)}`
+      );
+      // Set SL/TP for market orders
+      if (order.stopLoss != null && order.takeProfit != null) {
+        // Find the most recent position for this asset
+        setTimeout(() => {
+          const pos = portfolio.positions.find((p) => p.asset === order.asset);
+          if (pos) {
+            setSLTP(pos.id, pos.asset, pos.direction, order.stopLoss!, order.takeProfit!);
+          }
+        }, 100);
+      }
+    } else if (placed.status === "pending") {
+      toast(
+        "info",
+        `${order.type.replace("_", "-")} order placed for ${order.asset}`
+      );
+    }
   }
 
   function handleClose(asset: string) {
@@ -226,6 +277,12 @@ export default function SignalsPage() {
                   <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-[10px] gap-1">
                     <Lock className="h-2.5 w-2.5" />
                     {signals.length}/{allSignals.length} assets
+                  </Badge>
+                )}
+                {pendingOrders.length > 0 && (
+                  <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-[10px] gap-1">
+                    <ListOrdered className="h-2.5 w-2.5" />
+                    {pendingOrders.length} pending
                   </Badge>
                 )}
               </CardTitle>
@@ -394,12 +451,12 @@ export default function SignalsPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-7 text-xs border-green-500/30 text-green-400 hover:bg-green-500/10 gap-1"
-                                onClick={() => handleAccept(signal)}
+                                className="h-7 text-xs border-blue-500/30 text-blue-400 hover:bg-blue-500/10 gap-1"
+                                onClick={() => handleTrade(signal)}
                                 disabled={portfolio.availableCapital < 1}
                               >
-                                <Check className="h-3 w-3" />
-                                Accept
+                                <ShoppingCart className="h-3 w-3" />
+                                Trade
                               </Button>
                             )}
                           </TableCell>
@@ -412,7 +469,116 @@ export default function SignalsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Pending Orders Section */}
+        {pendingOrders.length > 0 && (
+          <Card className="bg-card/50 border-border/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <ListOrdered className="h-4 w-4" />
+                Pending Orders ({pendingOrders.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Asset</TableHead>
+                      <TableHead>Direction</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead className="text-right">Limit Price</TableHead>
+                      <TableHead className="text-right">Stop Price</TableHead>
+                      <TableHead className="text-right">Size</TableHead>
+                      <TableHead className="text-right">Capital</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead className="text-center">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendingOrders.map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-medium text-white">
+                          {order.asset}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            className={
+                              order.direction === "LONG"
+                                ? "bg-green-500/20 text-green-400 border-green-500/30"
+                                : "bg-red-500/20 text-red-400 border-red-500/30"
+                            }
+                          >
+                            {order.direction}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-[10px]">
+                            {order.type === "stop_limit" ? "Stop Limit" : "Limit"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-xs text-white">
+                          {order.limitPrice != null
+                            ? `$${order.limitPrice.toLocaleString("en-US", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}`
+                            : "—"}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-xs text-muted-foreground">
+                          {order.stopPrice != null
+                            ? `$${order.stopPrice.toLocaleString("en-US", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}`
+                            : "—"}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-xs text-white">
+                          {order.size.toFixed(4)}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-xs text-muted-foreground">
+                          ${order.capitalAllocated.toFixed(0)}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {new Date(order.createdAt).toLocaleTimeString("en-US", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs border-red-500/30 text-red-400 hover:bg-red-500/10 gap-1"
+                            onClick={() => {
+                              cancelOrder(order.id);
+                              toast("warning", `Cancelled ${order.type} order for ${order.asset}`);
+                            }}
+                          >
+                            <X className="h-3 w-3" />
+                            Cancel
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
+
+      {/* Order Dialog */}
+      {orderDialogSignal && (
+        <OrderDialog
+          signal={orderDialogSignal}
+          currentPrice={prices[orderDialogSignal.asset] ?? orderDialogSignal.entry}
+          availableCapital={portfolio.availableCapital}
+          onPlaceOrder={handlePlaceOrder}
+          onClose={() => setOrderDialogSignal(null)}
+        />
+      )}
     </>
   );
 }

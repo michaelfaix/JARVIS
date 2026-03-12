@@ -21,6 +21,7 @@ import { Separator } from "@/components/ui/separator";
 import { usePortfolio } from "@/hooks/use-portfolio";
 import { useSystemStatus } from "@/hooks/use-jarvis";
 import { usePrices } from "@/hooks/use-prices";
+import { useAutoSLTP } from "@/hooks/use-auto-sl-tp";
 import { inferRegime, REGIME_COLORS, type RegimeState } from "@/lib/types";
 import { useToast } from "@/components/ui/toast";
 import { EquityCurve } from "@/components/chart/equity-curve";
@@ -40,6 +41,7 @@ import {
   Star,
   X,
   Download,
+  Zap,
 } from "lucide-react";
 
 export default function PortfolioPage() {
@@ -60,6 +62,13 @@ export default function PortfolioPage() {
   const { prices, binanceConnected } = usePrices(5000);
   const { toast } = useToast();
   const { push: pushNotification } = useNotifications();
+
+  // Auto SL/TP
+  const { sltpMap, autoCloseHistory, checkSLTP } = useAutoSLTP(
+    state.positions,
+    closePosition,
+    pushNotification
+  );
 
   const prevUnlockedRef = React.useRef<Set<string>>(new Set());
 
@@ -97,6 +106,13 @@ export default function PortfolioPage() {
     }
   }, [prices, state.positions.length, updatePrices]);
 
+  // Auto-check SL/TP for open positions
+  useEffect(() => {
+    if (state.positions.length > 0 && Object.keys(prices).length > 0) {
+      checkSLTP(prices);
+    }
+  }, [prices, state.positions.length, checkSLTP]);
+
   const totalPnl = state.realizedPnl + unrealizedPnl;
   const totalPnlPercent =
     state.totalCapital > 0 ? (totalPnl / state.totalCapital) * 100 : 0;
@@ -126,6 +142,9 @@ export default function PortfolioPage() {
     (sum, v) => sum + v,
     0
   );
+
+  // Last 5 auto-close events
+  const recentAutoCloses = autoCloseHistory.slice(0, 5);
 
   return (
     <>
@@ -347,6 +366,7 @@ export default function PortfolioPage() {
                       <TableHead className="text-right">Size</TableHead>
                       <TableHead className="text-right">Entry</TableHead>
                       <TableHead className="text-right">Current</TableHead>
+                      <TableHead className="text-right">SL / TP</TableHead>
                       <TableHead className="text-right">P&L</TableHead>
                       <TableHead></TableHead>
                     </TableRow>
@@ -355,73 +375,96 @@ export default function PortfolioPage() {
                     {state.positions.length === 0 ? (
                       <TableRow>
                         <TableCell
-                          colSpan={7}
+                          colSpan={8}
                           className="text-center text-muted-foreground py-8"
                         >
                           No open positions. Accept signals to open trades.
                         </TableCell>
                       </TableRow>
                     ) : (
-                      state.positions.map((pos) => (
-                        <TableRow key={pos.id}>
-                          <TableCell className="font-medium text-white">
-                            {pos.asset}
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              className={
-                                pos.direction === "LONG"
-                                  ? "bg-green-500/20 text-green-400 border-green-500/30"
-                                  : "bg-red-500/20 text-red-400 border-red-500/30"
-                              }
+                      state.positions.map((pos) => {
+                        const sltp = sltpMap[pos.id];
+                        return (
+                          <TableRow key={pos.id}>
+                            <TableCell className="font-medium text-white">
+                              {pos.asset}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                className={
+                                  pos.direction === "LONG"
+                                    ? "bg-green-500/20 text-green-400 border-green-500/30"
+                                    : "bg-red-500/20 text-red-400 border-red-500/30"
+                                }
+                              >
+                                {pos.direction}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-white">
+                              {pos.size.toFixed(4)}
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-muted-foreground">
+                              ${pos.entryPrice.toLocaleString()}
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-white">
+                              ${pos.currentPrice.toLocaleString()}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {sltp ? (
+                                <div className="space-y-0.5">
+                                  <div className="flex items-center justify-end gap-1">
+                                    <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-[9px] px-1 py-0 gap-0.5">
+                                      <Zap className="h-2 w-2" />
+                                      Auto
+                                    </Badge>
+                                  </div>
+                                  <div className="text-[10px] font-mono text-red-400">
+                                    SL: ${sltp.stopLoss.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </div>
+                                  <div className="text-[10px] font-mono text-green-400">
+                                    TP: ${sltp.takeProfit.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="text-[10px] text-muted-foreground">—</span>
+                              )}
+                            </TableCell>
+                            <TableCell
+                              className={`text-right font-mono ${
+                                pos.pnl >= 0 ? "text-green-400" : "text-red-400"
+                              }`}
                             >
-                              {pos.direction}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right font-mono text-white">
-                            {pos.size.toFixed(4)}
-                          </TableCell>
-                          <TableCell className="text-right font-mono text-muted-foreground">
-                            ${pos.entryPrice.toLocaleString()}
-                          </TableCell>
-                          <TableCell className="text-right font-mono text-white">
-                            ${pos.currentPrice.toLocaleString()}
-                          </TableCell>
-                          <TableCell
-                            className={`text-right font-mono ${
-                              pos.pnl >= 0 ? "text-green-400" : "text-red-400"
-                            }`}
-                          >
-                            {pos.pnl >= 0 ? "+" : ""}$
-                            {Math.abs(pos.pnl).toFixed(2)}
-                            <div className="text-[10px]">
-                              {pos.pnlPercent >= 0 ? "+" : ""}
-                              {pos.pnlPercent.toFixed(2)}%
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0 text-muted-foreground hover:text-red-400"
-                              onClick={() => {
-                                const pnl = pos.direction === "LONG"
-                                  ? (pos.currentPrice - pos.entryPrice) * pos.size
-                                  : (pos.entryPrice - pos.currentPrice) * pos.size;
-                                closePosition(pos.id);
-                                toast("info", `Closed ${pos.asset} position`);
-                                pushNotification(
-                                  "trade",
-                                  `${pos.asset} Position Closed`,
-                                  `${pnl >= 0 ? "+" : ""}$${pnl.toFixed(2)} P&L`
-                                );
-                              }}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
+                              {pos.pnl >= 0 ? "+" : ""}$
+                              {Math.abs(pos.pnl).toFixed(2)}
+                              <div className="text-[10px]">
+                                {pos.pnlPercent >= 0 ? "+" : ""}
+                                {pos.pnlPercent.toFixed(2)}%
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-muted-foreground hover:text-red-400"
+                                onClick={() => {
+                                  const pnl = pos.direction === "LONG"
+                                    ? (pos.currentPrice - pos.entryPrice) * pos.size
+                                    : (pos.entryPrice - pos.currentPrice) * pos.size;
+                                  closePosition(pos.id);
+                                  toast("info", `Closed ${pos.asset} position`);
+                                  pushNotification(
+                                    "trade",
+                                    `${pos.asset} Position Closed`,
+                                    `${pnl >= 0 ? "+" : ""}$${pnl.toFixed(2)} P&L`
+                                  );
+                                }}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
                     )}
                   </TableBody>
                 </Table>
@@ -429,6 +472,71 @@ export default function PortfolioPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Auto-Close History */}
+        {recentAutoCloses.length > 0 && (
+          <Card className="bg-card/50 border-border/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Zap className="h-4 w-4 text-purple-400" />
+                Auto-Close History
+                <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-[10px]">
+                  SL/TP
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {recentAutoCloses.map((event) => (
+                  <div
+                    key={event.id}
+                    className={`flex items-center justify-between rounded-lg border p-3 ${
+                      event.reason === "stop_loss"
+                        ? "border-red-500/20 bg-red-500/5"
+                        : "border-green-500/20 bg-green-500/5"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Badge
+                        className={
+                          event.reason === "stop_loss"
+                            ? "bg-red-500/20 text-red-400 border-red-500/30 text-[10px]"
+                            : "bg-green-500/20 text-green-400 border-green-500/30 text-[10px]"
+                        }
+                      >
+                        {event.reason === "stop_loss" ? "Stop Loss" : "Take Profit"}
+                      </Badge>
+                      <div>
+                        <span className="text-sm font-medium text-white">
+                          {event.asset}
+                        </span>
+                        <span className="text-xs text-muted-foreground ml-2">
+                          {event.direction}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="text-xs font-mono text-white">
+                        ${event.triggerPrice.toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {new Date(event.timestamp).toLocaleString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Trade Stats */}
         {state.closedTrades.length > 0 && (

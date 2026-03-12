@@ -5,6 +5,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { AppHeader } from "@/components/layout/app-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,22 +15,47 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/toast";
 import { useSettings } from "@/hooks/use-settings";
 import { usePortfolio } from "@/hooks/use-portfolio";
 import { useProfile } from "@/hooks/use-profile";
+import { useSubscription } from "@/hooks/use-subscription";
+import { PricingModal } from "@/components/upgrade/pricing-modal";
 import { STRATEGIES, DEFAULT_ASSETS, TIER_LIMITS, FREE_ASSETS } from "@/lib/constants";
-import { Settings, RotateCcw, Save, Lock, Crown } from "lucide-react";
+import { Settings, RotateCcw, Save, Lock, Crown, CreditCard } from "lucide-react";
+
+const TIER_COLORS: Record<string, string> = {
+  free: "bg-zinc-600/20 text-zinc-400 border-zinc-500/30",
+  pro: "bg-blue-600/20 text-blue-400 border-blue-500/30",
+  enterprise: "bg-purple-600/20 text-purple-400 border-purple-500/30",
+};
 
 export default function SettingsPage() {
   const { settings, update, reset } = useSettings();
   const { resetPortfolio } = usePortfolio();
   const { tier, isPro } = useProfile();
+  const { manageSubscription, loading: subLoading } = useSubscription();
+  const { toast } = useToast();
+  const searchParams = useSearchParams();
   const limits = TIER_LIMITS[tier];
   const [capitalInput, setCapitalInput] = useState("");
+  const [pricingOpen, setPricingOpen] = useState(false);
 
   useEffect(() => {
     setCapitalInput(settings.paperCapital.toString());
   }, [settings.paperCapital]);
+
+  // Show toast on upgrade redirect
+  useEffect(() => {
+    const upgraded = searchParams.get("upgraded");
+    if (upgraded === "true") {
+      toast("success", "Upgraded! Your new plan is now active.");
+    } else if (upgraded === "mock") {
+      toast("warning", "Stripe not configured — this was a mock upgrade.");
+    }
+    // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleCapitalSave = () => {
     const value = parseFloat(capitalInput);
@@ -64,7 +90,12 @@ export default function SettingsPage() {
                   <Crown className={`h-5 w-5 ${isPro ? "text-blue-400" : "text-muted-foreground"}`} />
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-white capitalize">{tier} Plan</div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-white capitalize">{tier} Plan</span>
+                    <Badge className={`text-[10px] ${TIER_COLORS[tier]}`}>
+                      {tier.toUpperCase()}
+                    </Badge>
+                  </div>
                   <div className="text-xs text-muted-foreground">
                     {isPro
                       ? "All features unlocked"
@@ -72,14 +103,29 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </div>
-              {!isPro && (
-                <a
-                  href="/landing#pricing"
-                  className="rounded-lg bg-blue-600 px-4 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition-colors"
-                >
-                  Upgrade
-                </a>
-              )}
+              <div className="flex items-center gap-2">
+                {isPro ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs"
+                    onClick={manageSubscription}
+                    disabled={subLoading}
+                  >
+                    <CreditCard className="h-3 w-3" />
+                    {subLoading ? "Loading..." : "Manage Subscription"}
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    className="gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={() => setPricingOpen(true)}
+                  >
+                    <Crown className="h-3 w-3" />
+                    Upgrade
+                  </Button>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -280,6 +326,9 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Pricing Modal */}
+      <PricingModal open={pricingOpen} onClose={() => setPricingOpen(false)} />
     </>
   );
 }
