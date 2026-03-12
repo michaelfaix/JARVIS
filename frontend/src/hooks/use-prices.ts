@@ -55,16 +55,16 @@ async function fetchBinancePrices(): Promise<Record<string, number>> {
   return prices;
 }
 
-// Deterministic-ish walk for non-crypto
+// Random-walk for non-crypto: ±0.01–0.05% per tick, with mean reversion
 function syntheticPrices(
   prev: Record<string, number>
 ): Record<string, number> {
   const prices: Record<string, number> = {};
   for (const [symbol, base] of Object.entries(FALLBACK_BASE)) {
     const current = prev[symbol] ?? base;
-    const seed = (Date.now() / 1000) * symbol.charCodeAt(0);
-    const drift = (Math.sin(seed) * 0.003) * current;
-    prices[symbol] = parseFloat((current + drift).toFixed(2));
+    const pctMove = (Math.random() * 0.0004 + 0.0001) * (Math.random() > 0.5 ? 1 : -1);
+    const reversion = (base - current) / base * 0.0002;
+    prices[symbol] = parseFloat((current * (1 + pctMove + reversion)).toFixed(2));
   }
   return prices;
 }
@@ -84,15 +84,15 @@ export function usePrices(intervalMs: number = 5000) {
   const reconnectTimer = useRef<ReturnType<typeof setTimeout>>();
   const reconnectAttempts = useRef(0);
 
-  // Update synthetic prices on interval
+  // Update synthetic prices every 1 second (stock tick simulation)
   useEffect(() => {
     const id = setInterval(() => {
       const synthetic = syntheticPrices(prevRef.current);
       prevRef.current = { ...prevRef.current, ...synthetic };
       setPrices((p) => ({ ...p, ...synthetic }));
-    }, intervalMs);
+    }, 1000);
     return () => clearInterval(id);
-  }, [intervalMs]);
+  }, []);
 
   // Binance WebSocket for real-time crypto prices
   const connectWs = useCallback(() => {

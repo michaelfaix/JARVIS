@@ -4,7 +4,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { AssetChart } from "@/components/chart/asset-chart";
 import { TimeframeSlider, TIMEFRAMES } from "@/components/dashboard/timeframe-slider";
 import { RegimeDisplay } from "@/components/dashboard/regime-display";
@@ -48,11 +48,21 @@ export default function DashboardPage() {
   const { signals } = useSignals(regime, 10000);
   const { state: portfolio, unrealizedPnl, totalValue, winRate, drawdown } =
     usePortfolio();
-  const { prices, wsConnected } = usePrices(5000);
+  const { prices, wsConnected, binanceConnected } = usePrices(5000);
   const [selectedAsset, setSelectedAsset] = useState(0);
   const [timeframeIdx, setTimeframeIdx] = useState(4); // default: 4H Combined
 
+  // Live price from chart (WS for crypto, sim for stocks)
+  const [wsPrice, setWsPrice] = useState<number | null>(null);
+  const handlePriceChange = useCallback(
+    (price: number) => {
+      setWsPrice(price);
+    },
+    []
+  );
+
   const asset = CHART_ASSETS[selectedAsset];
+  const chartInterval = TIMEFRAMES[timeframeIdx].value;
 
   const totalPnl = portfolio.realizedPnl + unrealizedPnl;
   const topSignals = [...signals]
@@ -97,7 +107,10 @@ export default function DashboardPage() {
                   {CHART_ASSETS.map((a, i) => (
                     <button
                       key={a.symbol}
-                      onClick={() => setSelectedAsset(i)}
+                      onClick={() => {
+                        setSelectedAsset(i);
+                        setWsPrice(null);
+                      }}
                       className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                         selectedAsset === i
                           ? "bg-blue-600/20 text-blue-400"
@@ -120,11 +133,13 @@ export default function DashboardPage() {
                     className={`h-3 w-3 ${
                       wsConnected
                         ? "text-green-400"
-                        : "text-yellow-400"
+                        : binanceConnected
+                          ? "text-blue-400"
+                          : "text-yellow-400"
                     }`}
                   />
                   <span className="text-[10px]">
-                    {wsConnected ? "WS Live" : "REST Polling"}
+                    {wsConnected ? "WS Live" : binanceConnected ? "REST" : "Live Sim"}
                   </span>
                 </div>
               </div>
@@ -132,12 +147,15 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <AssetChart
+              key={`${asset.symbol}-${chartInterval}`}
               symbol={asset.symbol}
               name={asset.name}
               basePrice={asset.basePrice}
-              livePrice={prices[asset.symbol]}
+              livePrice={wsPrice ?? prices[asset.symbol]}
               regime={regime}
               height={400}
+              interval={chartInterval}
+              onPriceChange={handlePriceChange}
             />
           </CardContent>
         </Card>

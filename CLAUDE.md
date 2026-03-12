@@ -732,6 +732,12 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
   - Neue Candle wird automatisch gestartet wenn Intervall-Grenze überschritten
   - "SIM LIVE" Badge für Stock-Charts, "WS LIVE" für Crypto
   - Volume simuliert sich mit
+- **Dashboard Live-Preis Integration** (`page.tsx`):
+  - Timeframe-Slider jetzt mit Chart verbunden (chartInterval)
+  - AssetChart bekommt key, interval, onPriceChange — live Candle wächst
+  - WS-Preis wird im Dashboard angezeigt (wsPrice state)
+  - Feed-Status zeigt korrekt: "WS Live" / "REST" / "Live Sim"
+- **use-prices.ts**: Synthetic Prices jetzt jede 1s statt 5s (Random Walk ±0.01-0.05%)
 - Build: 0 Errors, **26 Routes** + Middleware
 
 ---
@@ -754,5 +760,5 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 
 ---
 
-*CLAUDE.md — Version 9.1.0 | März 2026*
+*CLAUDE.md — Version 9.2.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*
