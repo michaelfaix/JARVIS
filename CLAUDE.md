@@ -379,6 +379,29 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 
 ---
 
+## ✅ ABGESCHLOSSEN: Timeframe Slider (USP) + Toast System + Mobile Sidebar
+
+### Erstellt:
+- **Timeframe Slider (USP)** (`timeframe-slider.tsx`): Das Alleinstellungsmerkmal von JARVIS-Trader
+  - Slider von 1m bis 1W (7 Stufen: 1m, 5m, 15m, 1H, 4H, 1D, 1W)
+  - Automatische Strategie-Empfehlung pro Timeframe (Scalping → Momentum → Combined → Mean Reversion)
+  - Farbcodierte Strategy-Anzeige + Beschreibung + Bar-Type Info
+  - Integriert im Dashboard zwischen Regime-Anzeige und Chart
+  - Timeframe-Badge im Chart-Header zeigt aktive Auswahl
+- **Toast Notification System** (`toast.tsx`): Lightweight Context-based Toast Provider
+  - 4 Typen: success (grün), error (rot), warning (gelb), info (blau)
+  - Auto-dismiss nach 3s, manuelles Dismiss per X-Button
+  - Fixed bottom-right, slide-in Animation
+  - Integriert in Signals-Seite (Accept/Close) und Portfolio-Seite (Close/Close All)
+- **Mobile Sidebar Auto-Collapse**: Responsive Sidebar für mobile Geräte
+  - Auto-Detect < 768px via matchMedia
+  - Sidebar hidden auf Mobile, Hamburger-Button öffnet Overlay
+  - Click-outside-to-close mit Backdrop-Overlay
+  - Sidebar Props erweitert: `mobile`, `mobileOpen`
+- Build: 0 Errors, 10 Routes (9 Pages + 1 API) | Backend: 8897 Tests grün
+
+---
+
 ## 🔜 NÄCHSTER SCHRITT
 
 ### Sofort (ohne Code, diese Woche):
@@ -390,5 +413,5 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 
 ---
 
-*CLAUDE.md — Version 7.7.0 | März 2026*
+*CLAUDE.md — Version 7.8.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*

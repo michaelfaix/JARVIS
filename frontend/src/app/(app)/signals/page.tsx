@@ -24,6 +24,7 @@ import { usePortfolio } from "@/hooks/use-portfolio";
 import { usePrices } from "@/hooks/use-prices";
 import { inferRegime } from "@/lib/types";
 import { DEFAULT_ASSETS } from "@/lib/constants";
+import { useToast } from "@/components/ui/toast";
 import {
   AlertTriangle,
   Radio,
@@ -42,6 +43,7 @@ export default function SignalsPage() {
   const { signals, loading, error, refresh } = useSignals(regime, 10000);
   const { state: portfolio, openPosition, closePosition } = usePortfolio();
   const { prices, binanceConnected } = usePrices(5000);
+  const { toast } = useToast();
 
   // Set of assets that have open positions
   const openAssets = useMemo(
@@ -83,11 +85,15 @@ export default function SignalsPage() {
       capitalAllocated: capitalForTrade,
       openedAt: new Date().toISOString(),
     });
+    toast("success", `Opened ${signal.direction} ${signal.asset} at $${livePrice.toLocaleString()}`);
   }
 
   function handleClose(asset: string) {
     const posId = positionByAsset[asset];
-    if (posId) closePosition(posId);
+    if (posId) {
+      closePosition(posId);
+      toast("info", `Closed ${asset} position`);
+    }
   }
 
   return (

@@ -6,6 +6,7 @@
 
 import { useState } from "react";
 import { AssetChart } from "@/components/chart/asset-chart";
+import { TimeframeSlider, TIMEFRAMES } from "@/components/dashboard/timeframe-slider";
 import { RegimeDisplay } from "@/components/dashboard/regime-display";
 import {
   QualityScoreCard,
@@ -48,6 +49,7 @@ export default function DashboardPage() {
     usePortfolio();
   const { prices } = usePrices(5000);
   const [selectedAsset, setSelectedAsset] = useState(0);
+  const [timeframeIdx, setTimeframeIdx] = useState(4); // default: 4H Combined
 
   // WebSocket connection to backend stream for the selected asset
   const asset = CHART_ASSETS[selectedAsset];
@@ -79,6 +81,13 @@ export default function DashboardPage() {
           <QualityScoreCard metrics={metrics} />
         </div>
 
+        {/* USP: Timeframe Slider */}
+        <Card className="bg-card/50 border-border/50">
+          <CardContent className="pt-5 pb-4">
+            <TimeframeSlider value={timeframeIdx} onChange={setTimeframeIdx} />
+          </CardContent>
+        </Card>
+
         {/* Multi-Asset Chart */}
         <Card className="bg-card/50 border-border/50">
           <CardHeader className="pb-2">
@@ -102,6 +111,10 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className="flex items-center gap-3">
+                {/* Timeframe badge */}
+                <Badge variant="outline" className="text-[10px]">
+                  {TIMEFRAMES[timeframeIdx].label} / {TIMEFRAMES[timeframeIdx].strategyLabel}
+                </Badge>
                 {/* WebSocket Status */}
                 <div className="flex items-center gap-1.5">
                   <Zap
@@ -121,9 +134,6 @@ export default function DashboardPage() {
                       : "WS Offline"}
                   </span>
                 </div>
-                <span className="text-xs font-normal">
-                  90d synthetic + signals
-                </span>
               </div>
             </CardTitle>
           </CardHeader>

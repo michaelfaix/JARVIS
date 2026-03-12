@@ -36,16 +36,21 @@ interface SidebarProps {
   collapsed: boolean;
   onToggle: () => void;
   connected: boolean;
+  mobile?: boolean;
+  mobileOpen?: boolean;
 }
 
-export function Sidebar({ collapsed, onToggle, connected }: SidebarProps) {
+export function Sidebar({ collapsed, onToggle, connected, mobile, mobileOpen }: SidebarProps) {
   const pathname = usePathname();
+
+  // On mobile: hidden by default, slides in when open
+  if (mobile && !mobileOpen) return null;
 
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-border/50 bg-card/80 transition-all duration-200",
-        collapsed ? "w-16" : "w-60"
+        "fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-border/50 bg-card/95 backdrop-blur-md transition-all duration-200",
+        mobile ? "w-60" : collapsed ? "w-16" : "w-60"
       )}
     >
       {/* Logo */}

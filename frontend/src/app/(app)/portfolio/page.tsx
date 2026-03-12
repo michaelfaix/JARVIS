@@ -22,6 +22,7 @@ import { usePortfolio } from "@/hooks/use-portfolio";
 import { useSystemStatus } from "@/hooks/use-jarvis";
 import { usePrices } from "@/hooks/use-prices";
 import { inferRegime, REGIME_COLORS, type RegimeState } from "@/lib/types";
+import { useToast } from "@/components/ui/toast";
 import {
   TrendingUp,
   TrendingDown,
@@ -50,6 +51,7 @@ export default function PortfolioPage() {
   const { status } = useSystemStatus(5000);
   const regime: RegimeState = status ? inferRegime(status.modus) : "RISK_ON";
   const { prices, binanceConnected } = usePrices(5000);
+  const { toast } = useToast();
 
   // Update position prices whenever live prices change
   useEffect(() => {
@@ -287,7 +289,10 @@ export default function PortfolioPage() {
                       variant="ghost"
                       size="sm"
                       className="text-xs text-muted-foreground h-7"
-                      onClick={() => resetPortfolio(state.totalCapital)}
+                      onClick={() => {
+                        resetPortfolio(state.totalCapital);
+                        toast("warning", "All positions closed");
+                      }}
                     >
                       Close All
                     </Button>
@@ -361,7 +366,10 @@ export default function PortfolioPage() {
                             variant="ghost"
                             size="sm"
                             className="h-7 w-7 p-0 text-muted-foreground hover:text-red-400"
-                            onClick={() => closePosition(pos.id)}
+                            onClick={() => {
+                              closePosition(pos.id);
+                              toast("info", `Closed ${pos.asset} position`);
+                            }}
                           >
                             <X className="h-3 w-3" />
                           </Button>
