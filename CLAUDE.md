@@ -490,20 +490,65 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 
 ---
 
+## ✅ ABGESCHLOSSEN: MVP Launch-Readiness (Legal + Error Handling + PWA + SEO)
+
+### Erstellt:
+- **Rechtliche Pflichtseiten** (DSGVO-konform):
+  - `/legal/disclaimer` — Kein Anlageberater, Paper Trading = Simulation, Risikohinweis
+  - `/legal/privacy` — DSGVO Datenschutzerklärung (Art. 6, 15-21), Supabase EU, Rechte
+  - `/legal/terms` — AGB mit Tiers, Haftung, Kündigung, deutsches Recht
+  - `/legal/imprint` — Impressum nach §5 TMG
+  - Route Group `(legal)/` mit eigenem Layout (Nav + Legal-Links)
+  - `/legal` als Public Path in Middleware (kein Login nötig)
+  - Footer der Landing Page mit Links zu allen Legal-Seiten
+- **Error Boundary** (`(app)/error.tsx`): Fängt Crashes in der App ab, zeigt "Try Again"-Button
+- **Custom 404** (`not-found.tsx`): Branded 404-Seite mit Links zu Dashboard + Landing
+- **Loading Skeleton** (`(app)/loading.tsx`): Animierte Platzhalter während Seitenlade
+- **PWA Manifest** (`public/manifest.json`): Standalone-App, Theme-Color, App-Name
+- **SEO + Meta** (`layout.tsx`):
+  - Open Graph Tags (Title, Description, Site Name)
+  - Twitter Card Tags
+  - Apple Web App Meta (standalone capable)
+  - Viewport mit Theme-Color
+  - Dynamische Title-Templates (`%s | JARVIS Trader`)
+- Build: 0 Errors, **17 Routes** (13 App + 4 Legal + 2 API) + Middleware | Backend: 8897 Tests grün
+
+### 🏁 MVP STATUS: LAUNCH-READY
+
+| Phase | Status |
+|-------|--------|
+| Phase 0: Landing Page + Waitlist | ✅ |
+| Phase 1: JARVIS API Connection | ✅ |
+| Phase 2: Auth (Supabase) | ✅ |
+| Phase 3: Charts + Signals + Radar | ✅ |
+| Phase 4: Paper Trading + Dashboard | ✅ |
+| Tier System + Feature Gating | ✅ |
+| DB Persistence (Supabase) | ✅ |
+| Legal Pages (DSGVO) | ✅ |
+| Error Handling + 404 | ✅ |
+| PWA + SEO | ✅ |
+| **Stripe Payments** | ⏭️ Übersprungen |
+| **Deployment** | ⏭️ Übersprungen |
+
+---
+
 ## 🔜 NÄCHSTER SCHRITT
 
 ### Sofort (ohne Code):
 1. Domain: **jarvis-trader.app** registrieren (~€15)
 2. **Railway** Account: railway.app (kostenlos)
 3. **Anthropic API Credits** aufladen für AI Chat
+4. PWA Icons: `icon-192.png` + `icon-512.png` in `public/` ablegen
 
-### Nächste Code-Features:
+### Nächste Code-Features (Post-MVP):
 1. Deployment auf Railway (Frontend + Backend)
-2. Binance WebSocket Live-Stream für Charts (statt REST Polling)
-3. Notification System (Preis-Alerts, Signal-Alerts)
-4. PWA + Mobile (Capacitor)
+2. Stripe Integration (Subscriptions, Checkout)
+3. Binance WebSocket Live-Stream für Charts (statt REST Polling)
+4. Notification System (Preis-Alerts, Signal-Alerts)
+5. Capacitor.js (PWA → App Store)
+6. Community Features (Leaderboards, v0.2)
 
 ---
 
-*CLAUDE.md — Version 8.1.0 | März 2026*
+*CLAUDE.md — Version 8.2.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*

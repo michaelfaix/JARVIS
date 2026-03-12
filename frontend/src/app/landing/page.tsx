@@ -536,8 +536,14 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="mt-8 border-t border-border/30 pt-6 text-center">
-            <p className="text-xs text-muted-foreground">
+          <div className="mt-8 border-t border-border/30 pt-6">
+            <div className="flex flex-wrap items-center justify-center gap-4 text-[10px] text-muted-foreground">
+              <Link href="/legal/terms" className="hover:text-white transition-colors">Terms</Link>
+              <Link href="/legal/privacy" className="hover:text-white transition-colors">Privacy</Link>
+              <Link href="/legal/disclaimer" className="hover:text-white transition-colors">Disclaimer</Link>
+              <Link href="/legal/imprint" className="hover:text-white transition-colors">Imprint</Link>
+            </div>
+            <p className="mt-3 text-center text-xs text-muted-foreground">
               &copy; {new Date().getFullYear()} JARVIS Trader. All rights
               reserved. Not financial advice. Paper trading is a simulation.
             </p>
