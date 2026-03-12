@@ -66,6 +66,21 @@ export async function POST(req: NextRequest) {
     });
 
     if (!apiResponse.ok) {
+      const errData = await apiResponse.json().catch(() => null);
+      const errMsg = errData?.error?.message ?? `API error ${apiResponse.status}`;
+      console.error("[chat/route] Anthropic API error:", errMsg);
+
+      // Show real error to user instead of silently falling back
+      if (apiResponse.status === 401) {
+        return NextResponse.json({
+          response: `## API Key Error\n\nThe Anthropic API key is invalid. Please check \`ANTHROPIC_API_KEY\` in \`.env.local\`.\n\n---\n*Falling back to offline mode.*\n\n${generateOfflineResponse(messages[messages.length - 1].content)}`,
+        });
+      }
+      if (errMsg.includes("credit balance")) {
+        return NextResponse.json({
+          response: `## API Credit Error\n\nYour Anthropic account has insufficient credits. Go to [console.anthropic.com](https://console.anthropic.com) → **Plans & Billing** to add credits.\n\n---\n*Falling back to offline mode.*\n\n${generateOfflineResponse(messages[messages.length - 1].content)}`,
+        });
+      }
       return NextResponse.json({
         response: generateOfflineResponse(messages[messages.length - 1].content),
       });

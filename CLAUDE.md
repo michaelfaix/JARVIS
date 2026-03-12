@@ -362,6 +362,23 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 
 ---
 
+## ✅ ABGESCHLOSSEN: Landing Page + Waitlist (Phase 0)
+
+### Erstellt:
+- **Landing Page** (`/landing`): Öffentliche Marketing-Seite ohne Sidebar
+  - Hero Section mit Gradient-Background, Tagline "Trade Smarter with JARVIS", CTAs (Join Waitlist + Try Demo)
+  - Social Proof Stats (8,890+ Tests, 100% FAS Compliance, 0.76ms P95, 96%+ Coverage)
+  - 6 Feature Highlights mit Icons (AI Intelligence, Signals, Strategy Lab, Risk Guardian, Radar, Paper Trading)
+  - USP Banner: Unique Timeframe Slider Feature
+  - Pricing Section: 3 Tiers (Free €0 / Pro €29 / Enterprise €199) mit Feature-Vergleich
+  - Waitlist Formular: Email-Eingabe → localStorage, Bestätigung mit Counter
+  - Professioneller Footer mit Navigation + Social Icons
+  - Fixed Navbar mit Glassmorphism-Effekt + "Open App" Button
+- **AI Chat Error Handling**: Verbesserte Fehlermeldungen (Credit Error, Key Error statt stiller Offline-Fallback)
+- Build: 0 Errors, 10 Routes (9 Pages + 1 API) | Backend: 8897 Tests grün
+
+---
+
 ## 🔜 NÄCHSTER SCHRITT
 
 ### Sofort (ohne Code, diese Woche):
@@ -369,17 +386,9 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 2. **Supabase** Account: supabase.com (kostenlos)
 3. **Railway** Account: railway.app (kostenlos)
 4. **Stripe** Account: stripe.com
-5. **Landing Page** + Warteliste: Framer.com
-
-### Erster Claude Code Befehl für Frontend:
-```
-Erstelle ein neues Next.js 14 Projekt für JARVIS-Trader.
-Verbinde es mit dem JARVIS Backend über jarvis/api/routes.py (FastAPI).
-Implementiere zuerst: Dashboard mit Market Regime Anzeige +
-BTC/USD Chart mit TradingView Lightweight Charts + JARVIS Signal Overlay.
-```
+5. **Anthropic API Credits** aufladen für AI Chat
 
 ---
 
-*CLAUDE.md — Version 7.6.0 | März 2026*
+*CLAUDE.md — Version 7.7.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*
