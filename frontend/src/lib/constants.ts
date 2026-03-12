@@ -19,6 +19,8 @@ export const STRATEGIES = [
   { id: "momentum", label: "Momentum" },
   { id: "mean_reversion", label: "Mean Reversion" },
   { id: "combined", label: "Combined" },
+  { id: "breakout", label: "Breakout" },
+  { id: "trend_following", label: "Trend Following" },
 ] as const;
 
 export type StrategyId = (typeof STRATEGIES)[number]["id"];

@@ -20,14 +20,45 @@ function defaultState(): PortfolioState {
   };
 }
 
+/**
+ * Sanitize loaded state: ensure no position ID appears in both
+ * `positions` and `closedTrades` (closed wins).
+ */
+function sanitize(state: PortfolioState): PortfolioState {
+  if (!state.closedTrades) state.closedTrades = [];
+  if (!state.peakValue) state.peakValue = state.totalCapital;
+
+  const closedIds = new Set(state.closedTrades.map((t) => t.id));
+  const cleanPositions = state.positions.filter((p) => !closedIds.has(p.id));
+
+  if (cleanPositions.length !== state.positions.length) {
+    // Recalculate available capital for removed ghost positions
+    const removedCapital = state.positions
+      .filter((p) => closedIds.has(p.id))
+      .reduce((sum, p) => sum + p.capitalAllocated, 0);
+    return {
+      ...state,
+      positions: cleanPositions,
+      availableCapital: state.availableCapital + removedCapital,
+    };
+  }
+
+  return state;
+}
+
 export function usePortfolio() {
   const [state, setState] = useState<PortfolioState>(defaultState);
   const { user } = useAuth();
   const supabase = createClient();
   const syncTimer = useRef<ReturnType<typeof setTimeout>>();
+  // Track whether this is the initial load (skip persistence on mount)
+  const initialLoadDone = useRef(false);
 
-  // Persist to localStorage immediately, debounce Supabase writes
-  const persist = useCallback(
+  // ---------------------------------------------------------------------------
+  // Persist: write state to localStorage + Supabase
+  // Called from a useEffect (NOT inside setState updaters).
+  // ---------------------------------------------------------------------------
+  const persistToStorage = useCallback(
     (next: PortfolioState, immediate?: boolean) => {
       saveJSON(KEY, next);
       if (!user) return;
@@ -47,23 +78,40 @@ export function usePortfolio() {
           .then(() => {}); // fire-and-forget
       };
 
+      // Always clear any pending debounced sync to prevent stale overwrites
+      clearTimeout(syncTimer.current);
+
       if (immediate) {
         doSync();
       } else {
-        clearTimeout(syncTimer.current);
         syncTimer.current = setTimeout(doSync, 10_000);
       }
     },
     [user, supabase]
   );
 
+  // ---------------------------------------------------------------------------
+  // Auto-persist: whenever state changes (after initial load), write to storage.
+  // Debounce price-only updates; critical mutations (open/close) set a flag.
+  // ---------------------------------------------------------------------------
+  const needsImmediateSync = useRef(false);
+
+  useEffect(() => {
+    if (!initialLoadDone.current) return; // skip the mount-triggered render
+    persistToStorage(state, needsImmediateSync.current);
+    needsImmediateSync.current = false;
+  }, [state, persistToStorage]);
+
+  // ---------------------------------------------------------------------------
   // Load on mount: try Supabase first, then localStorage
+  // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!user) {
-      const loaded = loadJSON(KEY, defaultState());
-      if (!loaded.closedTrades) loaded.closedTrades = [];
-      if (!loaded.peakValue) loaded.peakValue = loaded.totalCapital;
+      const loaded = sanitize(loadJSON(KEY, defaultState()));
       setState(loaded);
+      // Save sanitized version back
+      saveJSON(KEY, loaded);
+      initialLoadDone.current = true;
       return;
     }
 
@@ -82,7 +130,7 @@ export function usePortfolio() {
         .limit(100);
 
       if (portfolio) {
-        const loaded: PortfolioState = {
+        const loaded = sanitize({
           totalCapital: Number(portfolio.total_capital),
           availableCapital: Number(portfolio.available_capital),
           realizedPnl: Number(portfolio.realized_pnl),
@@ -101,23 +149,27 @@ export function usePortfolio() {
             pnl: Number(t.pnl),
             pnlPercent: Number(t.pnl_percent),
           })),
-        };
+        });
         setState(loaded);
         saveJSON(KEY, loaded);
       } else {
         // Migrate localStorage data to Supabase on first login
-        const local = loadJSON(KEY, defaultState());
-        if (!local.closedTrades) local.closedTrades = [];
-        if (!local.peakValue) local.peakValue = local.totalCapital;
+        const local = sanitize(loadJSON(KEY, defaultState()));
         setState(local);
-        persist(local, true);
+        persistToStorage(local, true);
       }
+      initialLoadDone.current = true;
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
+  // ---------------------------------------------------------------------------
+  // Actions
+  // ---------------------------------------------------------------------------
+
   const openPosition = useCallback(
     (pos: Omit<Position, "id" | "pnl" | "pnlPercent" | "currentPrice">) => {
+      needsImmediateSync.current = true;
       setState((prev) => {
         if (prev.availableCapital < pos.capitalAllocated) return prev;
         const newPos: Position = {
@@ -127,20 +179,19 @@ export function usePortfolio() {
           pnl: 0,
           pnlPercent: 0,
         };
-        const next: PortfolioState = {
+        return {
           ...prev,
           availableCapital: prev.availableCapital - pos.capitalAllocated,
           positions: [...prev.positions, newPos],
         };
-        persist(next, true);
-        return next;
       });
     },
-    [persist]
+    []
   );
 
   const closePosition = useCallback(
     (posId: string) => {
+      needsImmediateSync.current = true;
       setState((prev) => {
         const pos = prev.positions.find((p) => p.id === posId);
         if (!pos) return prev;
@@ -165,7 +216,7 @@ export function usePortfolio() {
           pnlPercent,
         };
 
-        // Write closed trade to Supabase
+        // Write closed trade to Supabase (fire-and-forget)
         if (user) {
           supabase
             .from("trades")
@@ -186,25 +237,27 @@ export function usePortfolio() {
             .then(() => {});
         }
 
-        const next: PortfolioState = {
+        return {
           ...prev,
           availableCapital: prev.availableCapital + pos.capitalAllocated + pnl,
           positions: prev.positions.filter((p) => p.id !== posId),
           realizedPnl: prev.realizedPnl + pnl,
           closedTrades: [closedTrade, ...prev.closedTrades],
         };
-        persist(next, true);
-        return next;
       });
     },
-    [persist, user, supabase]
+    [user, supabase]
   );
 
   const updatePrices = useCallback(
     (prices: Record<string, number>) => {
       setState((prev) => {
+        if (prev.positions.length === 0) return prev;
+        let changed = false;
         const positions = prev.positions.map((pos) => {
           const currentPrice = prices[pos.asset] ?? pos.currentPrice;
+          if (currentPrice === pos.currentPrice) return pos;
+          changed = true;
           const rawPnl =
             pos.direction === "LONG"
               ? (currentPrice - pos.entryPrice) * pos.size
@@ -219,20 +272,20 @@ export function usePortfolio() {
                 : 0,
           };
         });
+        if (!changed) return prev;
         const currentValue =
           prev.availableCapital +
           positions.reduce((s, p) => s + p.capitalAllocated + p.pnl, 0);
         const peakValue = Math.max(prev.peakValue, currentValue);
-        const next = { ...prev, positions, peakValue };
-        persist(next); // debounced — price updates are frequent
-        return next;
+        return { ...prev, positions, peakValue };
       });
     },
-    [persist]
+    []
   );
 
   const resetPortfolio = useCallback(
     (capital?: number) => {
+      needsImmediateSync.current = true;
       const next = defaultState();
       if (capital) {
         next.totalCapital = capital;
@@ -240,18 +293,18 @@ export function usePortfolio() {
         next.peakValue = capital;
       }
       setState(next);
-      persist(next, true);
     },
-    [persist]
+    []
   );
 
+  // ---------------------------------------------------------------------------
   // Computed values
+  // ---------------------------------------------------------------------------
   const unrealizedPnl = state.positions.reduce((sum, p) => sum + p.pnl, 0);
   const totalValue =
     state.availableCapital +
     state.positions.reduce((sum, p) => sum + p.capitalAllocated + p.pnl, 0);
 
-  // Trade stats
   const wins = state.closedTrades.filter((t) => t.pnl > 0);
   const losses = state.closedTrades.filter((t) => t.pnl <= 0);
   const winRate =
@@ -270,7 +323,6 @@ export function usePortfolio() {
       : 0;
   const maxDrawdownPnl = state.peakValue - totalValue;
 
-  // Exposure per asset (as fraction of totalValue)
   const exposureByAsset: Record<string, number> = {};
   for (const pos of state.positions) {
     const val = pos.capitalAllocated + pos.pnl;

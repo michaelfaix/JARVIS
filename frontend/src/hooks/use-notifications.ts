@@ -51,12 +51,14 @@ interface NotificationContextValue {
   markAllRead: () => void;
   clearAll: () => void;
   unreadCount: number;
+  lastPushedAt: number;
 }
 
 const NotificationContext = createContext<NotificationContextValue | null>(null);
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<AppNotification[]>(load);
+  const [lastPushedAt, setLastPushedAt] = useState(0);
 
   const push = useCallback(
     (type: NotificationType, title: string, message: string) => {
@@ -73,6 +75,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         save(next);
         return next;
       });
+      setLastPushedAt(Date.now());
     },
     []
   );
@@ -104,7 +107,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   return React.createElement(
     NotificationContext.Provider,
-    { value: { notifications, push, markRead, markAllRead, clearAll, unreadCount } },
+    { value: { notifications, push, markRead, markAllRead, clearAll, unreadCount, lastPushedAt } },
     children
   );
 }
@@ -163,7 +166,7 @@ export function useNotifications() {
     }, []);
 
     const unreadCount = notifications.filter((n) => !n.read).length;
-    return { notifications, push, markRead, markAllRead, clearAll, unreadCount };
+    return { notifications, push, markRead, markAllRead, clearAll, unreadCount, lastPushedAt: 0 };
   }
   return ctx;
 }

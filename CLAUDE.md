@@ -824,6 +824,44 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 
 ---
 
+## ✅ ABGESCHLOSSEN: Chart Drawing Tools + Advanced Backtesting + Notification Toasts
+
+### Erstellt:
+- **Chart Drawing Tools** (`hooks/use-chart-drawings.ts` + `components/chart/drawing-toolbar.tsx` + `asset-chart.tsx`):
+  - 4 Drawing Types: Trendline, Horizontal Line, Fibonacci Retracement, Rectangle
+  - `use-chart-drawings` Hook: CRUD operations, localStorage persistence per symbol
+  - Compact horizontal toolbar with tool buttons, active highlight, undo/clear, drawing count badge
+  - Chart click-to-place: 1 click for horizontal lines, 2 clicks for trendline/fibonacci/rectangle
+  - Drawings rendered as LineSeries overlays in dedicated Effect 5
+  - Click handler in Effect 6, isolated from existing chart effects
+  - 5 color presets for visual variety
+- **Advanced Backtesting with Walk-Forward Validation** (`lib/backtest-engine.ts` + `strategy-lab/page.tsx`):
+  - 5 Strategies: Momentum, Mean Reversion, Combined, Breakout, Trend Following
+  - `runBacktest(config)` — Deterministic simulation with seeded random (reproducible results)
+  - `runWalkForward(config, windows)` — Walk-Forward Validation with 70/30 train/test split
+  - Extended metrics: totalReturn, winRate, sharpeRatio, maxDrawdown, profitFactor, calmarRatio, avgHoldingPeriod
+  - Strategy Lab: 5-strategy selector, period buttons (30/60/90/180/365d), asset multi-select, risk sliders
+  - Tabbed results: Stats Grid, SVG Equity Curve, Trade Log, WFV per-window analysis cards
+  - `constants.ts` updated with "breakout" and "trend_following" strategies
+- **Real-time Notification Toasts** (`components/ui/notification-toast.tsx` + `hooks/use-notifications.ts`):
+  - Push-style toast notifications separate from bell dropdown
+  - Fixed top-right position (z-40), max 3 visible, auto-dismiss after 5s
+  - Type-colored borders/dots matching existing notification system (signal=blue, alert=yellow, achievement=purple, trade=green, system=gray)
+  - Smart deduplication: tracks shown IDs via ref, ignores pre-mount notifications
+  - Slide-in animation, manual dismiss with X button
+  - `lastPushedAt` timestamp added to NotificationContext for efficient new-notification detection
+  - `NotificationToastContainer` integrated in app layout
+- **Portfolio Persistence Bug Fix** (`hooks/use-portfolio.ts`):
+  - Fixed: Closed positions reappearing after page refresh
+  - Root cause: `persist()` called inside setState updaters (React anti-pattern) + debounced timer race condition
+  - Added `sanitize()` function: cross-checks positions against closedTrades on load
+  - Moved persistence to dedicated useEffect with `initialLoadDone` ref
+  - `needsImmediateSync` ref flag for critical mutations vs debounced price updates
+  - Always clears pending timer before both immediate and debounced syncs
+- Build: 0 Errors, **30 Routes** + Middleware
+
+---
+
 ## 🔜 NÄCHSTER SCHRITT
 
 ### Sofort (ohne Code):
@@ -837,11 +875,9 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 2. Capacitor.js (PWA → App Store)
 3. Leaderboard mit Supabase (echte User-Daten)
 4. Real-time Notifications via WebSocket (statt Polling)
-5. Drawing Tools für Charts (Trendlinien, Fibonacci, etc.)
-6. Advanced Backtesting mit Walk-Forward Validation
-7. Broker-Integration (Read-Only Portfolio Sync)
+5. Broker-Integration (Read-Only Portfolio Sync)
 
 ---
 
-*CLAUDE.md — Version 9.5.0 | März 2026*
+*CLAUDE.md — Version 10.0.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*

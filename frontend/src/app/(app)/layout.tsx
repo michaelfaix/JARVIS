@@ -11,6 +11,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { Footer } from "@/components/layout/footer";
 import { ToastProvider } from "@/components/ui/toast";
 import { NotificationProvider } from "@/hooks/use-notifications";
+import { NotificationToastContainer } from "@/components/ui/notification-toast";
 import { LocaleProvider } from "@/hooks/use-locale";
 import { useBackendHealth } from "@/hooks/use-jarvis";
 import { useSidebar } from "@/hooks/use-sidebar";
@@ -59,6 +60,7 @@ export default function AppLayout({
     <LocaleProvider>
     <NotificationProvider>
     <ToastProvider>
+      <NotificationToastContainer />
       <div className="min-h-screen bg-background overflow-x-hidden">
         {/* Mobile overlay backdrop */}
         {isMobile && mobileOpen && (

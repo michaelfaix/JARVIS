@@ -17,6 +17,8 @@ import {
   DEFAULT_INDICATORS,
   type IndicatorConfig,
 } from "@/components/chart/indicator-panel";
+import { DrawingToolbar } from "@/components/chart/drawing-toolbar";
+import { useChartDrawings } from "@/hooks/use-chart-drawings";
 import { usePrices } from "@/hooks/use-prices";
 import { useSystemStatus } from "@/hooks/use-jarvis";
 import { useSignals } from "@/hooks/use-signals";
@@ -50,6 +52,15 @@ export default function ChartsPage() {
   const [indicators, setIndicators] = useState<IndicatorConfig>({
     ...DEFAULT_INDICATORS,
   });
+
+  const {
+    drawings,
+    activeTool,
+    setActiveTool,
+    addDrawing,
+    undoLast,
+    clearAll,
+  } = useChartDrawings(DEFAULT_ASSETS[selectedAsset].symbol);
 
   // Live price from chart WebSocket (updates ~1/s)
   const [wsPrice, setWsPrice] = useState<number | null>(null);
@@ -188,6 +199,15 @@ export default function ChartsPage() {
           </Badge>
         </div>
 
+        {/* Drawing Toolbar */}
+        <DrawingToolbar
+          activeTool={activeTool}
+          onToolChange={setActiveTool}
+          onUndo={undoLast}
+          onClearAll={clearAll}
+          drawingCount={drawings.length}
+        />
+
         {/* Main Chart — key forces full remount on asset/interval change */}
         <Card className="bg-card/50 border-border/50">
           <CardContent className="pt-4">
@@ -202,6 +222,9 @@ export default function ChartsPage() {
               interval={chartInterval}
               onPriceChange={handlePriceChange}
               indicators={indicators}
+              drawings={drawings}
+              activeTool={activeTool}
+              onDrawingComplete={addDrawing}
             />
           </CardContent>
         </Card>

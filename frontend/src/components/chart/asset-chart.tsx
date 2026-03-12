@@ -8,7 +8,7 @@
 
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createChart,
   type IChartApi,
@@ -30,6 +30,8 @@ import {
   calcRSI,
   calcMACD,
 } from "@/lib/indicators";
+import type { ChartDrawing, DrawingTool, DrawingPoint } from "@/hooks/use-chart-drawings";
+import { DRAWING_COLORS } from "@/hooks/use-chart-drawings";
 
 // ---------------------------------------------------------------------------
 // Synthetic data generation — for non-crypto assets
@@ -272,6 +274,9 @@ interface AssetChartProps {
   interval?: string;
   onPriceChange?: (price: number) => void;
   indicators?: IndicatorConfig;
+  drawings?: ChartDrawing[];
+  activeTool?: DrawingTool;
+  onDrawingComplete?: (drawing: ChartDrawing) => void;
 }
 
 export function AssetChart({
@@ -284,6 +289,9 @@ export function AssetChart({
   interval = "1d",
   onPriceChange,
   indicators,
+  drawings,
+  activeTool = "none",
+  onDrawingComplete,
 }: AssetChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -297,9 +305,21 @@ export function AssetChart({
   const indicatorSeriesRef = useRef<ISeriesApi<"Line">[]>([]);
   const indicatorHistogramRef = useRef<ISeriesApi<"Histogram">[]>([]);
 
+  // Drawing series refs — kept separate from indicator series
+  const drawingSeriesRef = useRef<ISeriesApi<"Line">[]>([]);
+
+  // Pending drawing click state (first click of a two-click drawing)
+  const pendingPointRef = useRef<DrawingPoint | null>(null);
+
   // Stable ref for the onPriceChange callback
   const onPriceChangeRef = useRef(onPriceChange);
   onPriceChangeRef.current = onPriceChange;
+
+  // Stable ref for drawing callbacks
+  const onDrawingCompleteRef = useRef(onDrawingComplete);
+  onDrawingCompleteRef.current = onDrawingComplete;
+  const activeToolRef = useRef(activeTool);
+  activeToolRef.current = activeTool;
 
   // Keep track of previous close for % change
   const prevCloseRef = useRef<number>(0);
@@ -380,6 +400,7 @@ export function AssetChart({
       volumeSeriesRef.current = null;
       indicatorSeriesRef.current = [];
       indicatorHistogramRef.current = [];
+      drawingSeriesRef.current = [];
     };
   }, [symbol, interval, height]);
 
@@ -748,6 +769,173 @@ export function AssetChart({
     // Only restart when initial data loads (lastPrice changes from 0 to real value)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isCrypto, interval, lastPrice > 0, basePrice]);
+
+  // Effect 5: Render drawing overlays on the chart
+  useEffect(() => {
+    if (!chartRef.current) return;
+    const chart = chartRef.current;
+
+    // Remove previous drawing series
+    for (const s of drawingSeriesRef.current) {
+      try { chart.removeSeries(s); } catch { /* already removed */ }
+    }
+    drawingSeriesRef.current = [];
+
+    if (!drawings || drawings.length === 0) return;
+
+    for (const drawing of drawings) {
+      if (drawing.type === "horizontal" && drawing.points.length >= 1) {
+        // Horizontal line: flat line across the entire visible range
+        const price = drawing.points[0].price;
+        const series = chart.addLineSeries({
+          color: drawing.color,
+          lineWidth: 1,
+          lineStyle: LineStyle.Solid,
+          priceScaleId: "right",
+          lastValueVisible: true,
+          priceLineVisible: false,
+        });
+        // Use the first and last candle times to span the chart
+        const timeScale = chart.timeScale();
+        const logicalRange = timeScale.getVisibleLogicalRange();
+        // Use drawing point times to anchor, but extend across chart with two far-apart points
+        const t = drawing.points[0].time;
+        // Place line from far past to far future
+        const tStart = t - 86400 * 365;
+        const tEnd = t + 86400 * 365;
+        series.setData([
+          { time: tStart as Time, value: price },
+          { time: tEnd as Time, value: price },
+        ]);
+        drawingSeriesRef.current.push(series);
+      } else if (drawing.type === "trendline" && drawing.points.length >= 2) {
+        // Trendline: line between two price/time points
+        const series = chart.addLineSeries({
+          color: drawing.color,
+          lineWidth: 1,
+          lineStyle: LineStyle.Solid,
+          priceScaleId: "right",
+          lastValueVisible: false,
+          priceLineVisible: false,
+        });
+        series.setData([
+          { time: drawing.points[0].time as Time, value: drawing.points[0].price },
+          { time: drawing.points[1].time as Time, value: drawing.points[1].price },
+        ]);
+        drawingSeriesRef.current.push(series);
+      } else if (drawing.type === "fibonacci" && drawing.points.length >= 2) {
+        // Fibonacci retracement: horizontal lines at key levels between two prices
+        const p1 = drawing.points[0].price;
+        const p2 = drawing.points[1].price;
+        const high = Math.max(p1, p2);
+        const low = Math.min(p1, p2);
+        const diff = high - low;
+
+        const fibLevels = [0, 0.236, 0.382, 0.5, 0.618, 1.0];
+        const t1 = Math.min(drawing.points[0].time, drawing.points[1].time);
+        const t2 = Math.max(drawing.points[0].time, drawing.points[1].time);
+
+        for (const level of fibLevels) {
+          const price = high - diff * level;
+          const series = chart.addLineSeries({
+            color: drawing.color,
+            lineWidth: 1,
+            lineStyle: LineStyle.Dashed,
+            priceScaleId: "right",
+            lastValueVisible: false,
+            priceLineVisible: false,
+          });
+          series.setData([
+            { time: (t1 - 86400 * 30) as Time, value: price },
+            { time: (t2 + 86400 * 30) as Time, value: price },
+          ]);
+          drawingSeriesRef.current.push(series);
+        }
+      } else if (drawing.type === "rectangle" && drawing.points.length >= 2) {
+        // Rectangle: two horizontal lines for top and bottom bounds
+        const p1 = drawing.points[0].price;
+        const p2 = drawing.points[1].price;
+        const t1 = Math.min(drawing.points[0].time, drawing.points[1].time);
+        const t2 = Math.max(drawing.points[0].time, drawing.points[1].time);
+
+        for (const price of [p1, p2]) {
+          const series = chart.addLineSeries({
+            color: drawing.color,
+            lineWidth: 1,
+            lineStyle: LineStyle.Solid,
+            priceScaleId: "right",
+            lastValueVisible: false,
+            priceLineVisible: false,
+          });
+          series.setData([
+            { time: t1 as Time, value: price },
+            { time: t2 as Time, value: price },
+          ]);
+          drawingSeriesRef.current.push(series);
+        }
+      }
+    }
+  }, [drawings]);
+
+  // Effect 6: Subscribe to chart clicks for placing drawings
+  useEffect(() => {
+    if (!chartRef.current) return;
+    const chart = chartRef.current;
+
+    const handleClick = (param: { time?: Time; point?: { x: number; y: number } }) => {
+      const tool = activeToolRef.current;
+      if (tool === "none" || !param.time || !param.point) return;
+      if (!candleSeriesRef.current) return;
+
+      // Get the price coordinate from the click Y position
+      const price = candleSeriesRef.current.coordinateToPrice(param.point.y);
+      if (price === null || price === undefined) return;
+
+      const clickedTime = param.time as number;
+      const point: DrawingPoint = { price: price as number, time: clickedTime };
+
+      if (tool === "horizontal") {
+        // Horizontal line only needs one click
+        const drawing: ChartDrawing = {
+          id: `drawing-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          type: "horizontal",
+          points: [point],
+          color: DRAWING_COLORS.horizontal,
+          style: "solid",
+        };
+        pendingPointRef.current = null;
+        onDrawingCompleteRef.current?.(drawing);
+      } else {
+        // Two-click tools: trendline, fibonacci, rectangle
+        if (!pendingPointRef.current) {
+          // First click — store the start point
+          pendingPointRef.current = point;
+        } else {
+          // Second click — complete the drawing
+          const drawing: ChartDrawing = {
+            id: `drawing-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            type: tool,
+            points: [pendingPointRef.current, point],
+            color: DRAWING_COLORS[tool as Exclude<DrawingTool, "none">],
+            style: tool === "fibonacci" ? "dashed" : "solid",
+          };
+          pendingPointRef.current = null;
+          onDrawingCompleteRef.current?.(drawing);
+        }
+      }
+    };
+
+    chart.subscribeClick(handleClick);
+
+    return () => {
+      chart.unsubscribeClick(handleClick);
+    };
+  }, [symbol, interval, height]); // Re-subscribe when chart recreates
+
+  // Reset pending point when active tool changes
+  useEffect(() => {
+    pendingPointRef.current = null;
+  }, [activeTool]);
 
   const displayPrice = livePrice ?? lastPrice;
   const isPositive = priceChange >= 0;
