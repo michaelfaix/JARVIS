@@ -193,13 +193,13 @@ export default function GoalTracker({
     // No valid stored goals — create defaults
     const defaults = createDefaultGoals(startingCapital);
     setGoals(defaults);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(defaults));
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(defaults)); } catch { /* ignore */ }
   }, [startingCapital]);
 
   // Persist goals on change
   const persist = useCallback((updated: PortfolioGoal[]) => {
     setGoals(updated);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
   }, []);
 
   // Add a new goal

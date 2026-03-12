@@ -87,7 +87,11 @@ export function Watchlist({ prices, signals = [], priceHistory }: WatchlistProps
   }, [prices, watchlist]);
 
   const persist = useCallback((list: string[]) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    } catch {
+      // storage full or unavailable
+    }
   }, []);
 
   const addAsset = useCallback(

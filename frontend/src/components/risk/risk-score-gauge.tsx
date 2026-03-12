@@ -231,7 +231,7 @@ export function RiskScoreGauge({
           <div className="rounded-lg border border-border/50 bg-card/50 p-3">
             <p className="text-xs text-muted-foreground">Max Exposure</p>
             <p className={cn("text-lg font-semibold", getExposureColor(maxExposure))}>
-              {maxExposure.toFixed(1)}%
+              {(isFinite(maxExposure) ? maxExposure : 0).toFixed(1)}%
             </p>
           </div>
 
@@ -247,7 +247,7 @@ export function RiskScoreGauge({
           <div className="rounded-lg border border-border/50 bg-card/50 p-3">
             <p className="text-xs text-muted-foreground">Drawdown</p>
             <p className={cn("text-lg font-semibold", getDrawdownColor(drawdown))}>
-              {drawdown.toFixed(1)}%
+              {(isFinite(drawdown) ? drawdown : 0).toFixed(1)}%
             </p>
           </div>
 

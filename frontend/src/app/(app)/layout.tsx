@@ -185,7 +185,7 @@ export default function AppLayout({
         }}
         onAction={(action) => {
           setShowCommandPalette(false);
-          if (action === "shortcuts") setShowShortcuts(true);
+          if (action === "shortcuts" || action === "show-shortcuts") setShowShortcuts(true);
         }}
       />
       <ShortcutsHelp

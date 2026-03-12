@@ -194,12 +194,12 @@ export default function RiskPage() {
 
         {/* Risk Score Gauge */}
         <RiskScoreGauge
-          score={Math.min(100, Math.round(
+          score={Math.min(100, Math.max(0, Math.round(
             (maxSingleExposurePct / MAX_SINGLE_EXPOSURE_PCT) * 25 +
             (drawdown / MAX_DRAWDOWN_PCT) * 25 +
             (state.positions.length / MAX_OPEN_POSITIONS) * 25 +
-            ((100 - availablePct) / (100 - MIN_AVAILABLE_CAPITAL_PCT)) * 25
-          ))}
+            (availablePct < 100 ? ((100 - availablePct) / (100 - MIN_AVAILABLE_CAPITAL_PCT)) * 25 : 0)
+          ) || 0))}
           maxExposure={maxSingleExposurePct}
           openPositions={state.positions.length}
           drawdown={drawdown}
