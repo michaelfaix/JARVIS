@@ -621,6 +621,31 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 
 ---
 
+## ✅ ABGESCHLOSSEN: Notification Center + Market Heatmap
+
+### Erstellt:
+- **Notification Center** (`use-notifications.ts` + `app-header.tsx`):
+  - Zentraler Notification Store mit 5 Typen: signal, alert, achievement, trade, system
+  - AppNotification Interface: id, type, title, message, timestamp, read
+  - Push/markRead/markAllRead/clearAll Aktionen
+  - localStorage-Persistenz (max 50 Notifications)
+  - **Bell Dropdown in Header**: Unread-Count Badge, Notification-Liste, "Read all" + "Clear" Buttons
+  - Farbcodierte Typ-Dots (signal=blau, alert=gelb, achievement=lila, trade=grün, system=grau)
+  - Click-outside-to-close Funktionalität
+  - "Just now" / "5m ago" / "2h ago" / "3d ago" Zeitanzeige
+- **Market Overview / Heatmap** (`/markets`):
+  - Summary Cards: Assets Tracked, Gainers, Losers, Feed Status (WS Live/REST/Synthetic)
+  - **Heatmap Grid**: Farbcodierte Tiles — Grün bei Kursgewinn, Rot bei Kursverlust
+  - Farbintensität proportional zur Änderungsgröße (rgba-basiert)
+  - Signal-Badges (LONG/SHORT) pro Asset im Heatmap-Tile
+  - Preis + %-Änderung + Confidence/Quality Score pro Tile
+  - **Asset Table**: Vollständige Liste aller Assets mit Preis, Änderung, Signal
+  - Nutzt Live-Preise von Binance WebSocket
+- **Sidebar Update**: Neuer Nav-Item "Markets" mit Globe-Icon (12 Nav-Items)
+- Build: 0 Errors, **24 Routes** + Middleware
+
+---
+
 ## 🔜 NÄCHSTER SCHRITT
 
 ### Sofort (ohne Code):
@@ -634,9 +659,10 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 3. Capacitor.js (PWA → App Store)
 4. Social Trading: Top-Trader folgen + kopieren
 5. Leaderboard mit Supabase (echte User-Daten)
-6. Notification Center (zentrale Benachrichtigungen)
+6. Portfolio Comparison / Benchmark (vs SPY, BTC)
+7. Advanced Notification Integration (Signals → Notification Center)
 
 ---
 
-*CLAUDE.md — Version 8.6.0 | März 2026*
+*CLAUDE.md — Version 8.7.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*
