@@ -538,7 +538,6 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 1. Domain: **jarvis-trader.app** registrieren (~€15)
 2. **Railway** Account: railway.app (kostenlos)
 3. **Anthropic API Credits** aufladen für AI Chat
-4. PWA Icons: `icon-192.png` + `icon-512.png` in `public/` ablegen
 
 ### Nächste Code-Features (Post-MVP):
 1. Deployment auf Railway (Frontend + Backend)
@@ -550,5 +549,5 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 
 ---
 
-*CLAUDE.md — Version 8.2.0 | März 2026*
+*CLAUDE.md — Version 8.2.1 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*
