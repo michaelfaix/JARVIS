@@ -532,6 +532,21 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 
 ---
 
+## ✅ ABGESCHLOSSEN: Admin/Owner Enterprise Override + PWA Icons
+
+### Erstellt:
+- **Admin Enterprise Override** (`use-profile.ts`): Owner-Email bekommt immer Enterprise-Tier
+  - `ADMIN_EMAILS` Liste: `mfaix90@gmail.com` → automatisch Enterprise
+  - Client-seitig im Profile-Hook — kein DB-Change nötig
+  - Alle Feature-Gates deaktiviert für Admin (isPro=true, isEnterprise=true)
+- **PWA Icons** (`scripts/generate-icons.mjs`): Programmatisch generierte App-Icons
+  - Sharp-basierter Generator: "J" auf blauem Gradient-Hintergrund
+  - `icon-192.png` + `icon-512.png` in `public/`
+  - Abgerundete Ecken, system-ui Font, professionelles Design
+- Build: 0 Errors | Backend: 8897 Tests grün
+
+---
+
 ## 🔜 NÄCHSTER SCHRITT
 
 ### Sofort (ohne Code):
@@ -549,5 +564,5 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 
 ---
 
-*CLAUDE.md — Version 8.2.1 | März 2026*
+*CLAUDE.md — Version 8.3.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*

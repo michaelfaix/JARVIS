@@ -6,6 +6,9 @@ import { useAuth } from "@/hooks/use-auth";
 
 export type Tier = "free" | "pro" | "enterprise";
 
+// Owner/admin emails that always get enterprise tier
+const ADMIN_EMAILS = ["mfaix90@gmail.com"];
+
 export interface Profile {
   id: string;
   displayName: string;
@@ -25,25 +28,20 @@ export function useProfile() {
       return;
     }
 
+    const isAdmin = ADMIN_EMAILS.includes(user.email ?? "");
+
     supabase
       .from("profiles")
       .select("id, display_name, tier")
       .eq("id", user.id)
       .single()
       .then(({ data }) => {
-        if (data) {
-          setProfile({
-            id: data.id,
-            displayName: data.display_name ?? user.email?.split("@")[0] ?? "User",
-            tier: (data.tier as Tier) ?? "free",
-          });
-        } else {
-          setProfile({
-            id: user.id,
-            displayName: user.email?.split("@")[0] ?? "User",
-            tier: "free",
-          });
-        }
+        const baseTier = (data?.tier as Tier) ?? "free";
+        setProfile({
+          id: data?.id ?? user.id,
+          displayName: data?.display_name ?? user.email?.split("@")[0] ?? "User",
+          tier: isAdmin ? "enterprise" : baseTier,
+        });
         setLoading(false);
       });
   }, [user, supabase]);
