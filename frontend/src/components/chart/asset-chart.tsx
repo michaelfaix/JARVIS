@@ -8,7 +8,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   createChart,
   type IChartApi,
@@ -796,8 +796,6 @@ export function AssetChart({
           priceLineVisible: false,
         });
         // Use the first and last candle times to span the chart
-        const timeScale = chart.timeScale();
-        const logicalRange = timeScale.getVisibleLogicalRange();
         // Use drawing point times to anchor, but extend across chart with two far-apart points
         const t = drawing.points[0].time;
         // Place line from far past to far future

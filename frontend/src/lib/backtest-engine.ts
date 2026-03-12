@@ -613,7 +613,6 @@ export function runWalkForward(
   const windowSize = Math.floor(totalDays / numWindows);
   const trainRatio = 0.7;
   const trainSize = Math.floor(windowSize * trainRatio);
-  const testSize = windowSize - trainSize;
 
   const windows: WFVWindowResult[] = [];
 
@@ -623,14 +622,6 @@ export function runWalkForward(
     const trainEnd = windowStart + trainSize;
     const testStart = trainEnd;
     const testEnd = Math.min(windowStart + windowSize, totalDays);
-
-    // Run backtest on the test window only
-    const windowConfig: BacktestConfig = {
-      ...config,
-      period: testEnd - testStart,
-      // Vary seed by adding window index to strategy name
-      strategy: config.strategy,
-    };
 
     // Use a unique seed per window for deterministic but varied results
     const windowSeed = hashSeed(
