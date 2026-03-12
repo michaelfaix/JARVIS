@@ -46,6 +46,7 @@ import {
   FileText,
 } from "lucide-react";
 import { PerformanceReport } from "@/components/portfolio/performance-report";
+import GoalTracker from "@/components/portfolio/goal-tracker";
 
 export default function PortfolioPage() {
   const {
@@ -733,6 +734,12 @@ export default function PortfolioPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Portfolio Goals */}
+        <GoalTracker
+          currentValue={totalValue}
+          startingCapital={state.totalCapital}
+        />
 
         {/* Trade History */}
         {state.closedTrades.length > 0 && (

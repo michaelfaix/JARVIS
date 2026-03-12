@@ -20,6 +20,7 @@ export type TranslationKey =
   | 'nav_leaderboard'
   | 'nav_settings'
   | 'nav_social_trading'
+  | 'nav_calendar'
   | 'nav_sign_out'
   // Dashboard
   | 'dashboard_market_overview'
@@ -137,6 +138,7 @@ const en: TranslationDictionary = {
   nav_leaderboard: 'Leaderboard',
   nav_settings: 'Settings',
   nav_social_trading: 'Social Trading',
+  nav_calendar: 'Calendar',
   nav_sign_out: 'Sign Out',
   // Dashboard
   dashboard_market_overview: 'Market Overview',
@@ -253,6 +255,7 @@ const de: TranslationDictionary = {
   nav_leaderboard: 'Bestenliste',
   nav_settings: 'Einstellungen',
   nav_social_trading: 'Social Trading',
+  nav_calendar: 'Kalender',
   nav_sign_out: 'Abmelden',
   // Dashboard
   dashboard_market_overview: 'Markt\u00fcbersicht',

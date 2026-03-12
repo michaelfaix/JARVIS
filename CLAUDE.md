@@ -1029,6 +1029,36 @@ Analyse-Ergebnis: 6 P1-Bugs, 5 P2-Issues, 3 P3-Qualitätsthemen identifiziert.
 
 ---
 
+## ✅ ABGESCHLOSSEN: Economic Calendar + Multi-TF Analysis + Portfolio Goals
+
+### Erstellt:
+- **Economic Calendar** (`app/(app)/calendar/page.tsx`):
+  - Neue Seite `/calendar` mit 19 realistischen Wirtschaftsereignissen (Fed, CPI, NFP, GDP, Earnings)
+  - Filter: Impact (High/Medium/Low) + Country (US/EU/UK/JP/CN) mit Flaggen-Emojis
+  - Wochenansicht: Events gruppiert nach Tag ("Today", "Tomorrow", Datum)
+  - Event-Cards: Uhrzeit, Impact-Dot (rot/gelb/grün), Titel, Kategorie-Badge, Previous/Forecast/Actual
+  - Summary Stats: Events This Week, High-Impact Count, Next Event Countdown
+  - Sidebar: Neuer Nav-Item "Calendar" mit CalendarDays-Icon (16 Nav-Items)
+  - i18n: `nav_calendar` Übersetzung (EN: "Calendar", DE: "Kalender")
+- **Multi-Timeframe Signal Analysis** (`components/signals/multi-tf-analysis.tsx`):
+  - Matrix-Ansicht: Signale über alle 7 Timeframes (1m–1W) für ein Asset
+  - Confluence Score: Prozentsatz übereinstimmender Richtungen (5/7 Bullish = 71%)
+  - Farbcodiert: ≥70% grün (Strong), 40-69% gelb (Mixed), <40% rot (Conflicting)
+  - Pro TF: Direction-Arrow, Strength-Bar, Trend-Text, Key Level
+  - Deterministische Seed-basierte Daten pro Asset (konsistente Anzeige)
+  - Integriert auf Signals-Seite unterhalb der Signal-Tabelle
+- **Portfolio Goal Tracker** (`components/portfolio/goal-tracker.tsx`):
+  - Finanzielle Ziele setzen und Fortschritt tracken
+  - Goal-Cards: Titel, Zielwert, Progress-Bar, Deadline, Required Daily Return
+  - Status: Completed (blau), On Track (grün), Behind (gelb), Expired (rot)
+  - Inline Add-Form: Titel, Zielwert, Deadline mit Validierung
+  - Default-Goals: First Profit (1%), 10% Return, Double Portfolio
+  - localStorage-Persistenz unter `jarvis-portfolio-goals`
+  - Integriert auf Portfolio-Seite vor Trade History
+- Build: 0 Errors, **32 Routes** (+ `/calendar`) + Middleware
+
+---
+
 ## ✅ ABGESCHLOSSEN: Watchlist Sparklines + P&L Ticker + Activity Feed
 
 ### Erstellt:
@@ -1061,8 +1091,8 @@ Analyse-Ergebnis: 6 P1-Bugs, 5 P2-Issues, 3 P3-Qualitätsthemen identifiziert.
 ### Architektur
 ```
 frontend/src/
-├── app/                    # 19 App + 4 Legal + 2 Auth Seiten
-│   ├── (app)/              # Authenticated routes (15 Seiten inkl. asset/[symbol])
+├── app/                    # 20 App + 4 Legal + 2 Auth Seiten
+│   ├── (app)/              # Authenticated routes (16 Seiten inkl. asset/[symbol], calendar)
 │   ├── (auth)/             # Login + Register
 │   ├── (legal)/            # Terms, Privacy, Disclaimer, Imprint
 │   ├── api/                # 5 API Routes (chat, stripe×3, ...)
@@ -1072,6 +1102,7 @@ frontend/src/
 │   ├── layout/             # 4 Layout (Sidebar, Header, Footer, MobileNav)
 │   ├── dashboard/          # 9 Dashboard Widgets
 │   ├── chart/              # 5 Chart (AssetChart, Equity, Drawings, ...)
+│   ├── signals/            # 1 Signals (MultiTfAnalysis)
 │   ├── risk/               # 2 Risk (Correlation, Calculator)
 │   ├── trading/            # 1 Trading (OrderDialog)
 │   ├── social/             # 2 Social (TraderCard, Feed)
@@ -1081,7 +1112,7 @@ frontend/src/
 └── middleware.ts            # Auth Route Protection
 ```
 
-### Feature-Matrix (31 Routes)
+### Feature-Matrix (32 Routes)
 | Feature | Route | Status | Hooks |
 |---------|-------|--------|-------|
 | Dashboard | `/` | ✅ | use-jarvis, use-signals, use-prices |
@@ -1096,6 +1127,7 @@ frontend/src/
 | Radar | `/radar` | ✅ | use-signals |
 | Leaderboard | `/leaderboard` | ✅ | use-social-trading |
 | Asset Detail | `/asset/[symbol]` | ✅ | use-prices, use-signals, use-portfolio |
+| Calendar | `/calendar` | ✅ | — (simulated events) |
 | Social Trading | `/social` | ✅ | use-social-trading |
 | AI Chat | `/chat` | ✅ | API Route (Claude) |
 | Settings | `/settings` | ✅ | use-settings, use-profile |
@@ -1140,5 +1172,5 @@ frontend/src/
 
 ---
 
-*CLAUDE.md — Version 10.6.0 | März 2026*
+*CLAUDE.md — Version 10.7.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*

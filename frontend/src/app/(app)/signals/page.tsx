@@ -32,6 +32,7 @@ import { useToast } from "@/components/ui/toast";
 import { useSignalAlerts } from "@/hooks/use-signal-alerts";
 import { useNotifications } from "@/hooks/use-notifications";
 import { OrderDialog } from "@/components/trading/order-dialog";
+import MultiTfAnalysis from "@/components/signals/multi-tf-analysis";
 import {
   AlertTriangle,
   Radio,
@@ -602,6 +603,14 @@ export default function SignalsPage() {
           </Card>
         )}
       </div>
+
+      {/* Multi-Timeframe Analysis */}
+      {signals.length > 0 && (
+        <MultiTfAnalysis
+          asset={signals[0].asset}
+          currentPrice={prices[signals[0].asset] ?? signals[0].entry}
+        />
+      )}
 
       {/* Order Dialog */}
       {orderDialogSignal && (
