@@ -1,10 +1,17 @@
 // =============================================================================
-// src/hooks/use-notifications.ts — Centralized notification store
+// src/hooks/use-notifications.ts — Centralized notification store (Context)
 // =============================================================================
 
 "use client";
 
-import { useCallback, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useState,
+  type ReactNode,
+} from "react";
+import React from "react";
 
 export type NotificationType = "signal" | "alert" | "achievement" | "trade" | "system";
 
@@ -37,7 +44,18 @@ function save(notifications: AppNotification[]) {
   );
 }
 
-export function useNotifications() {
+interface NotificationContextValue {
+  notifications: AppNotification[];
+  push: (type: NotificationType, title: string, message: string) => void;
+  markRead: (id: string) => void;
+  markAllRead: () => void;
+  clearAll: () => void;
+  unreadCount: number;
+}
+
+const NotificationContext = createContext<NotificationContextValue | null>(null);
+
+export function NotificationProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<AppNotification[]>(load);
 
   const push = useCallback(
@@ -84,5 +102,68 @@ export function useNotifications() {
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  return { notifications, push, markRead, markAllRead, clearAll, unreadCount };
+  return React.createElement(
+    NotificationContext.Provider,
+    { value: { notifications, push, markRead, markAllRead, clearAll, unreadCount } },
+    children
+  );
+}
+
+export function useNotifications() {
+  const ctx = useContext(NotificationContext);
+  if (!ctx) {
+    // Fallback for when used outside provider (e.g., in tests)
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const [notifications, setNotifications] = useState<AppNotification[]>(load);
+
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const push = useCallback(
+      (type: NotificationType, title: string, message: string) => {
+        const n: AppNotification = {
+          id: `notif-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          type,
+          title,
+          message,
+          timestamp: new Date().toISOString(),
+          read: false,
+        };
+        setNotifications((prev) => {
+          const next = [n, ...prev].slice(0, MAX_NOTIFICATIONS);
+          save(next);
+          return next;
+        });
+      },
+      []
+    );
+
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const markRead = useCallback((id: string) => {
+      setNotifications((prev) => {
+        const next = prev.map((n) =>
+          n.id === id ? { ...n, read: true } : n
+        );
+        save(next);
+        return next;
+      });
+    }, []);
+
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const markAllRead = useCallback(() => {
+      setNotifications((prev) => {
+        const next = prev.map((n) => ({ ...n, read: true }));
+        save(next);
+        return next;
+      });
+    }, []);
+
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const clearAll = useCallback(() => {
+      setNotifications([]);
+      save([]);
+    }, []);
+
+    const unreadCount = notifications.filter((n) => !n.read).length;
+    return { notifications, push, markRead, markAllRead, clearAll, unreadCount };
+  }
+  return ctx;
 }

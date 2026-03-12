@@ -4,7 +4,7 @@
 
 "use client";
 
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { AppHeader } from "@/components/layout/app-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,7 @@ import { inferRegime, REGIME_COLORS, type RegimeState } from "@/lib/types";
 import { useToast } from "@/components/ui/toast";
 import { EquityCurve } from "@/components/chart/equity-curve";
 import { useAchievements } from "@/hooks/use-achievements";
+import { useNotifications } from "@/hooks/use-notifications";
 import { Progress } from "@/components/ui/progress";
 import {
   TrendingUp,
@@ -58,6 +59,9 @@ export default function PortfolioPage() {
   const regime: RegimeState = status ? inferRegime(status.modus) : "RISK_ON";
   const { prices, binanceConnected } = usePrices(5000);
   const { toast } = useToast();
+  const { push: pushNotification } = useNotifications();
+
+  const prevUnlockedRef = React.useRef<Set<string>>(new Set());
 
   const achievements = useAchievements(
     state.closedTrades,
@@ -67,6 +71,24 @@ export default function PortfolioPage() {
     drawdown
   );
   const unlockedCount = achievements.filter((a) => a.unlocked).length;
+
+  // Notify on newly unlocked achievements
+  useEffect(() => {
+    const currentUnlocked = new Set(achievements.filter((a) => a.unlocked).map((a) => a.id));
+    const prev = prevUnlockedRef.current;
+    if (prev.size > 0) {
+      for (const ach of achievements) {
+        if (ach.unlocked && !prev.has(ach.id)) {
+          pushNotification(
+            "achievement",
+            `${ach.icon} ${ach.title} Unlocked!`,
+            ach.description
+          );
+        }
+      }
+    }
+    prevUnlockedRef.current = currentUnlocked;
+  }, [achievements, pushNotification]);
 
   // Update position prices whenever live prices change
   useEffect(() => {
@@ -382,8 +404,16 @@ export default function PortfolioPage() {
                             size="sm"
                             className="h-7 w-7 p-0 text-muted-foreground hover:text-red-400"
                             onClick={() => {
+                              const pnl = pos.direction === "LONG"
+                                ? (pos.currentPrice - pos.entryPrice) * pos.size
+                                : (pos.entryPrice - pos.currentPrice) * pos.size;
                               closePosition(pos.id);
                               toast("info", `Closed ${pos.asset} position`);
+                              pushNotification(
+                                "trade",
+                                `${pos.asset} Position Closed`,
+                                `${pnl >= 0 ? "+" : ""}$${pnl.toFixed(2)} P&L`
+                              );
                             }}
                           >
                             <X className="h-3 w-3" />
@@ -463,6 +493,10 @@ export default function PortfolioPage() {
                 initialCapital={state.totalCapital}
                 currentValue={totalValue}
                 height={220}
+                benchmarks={[
+                  { label: "BTC", color: "#f7931a", returnPct: 12.5 },
+                  { label: "SPY", color: "#6366f1", returnPct: 8.2 },
+                ]}
               />
             </CardContent>
           </Card>

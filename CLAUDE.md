@@ -646,6 +646,37 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 
 ---
 
+## ✅ ABGESCHLOSSEN: Trade Journal + Portfolio Benchmarks + Notification Integration
+
+### Erstellt:
+- **Notification Context Provider** (`use-notifications.ts`):
+  - Umgebaut von lokalem useState zu React Context (NotificationProvider)
+  - Alle Komponenten teilen denselben Notification-State
+  - NotificationProvider wraps App-Layout — Bell-Dropdown sieht alle Notifications
+  - Fallback für Nutzung außerhalb des Providers
+- **Notification Integration** (Signals + Portfolio):
+  - Trade Open → "trade" Notification (Asset, Direction, Entry, Size)
+  - Trade Close → "trade" Notification (Asset, P&L)
+  - Achievement Unlock → "achievement" Notification (Icon, Title, Description)
+  - Notifications erscheinen sofort im Bell-Dropdown
+- **Portfolio Benchmark Comparison** (`equity-curve.tsx`):
+  - Equity Curve zeigt jetzt Benchmark-Linien (BTC + SPY)
+  - Dashed Lines mit Label + Return-% Anzeige
+  - Toggle "Show/Hide Benchmarks" Button
+  - Legende mit Portfolio + Benchmark Returns
+  - Dynamische Y-Achse berücksichtigt Benchmark-Werte
+- **Trade Journal Seite** (`/journal`):
+  - Dedizierte Seite mit 8 Overview-Stats (Total Trades, Win Rate, P&L, Avg Win/Loss, Profit Factor, Max DD, Avg Hold Time)
+  - **3 Filter**: Asset, Direction (Long/Short), Result (Win/Loss)
+  - Filtered Stats Bar zeigt Win Rate, P&L, Best/Worst Trade, Avg Hold für aktuelle Filter
+  - Vollständige Trade-Tabelle mit #, Asset, Side, Entry, Exit, Size, P&L, Return%, Duration, Closed
+  - **Breakdown Tab**: Performance pro Asset mit Bar-Chart (P&L), Trade Count, Win Rate
+  - CSV-Export für gefilterte Trades
+- **Sidebar Update**: Neuer Nav-Item "Trade Journal" mit BookOpen-Icon (13 Nav-Items)
+- Build: 0 Errors, **25 Routes** + Middleware
+
+---
+
 ## 🔜 NÄCHSTER SCHRITT
 
 ### Sofort (ohne Code):
@@ -659,10 +690,10 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 3. Capacitor.js (PWA → App Store)
 4. Social Trading: Top-Trader folgen + kopieren
 5. Leaderboard mit Supabase (echte User-Daten)
-6. Portfolio Comparison / Benchmark (vs SPY, BTC)
-7. Advanced Notification Integration (Signals → Notification Center)
+6. Multi-Timeframe Chart Dashboard (1m-1W mit Sync)
+7. Advanced Risk Analytics (Correlation Matrix, VaR)
 
 ---
 
-*CLAUDE.md — Version 8.7.0 | März 2026*
+*CLAUDE.md — Version 8.8.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*

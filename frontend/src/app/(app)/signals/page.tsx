@@ -27,6 +27,7 @@ import { inferRegime } from "@/lib/types";
 import { DEFAULT_ASSETS, FREE_ASSETS, TIER_LIMITS } from "@/lib/constants";
 import { useToast } from "@/components/ui/toast";
 import { useSignalAlerts } from "@/hooks/use-signal-alerts";
+import { useNotifications } from "@/hooks/use-notifications";
 import {
   AlertTriangle,
   Radio,
@@ -50,6 +51,7 @@ export default function SignalsPage() {
   const { toast } = useToast();
   const { tier, isPro } = useProfile();
   const { checkSignals } = useSignalAlerts();
+  const { push: pushNotification } = useNotifications();
   const limits = TIER_LIMITS[tier];
 
   // Notify on high-confidence signals
@@ -107,13 +109,29 @@ export default function SignalsPage() {
       openedAt: new Date().toISOString(),
     });
     toast("success", `Opened ${signal.direction} ${signal.asset} at $${livePrice.toLocaleString()}`);
+    pushNotification(
+      "trade",
+      `${signal.direction} ${signal.asset} Opened`,
+      `Entry $${livePrice.toLocaleString()} · Size ${size.toFixed(4)} · Capital $${capitalForTrade.toFixed(0)}`
+    );
   }
 
   function handleClose(asset: string) {
     const posId = positionByAsset[asset];
     if (posId) {
+      const pos = portfolio.positions.find((p) => p.id === posId);
       closePosition(posId);
       toast("info", `Closed ${asset} position`);
+      if (pos) {
+        const pnl = pos.direction === "LONG"
+          ? (pos.currentPrice - pos.entryPrice) * pos.size
+          : (pos.entryPrice - pos.currentPrice) * pos.size;
+        pushNotification(
+          "trade",
+          `${asset} Position Closed`,
+          `${pnl >= 0 ? "+" : ""}$${pnl.toFixed(2)} P&L · Entry $${pos.entryPrice.toLocaleString()} → Exit $${pos.currentPrice.toLocaleString()}`
+        );
+      }
     }
   }
 

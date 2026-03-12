@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Footer } from "@/components/layout/footer";
 import { ToastProvider } from "@/components/ui/toast";
+import { NotificationProvider } from "@/hooks/use-notifications";
 import { useBackendHealth } from "@/hooks/use-jarvis";
 import { useSidebar } from "@/hooks/use-sidebar";
 import { cn } from "@/lib/utils";
@@ -35,6 +36,7 @@ export default function AppLayout({
   }, []);
 
   return (
+    <NotificationProvider>
     <ToastProvider>
       <div className="min-h-screen bg-background">
         {/* Mobile overlay */}
@@ -86,5 +88,6 @@ export default function AppLayout({
         </div>
       </div>
     </ToastProvider>
+    </NotificationProvider>
   );
 }
