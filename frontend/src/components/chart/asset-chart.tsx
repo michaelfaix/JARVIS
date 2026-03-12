@@ -1,8 +1,9 @@
 // =============================================================================
 // src/components/chart/asset-chart.tsx — Multi-Asset Candlestick Chart
 //
-// Generic chart component supporting any asset. Uses TradingView Lightweight
-// Charts with JARVIS signal overlay markers.
+// Crypto (BTC, ETH, SOL): Real Binance OHLC klines.
+// Other assets: Synthetic candlestick data.
+// Uses TradingView Lightweight Charts with JARVIS signal overlay markers.
 // =============================================================================
 
 "use client";
@@ -17,9 +18,10 @@ import {
 } from "lightweight-charts";
 import type { RegimeState } from "@/lib/types";
 import { REGIME_COLORS } from "@/lib/types";
+import { useBinanceKlines, type Kline } from "@/hooks/use-binance-klines";
 
 // ---------------------------------------------------------------------------
-// Synthetic data generation — works for any asset
+// Synthetic data generation — for non-crypto assets
 // ---------------------------------------------------------------------------
 
 interface CandlePoint {
@@ -93,13 +95,23 @@ function generateAssetData(
   return data;
 }
 
+function klinesToCandles(klines: Kline[]): CandlePoint[] {
+  return klines.map((k) => ({
+    time: k.time,
+    open: k.open,
+    high: k.high,
+    low: k.low,
+    close: k.close,
+  }));
+}
+
 function generateSignalMarkers(
   data: CandlePoint[],
   regime: RegimeState,
   seed: number
 ): SignalMarker[] {
   const markers: SignalMarker[] = [];
-  const step = 5 + (seed % 4); // Vary signal frequency per asset
+  const step = 5 + (seed % 4);
 
   for (let i = 5; i < data.length; i += step) {
     const candle = data[i];
@@ -129,10 +141,10 @@ function generateSignalMarkers(
   return markers;
 }
 
-function generateVolumeData(data: CandlePoint[], seed: number) {
+function generateVolumeData(data: CandlePoint[], seed: number, klines?: Kline[]) {
   return data.map((candle, i) => ({
     time: candle.time,
-    value: 1000000 + Math.abs(Math.sin(i * 0.5 + seed)) * 5000000,
+    value: klines?.[i]?.volume ?? 1000000 + Math.abs(Math.sin(i * 0.5 + seed)) * 5000000,
     color:
       candle.close >= candle.open
         ? "rgba(34, 197, 94, 0.3)"
@@ -151,6 +163,7 @@ interface AssetChartProps {
   livePrice?: number;
   regime?: RegimeState;
   height?: number;
+  interval?: string;
 }
 
 export function AssetChart({
@@ -160,6 +173,7 @@ export function AssetChart({
   livePrice,
   regime = "RISK_ON",
   height = 400,
+  interval = "1d",
 }: AssetChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -167,6 +181,7 @@ export function AssetChart({
   const [priceChange, setPriceChange] = useState<number>(0);
 
   const seed = hashSymbol(symbol);
+  const { klines, isCrypto } = useBinanceKlines(symbol, interval, 90);
 
   const initChart = useCallback(() => {
     if (!containerRef.current) return;
@@ -197,7 +212,7 @@ export function AssetChart({
       },
       timeScale: {
         borderColor: "rgba(255, 255, 255, 0.1)",
-        timeVisible: false,
+        timeVisible: ["1m", "5m", "15m", "1h", "4h"].includes(interval),
       },
     });
 
@@ -212,7 +227,12 @@ export function AssetChart({
       wickDownColor: "#ef4444",
     });
 
-    const assetData = generateAssetData(symbol, basePrice, 90);
+    // Use real klines for crypto, synthetic for others
+    const assetData =
+      isCrypto && klines.length > 0
+        ? klinesToCandles(klines)
+        : generateAssetData(symbol, basePrice, 90);
+
     candleSeries.setData(assetData as unknown as LWCandlestickData<Time>[]);
 
     const markers = generateSignalMarkers(assetData, regime, seed);
@@ -229,18 +249,22 @@ export function AssetChart({
       scaleMargins: { top: 0.8, bottom: 0 },
     });
 
-    const volumeData = generateVolumeData(assetData, seed);
+    const volumeData = generateVolumeData(
+      assetData,
+      seed,
+      isCrypto && klines.length > 0 ? klines : undefined
+    );
     volumeSeries.setData(
       volumeData as unknown as { time: Time; value: number; color: string }[]
     );
 
     const last = assetData[assetData.length - 1];
-    const prev = assetData[assetData.length - 2];
+    const prev = assetData.length > 1 ? assetData[assetData.length - 2] : last;
     setLastPrice(livePrice ?? last.close);
     setPriceChange(((last.close - prev.close) / prev.close) * 100);
 
     chart.timeScale().fitContent();
-  }, [symbol, basePrice, height, regime, seed, livePrice]);
+  }, [symbol, basePrice, height, regime, seed, livePrice, klines, isCrypto, interval]);
 
   useEffect(() => {
     initChart();
@@ -274,6 +298,11 @@ export function AssetChart({
           {symbol}/USD
         </h2>
         <span className="text-xs text-muted-foreground">{name}</span>
+        {isCrypto && klines.length > 0 && (
+          <span className="text-[10px] text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded">
+            LIVE DATA
+          </span>
+        )}
         <span className="text-3xl font-mono font-bold text-white">
           $
           {displayPrice.toLocaleString("en-US", {
@@ -311,6 +340,9 @@ export function AssetChart({
           />
           Regime: {regime.replace("_", " ")}
         </span>
+        {!isCrypto && (
+          <span className="text-yellow-400">Synthetic Data</span>
+        )}
       </div>
     </div>
   );

@@ -24,6 +24,8 @@ import { usePrices } from "@/hooks/use-prices";
 import { inferRegime, REGIME_COLORS, type RegimeState } from "@/lib/types";
 import { useToast } from "@/components/ui/toast";
 import { EquityCurve } from "@/components/chart/equity-curve";
+import { useAchievements } from "@/hooks/use-achievements";
+import { Progress } from "@/components/ui/progress";
 import {
   TrendingUp,
   TrendingDown,
@@ -34,6 +36,7 @@ import {
   Trophy,
   BarChart3,
   LineChart,
+  Star,
   X,
   Download,
 } from "lucide-react";
@@ -55,6 +58,15 @@ export default function PortfolioPage() {
   const regime: RegimeState = status ? inferRegime(status.modus) : "RISK_ON";
   const { prices, binanceConnected } = usePrices(5000);
   const { toast } = useToast();
+
+  const achievements = useAchievements(
+    state.closedTrades,
+    totalValue,
+    state.totalCapital,
+    winRate,
+    drawdown
+  );
+  const unlockedCount = achievements.filter((a) => a.unlocked).length;
 
   // Update position prices whenever live prices change
   useEffect(() => {
@@ -452,6 +464,72 @@ export default function PortfolioPage() {
                 currentValue={totalValue}
                 height={220}
               />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Achievements */}
+        {state.closedTrades.length > 0 && (
+          <Card className="bg-card/50 border-border/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Star className="h-4 w-4" />
+                Achievements
+                <Badge variant="outline" className="ml-auto text-[10px]">
+                  {unlockedCount}/{achievements.length} unlocked
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {achievements.map((ach) => {
+                  const tierColor =
+                    ach.tier === "gold"
+                      ? "border-yellow-500/30 bg-yellow-500/5"
+                      : ach.tier === "silver"
+                      ? "border-gray-400/30 bg-gray-400/5"
+                      : "border-amber-700/30 bg-amber-700/5";
+
+                  return (
+                    <div
+                      key={ach.id}
+                      className={`rounded-lg border p-3 ${
+                        ach.unlocked
+                          ? tierColor
+                          : "border-border/30 bg-background/30 opacity-60"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="text-lg">{ach.icon}</span>
+                        <span className="text-xs font-medium text-white truncate">
+                          {ach.title}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-muted-foreground mb-2">
+                        {ach.description}
+                      </div>
+                      <Progress
+                        value={ach.progress}
+                        className="h-1"
+                        indicatorClassName={
+                          ach.unlocked
+                            ? ach.tier === "gold"
+                              ? "bg-yellow-500"
+                              : ach.tier === "silver"
+                              ? "bg-gray-400"
+                              : "bg-amber-700"
+                            : "bg-muted-foreground/50"
+                        }
+                      />
+                      {ach.unlocked && (
+                        <div className="text-[9px] text-green-400 mt-1">
+                          Unlocked
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </CardContent>
           </Card>
         )}

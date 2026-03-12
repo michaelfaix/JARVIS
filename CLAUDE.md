@@ -592,6 +592,35 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 
 ---
 
+## ✅ ABGESCHLOSSEN: Real Binance Charts + Leaderboard + Achievements
+
+### Erstellt:
+- **Echte Binance OHLC-Charts** (`use-binance-klines.ts` + `asset-chart.tsx`):
+  - Crypto-Charts (BTC, ETH, SOL) zeigen echte Binance Klines statt synthetischer Daten
+  - REST-Fetch von `api.binance.com/api/v3/klines` mit konfigurierbarem Interval
+  - Unterstützt: 1m, 5m, 15m, 1h, 4h, 1d, 1w Timeframes
+  - Echtes Volumen in Histogram-Overlay
+  - "LIVE DATA" Badge bei Crypto, "Synthetic Data" bei Nicht-Crypto
+  - Fallback auf synthetische Daten wenn Binance nicht erreichbar
+- **Community Leaderboard** (`/leaderboard`):
+  - Top-3 Podium mit Gold/Silber/Bronze
+  - Vollständige Ranking-Tabelle mit Return, Win Rate, Trades, Max Drawdown
+  - 3 Sortier-Tabs: Return, Win Rate, Risk-Adjusted (Return/Drawdown)
+  - Current User wird automatisch eingeordnet (basierend auf echten Portfolio-Daten)
+  - Tier-Badges (Free/Pro/Enterprise) pro Trader
+  - Simulated Leaderboard-Daten (Supabase-Integration in v2)
+- **Achievements/Gamification** (`use-achievements.ts`):
+  - 13 Achievements in 3 Tier-Stufen (Bronze/Silver/Gold)
+  - Kategorien: Trading Volume, Profitability, Win Rate, Streaks, Risk Management
+  - Progress-Bars zeigen Fortschritt zu jedem Achievement
+  - Integriert auf Portfolio-Seite mit Grid-Ansicht
+  - Beispiele: "First Blood", "Hot Streak", "Master Trader", "Risk Manager"
+- **Sidebar**: Neuer Nav-Item "Leaderboard" mit Trophy-Icon (11 Nav-Items)
+- **Tailwind CSS Permanent Fix**: PostCSS + Tailwind Configs zu CommonJS konvertiert + predev Cache-Clean
+- Build: 0 Errors, **23 Routes** + Middleware
+
+---
+
 ## 🔜 NÄCHSTER SCHRITT
 
 ### Sofort (ohne Code):
@@ -603,11 +632,11 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 1. Deployment auf Railway (Frontend + Backend)
 2. Stripe Integration (Subscriptions, Checkout)
 3. Capacitor.js (PWA → App Store)
-4. Community Features (Leaderboards, v0.2)
-5. Social Trading: Top-Trader folgen
-6. Multi-Timeframe Chart mit echten OHLC-Daten
+4. Social Trading: Top-Trader folgen + kopieren
+5. Leaderboard mit Supabase (echte User-Daten)
+6. Notification Center (zentrale Benachrichtigungen)
 
 ---
 
-*CLAUDE.md — Version 8.5.0 | März 2026*
+*CLAUDE.md — Version 8.6.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*
