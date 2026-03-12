@@ -138,7 +138,7 @@ export default function SignalsPage() {
   return (
     <>
       <AppHeader title="Signals" subtitle="Live Signal Feed" />
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Card className="bg-card/50 border-border/50">
@@ -255,159 +255,161 @@ export default function SignalsPage() {
               </div>
             )}
 
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Asset</TableHead>
-                  <TableHead>Direction</TableHead>
-                  <TableHead className="text-right">Live Price</TableHead>
-                  <TableHead className="text-right">Stop Loss</TableHead>
-                  <TableHead className="text-right">Take Profit</TableHead>
-                  <TableHead>Confidence</TableHead>
-                  <TableHead className="text-right">Quality</TableHead>
-                  <TableHead>OOD</TableHead>
-                  <TableHead className="text-center">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {signals.length === 0 && !loading ? (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell
-                      colSpan={9}
-                      className="text-center text-muted-foreground py-8"
-                    >
-                      {error
-                        ? "Connect backend to see signals"
-                        : "No signals available"}
-                    </TableCell>
+                    <TableHead>Asset</TableHead>
+                    <TableHead>Direction</TableHead>
+                    <TableHead className="text-right">Live Price</TableHead>
+                    <TableHead className="text-right">Stop Loss</TableHead>
+                    <TableHead className="text-right">Take Profit</TableHead>
+                    <TableHead>Confidence</TableHead>
+                    <TableHead className="text-right">Quality</TableHead>
+                    <TableHead>OOD</TableHead>
+                    <TableHead className="text-center">Action</TableHead>
                   </TableRow>
-                ) : (
-                  signals.map((signal) => {
-                    const asset = DEFAULT_ASSETS.find(
-                      (a) => a.symbol === signal.asset
-                    );
-                    const livePrice = prices[signal.asset] ?? signal.entry;
-                    const hasPosition = openAssets.has(signal.asset);
+                </TableHeader>
+                <TableBody>
+                  {signals.length === 0 && !loading ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={9}
+                        className="text-center text-muted-foreground py-8"
+                      >
+                        {error
+                          ? "Connect backend to see signals"
+                          : "No signals available"}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    signals.map((signal) => {
+                      const asset = DEFAULT_ASSETS.find(
+                        (a) => a.symbol === signal.asset
+                      );
+                      const livePrice = prices[signal.asset] ?? signal.entry;
+                      const hasPosition = openAssets.has(signal.asset);
 
-                    return (
-                      <TableRow key={signal.id}>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium text-white">
-                              {signal.asset}
-                            </div>
-                            <div className="text-[10px] text-muted-foreground">
-                              {asset?.name}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            className={
-                              signal.direction === "LONG"
-                                ? "bg-green-500/20 text-green-400 border-green-500/30"
-                                : "bg-red-500/20 text-red-400 border-red-500/30"
-                            }
-                          >
-                            {signal.direction}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-white">
-                          $
-                          {livePrice.toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-red-400 text-xs">
-                          $
-                          {signal.stopLoss.toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-green-400 text-xs">
-                          $
-                          {signal.takeProfit.toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2 w-28">
-                            <Progress
-                              value={signal.confidence * 100}
-                              className="h-1.5"
-                              indicatorClassName={
-                                signal.confidence > 0.7
-                                  ? "bg-green-500"
-                                  : signal.confidence > 0.4
-                                  ? "bg-yellow-500"
-                                  : "bg-red-500"
-                              }
-                            />
-                            <span className="text-xs font-mono text-muted-foreground w-10 text-right">
-                              {(signal.confidence * 100).toFixed(0)}%
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right font-mono">
-                          <span
-                            className={
-                              signal.qualityScore > 0.7
-                                ? "text-green-400"
-                                : signal.qualityScore > 0.4
-                                ? "text-yellow-400"
-                                : "text-red-400"
-                            }
-                          >
-                            {(signal.qualityScore * 100).toFixed(0)}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          {isPro ? (
-                            signal.isOod ? (
-                              <div className="flex items-center gap-1">
-                                <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                                <span className="text-[10px] text-yellow-400">OOD</span>
+                      return (
+                        <TableRow key={signal.id}>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium text-white">
+                                {signal.asset}
                               </div>
+                              <div className="text-[10px] text-muted-foreground">
+                                {asset?.name}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              className={
+                                signal.direction === "LONG"
+                                  ? "bg-green-500/20 text-green-400 border-green-500/30"
+                                  : "bg-red-500/20 text-red-400 border-red-500/30"
+                              }
+                            >
+                              {signal.direction}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-white">
+                            $
+                            {livePrice.toLocaleString("en-US", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-red-400 text-xs">
+                            $
+                            {signal.stopLoss.toLocaleString("en-US", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-green-400 text-xs">
+                            $
+                            {signal.takeProfit.toLocaleString("en-US", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2 w-28">
+                              <Progress
+                                value={signal.confidence * 100}
+                                className="h-1.5"
+                                indicatorClassName={
+                                  signal.confidence > 0.7
+                                    ? "bg-green-500"
+                                    : signal.confidence > 0.4
+                                    ? "bg-yellow-500"
+                                    : "bg-red-500"
+                                }
+                              />
+                              <span className="text-xs font-mono text-muted-foreground w-10 text-right">
+                                {(signal.confidence * 100).toFixed(0)}%
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right font-mono">
+                            <span
+                              className={
+                                signal.qualityScore > 0.7
+                                  ? "text-green-400"
+                                  : signal.qualityScore > 0.4
+                                  ? "text-yellow-400"
+                                  : "text-red-400"
+                              }
+                            >
+                              {(signal.qualityScore * 100).toFixed(0)}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            {isPro ? (
+                              signal.isOod ? (
+                                <div className="flex items-center gap-1">
+                                  <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                                  <span className="text-[10px] text-yellow-400">OOD</span>
+                                </div>
+                              ) : (
+                                <span className="text-[10px] text-green-400">OK</span>
+                              )
                             ) : (
-                              <span className="text-[10px] text-green-400">OK</span>
-                            )
-                          ) : (
-                            <Lock className="h-3 w-3 text-muted-foreground" />
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {hasPosition ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 text-xs border-red-500/30 text-red-400 hover:bg-red-500/10 gap-1"
-                              onClick={() => handleClose(signal.asset)}
-                            >
-                              <X className="h-3 w-3" />
-                              Close
-                            </Button>
-                          ) : (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 text-xs border-green-500/30 text-green-400 hover:bg-green-500/10 gap-1"
-                              onClick={() => handleAccept(signal)}
-                              disabled={portfolio.availableCapital < 1}
-                            >
-                              <Check className="h-3 w-3" />
-                              Accept
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
+                              <Lock className="h-3 w-3 text-muted-foreground" />
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {hasPosition ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 text-xs border-red-500/30 text-red-400 hover:bg-red-500/10 gap-1"
+                                onClick={() => handleClose(signal.asset)}
+                              >
+                                <X className="h-3 w-3" />
+                                Close
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 text-xs border-green-500/30 text-green-400 hover:bg-green-500/10 gap-1"
+                                onClick={() => handleAccept(signal)}
+                                disabled={portfolio.availableCapital < 1}
+                              >
+                                <Check className="h-3 w-3" />
+                                Accept
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </div>

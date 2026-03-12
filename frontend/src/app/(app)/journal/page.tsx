@@ -137,7 +137,7 @@ export default function JournalPage() {
   return (
     <>
       <AppHeader title="Trade Journal" subtitle="History & Analytics" />
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         {allTrades.length === 0 ? (
           <Card className="bg-card/50 border-border/50">
             <CardContent className="py-12 text-center">
@@ -305,6 +305,7 @@ export default function JournalPage() {
                   )}
 
                   <CardContent>
+                    <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -389,6 +390,7 @@ export default function JournalPage() {
                         )}
                       </TableBody>
                     </Table>
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>

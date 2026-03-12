@@ -52,7 +52,7 @@ export default function SettingsPage() {
   return (
     <>
       <AppHeader title="Settings" subtitle="Configuration" />
-      <div className="p-6 space-y-6 max-w-3xl">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6 max-w-3xl">
         {/* Subscription Info */}
         <Card className="bg-card/50 border-border/50">
           <CardContent className="pt-4 pb-3 px-4">

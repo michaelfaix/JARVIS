@@ -72,7 +72,7 @@ export default function DashboardPage() {
   return (
     <>
       <AppHeader title="Dashboard" subtitle="Market Overview" />
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Top Row: Regime + System Mode + Quality */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <RegimeDisplay
@@ -100,34 +100,30 @@ export default function DashboardPage() {
         {/* Multi-Asset Chart */}
         <Card className="bg-card/50 border-border/50">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {/* Asset Selector Tabs */}
-                <div className="flex gap-1">
-                  {CHART_ASSETS.map((a, i) => (
-                    <button
-                      key={a.symbol}
-                      onClick={() => {
-                        setSelectedAsset(i);
-                        setWsPrice(null);
-                      }}
-                      className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                        selectedAsset === i
-                          ? "bg-blue-600/20 text-blue-400"
-                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                      }`}
-                    >
-                      {a.symbol}
-                    </button>
-                  ))}
-                </div>
+            <CardTitle className="text-sm font-medium text-muted-foreground flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+              {/* Asset Selector Tabs */}
+              <div className="flex flex-wrap gap-1">
+                {CHART_ASSETS.map((a, i) => (
+                  <button
+                    key={a.symbol}
+                    onClick={() => {
+                      setSelectedAsset(i);
+                      setWsPrice(null);
+                    }}
+                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                      selectedAsset === i
+                        ? "bg-blue-600/20 text-blue-400"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    }`}
+                  >
+                    {a.symbol}
+                  </button>
+                ))}
               </div>
-              <div className="flex items-center gap-3">
-                {/* Timeframe badge */}
+              <div className="flex items-center gap-2">
                 <Badge variant="outline" className="text-[10px]">
                   {TIMEFRAMES[timeframeIdx].label} / {TIMEFRAMES[timeframeIdx].strategyLabel}
                 </Badge>
-                {/* Price Feed Status */}
                 <div className="flex items-center gap-1.5">
                   <Zap
                     className={`h-3 w-3 ${

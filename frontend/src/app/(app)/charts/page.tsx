@@ -67,13 +67,13 @@ export default function ChartsPage() {
   return (
     <>
       <AppHeader title="Charts" subtitle="Technical Analysis" />
-      <div className="p-6 space-y-4">
+      <div className="p-3 sm:p-4 md:p-6 space-y-3 md:space-y-4">
         {/* Controls Bar */}
         <Card className="bg-card/50 border-border/50">
           <CardContent className="py-3 px-4">
             <div className="flex items-center justify-between flex-wrap gap-3">
               {/* Asset selector */}
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 flex-wrap">
                 {DEFAULT_ASSETS.map((a, i) => (
                   <button
                     key={a.symbol}
@@ -139,7 +139,7 @@ export default function ChartsPage() {
         </Card>
 
         {/* Asset Info Bar */}
-        <div className="flex items-center gap-4 px-1">
+        <div className="flex items-center gap-2 sm:gap-4 px-1 flex-wrap">
           <div className="flex items-center gap-2">
             <span className="text-lg font-bold text-white">
               {asset.symbol}

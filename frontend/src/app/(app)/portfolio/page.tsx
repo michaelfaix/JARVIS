@@ -130,7 +130,7 @@ export default function PortfolioPage() {
   return (
     <>
       <AppHeader title="Portfolio" subtitle="Paper Trading Account" />
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Card className="bg-card/50 border-border/50">
@@ -338,92 +338,94 @@ export default function PortfolioPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Asset</TableHead>
-                    <TableHead>Side</TableHead>
-                    <TableHead className="text-right">Size</TableHead>
-                    <TableHead className="text-right">Entry</TableHead>
-                    <TableHead className="text-right">Current</TableHead>
-                    <TableHead className="text-right">P&L</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {state.positions.length === 0 ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell
-                        colSpan={7}
-                        className="text-center text-muted-foreground py-8"
-                      >
-                        No open positions. Accept signals to open trades.
-                      </TableCell>
+                      <TableHead>Asset</TableHead>
+                      <TableHead>Side</TableHead>
+                      <TableHead className="text-right">Size</TableHead>
+                      <TableHead className="text-right">Entry</TableHead>
+                      <TableHead className="text-right">Current</TableHead>
+                      <TableHead className="text-right">P&L</TableHead>
+                      <TableHead></TableHead>
                     </TableRow>
-                  ) : (
-                    state.positions.map((pos) => (
-                      <TableRow key={pos.id}>
-                        <TableCell className="font-medium text-white">
-                          {pos.asset}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            className={
-                              pos.direction === "LONG"
-                                ? "bg-green-500/20 text-green-400 border-green-500/30"
-                                : "bg-red-500/20 text-red-400 border-red-500/30"
-                            }
-                          >
-                            {pos.direction}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-white">
-                          {pos.size.toFixed(4)}
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-muted-foreground">
-                          ${pos.entryPrice.toLocaleString()}
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-white">
-                          ${pos.currentPrice.toLocaleString()}
-                        </TableCell>
+                  </TableHeader>
+                  <TableBody>
+                    {state.positions.length === 0 ? (
+                      <TableRow>
                         <TableCell
-                          className={`text-right font-mono ${
-                            pos.pnl >= 0 ? "text-green-400" : "text-red-400"
-                          }`}
+                          colSpan={7}
+                          className="text-center text-muted-foreground py-8"
                         >
-                          {pos.pnl >= 0 ? "+" : ""}$
-                          {Math.abs(pos.pnl).toFixed(2)}
-                          <div className="text-[10px]">
-                            {pos.pnlPercent >= 0 ? "+" : ""}
-                            {pos.pnlPercent.toFixed(2)}%
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0 text-muted-foreground hover:text-red-400"
-                            onClick={() => {
-                              const pnl = pos.direction === "LONG"
-                                ? (pos.currentPrice - pos.entryPrice) * pos.size
-                                : (pos.entryPrice - pos.currentPrice) * pos.size;
-                              closePosition(pos.id);
-                              toast("info", `Closed ${pos.asset} position`);
-                              pushNotification(
-                                "trade",
-                                `${pos.asset} Position Closed`,
-                                `${pnl >= 0 ? "+" : ""}$${pnl.toFixed(2)} P&L`
-                              );
-                            }}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
+                          No open positions. Accept signals to open trades.
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    ) : (
+                      state.positions.map((pos) => (
+                        <TableRow key={pos.id}>
+                          <TableCell className="font-medium text-white">
+                            {pos.asset}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              className={
+                                pos.direction === "LONG"
+                                  ? "bg-green-500/20 text-green-400 border-green-500/30"
+                                  : "bg-red-500/20 text-red-400 border-red-500/30"
+                              }
+                            >
+                              {pos.direction}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-white">
+                            {pos.size.toFixed(4)}
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-muted-foreground">
+                            ${pos.entryPrice.toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-white">
+                            ${pos.currentPrice.toLocaleString()}
+                          </TableCell>
+                          <TableCell
+                            className={`text-right font-mono ${
+                              pos.pnl >= 0 ? "text-green-400" : "text-red-400"
+                            }`}
+                          >
+                            {pos.pnl >= 0 ? "+" : ""}$
+                            {Math.abs(pos.pnl).toFixed(2)}
+                            <div className="text-[10px]">
+                              {pos.pnlPercent >= 0 ? "+" : ""}
+                              {pos.pnlPercent.toFixed(2)}%
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 text-muted-foreground hover:text-red-400"
+                              onClick={() => {
+                                const pnl = pos.direction === "LONG"
+                                  ? (pos.currentPrice - pos.entryPrice) * pos.size
+                                  : (pos.entryPrice - pos.currentPrice) * pos.size;
+                                closePosition(pos.id);
+                                toast("info", `Closed ${pos.asset} position`);
+                                pushNotification(
+                                  "trade",
+                                  `${pos.asset} Position Closed`,
+                                  `${pnl >= 0 ? "+" : ""}$${pnl.toFixed(2)} P&L`
+                                );
+                              }}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -604,67 +606,69 @@ export default function PortfolioPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Asset</TableHead>
-                    <TableHead>Side</TableHead>
-                    <TableHead className="text-right">Entry</TableHead>
-                    <TableHead className="text-right">Exit</TableHead>
-                    <TableHead className="text-right">P&L</TableHead>
-                    <TableHead className="text-right">Return</TableHead>
-                    <TableHead>Closed</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {state.closedTrades.slice(0, 20).map((trade) => (
-                    <TableRow key={trade.id + trade.closedAt}>
-                      <TableCell className="font-medium text-white">
-                        {trade.asset}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          className={
-                            trade.direction === "LONG"
-                              ? "bg-green-500/20 text-green-400 border-green-500/30"
-                              : "bg-red-500/20 text-red-400 border-red-500/30"
-                          }
-                        >
-                          {trade.direction}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-muted-foreground text-xs">
-                        ${trade.entryPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-white text-xs">
-                        ${trade.exitPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </TableCell>
-                      <TableCell
-                        className={`text-right font-mono ${
-                          trade.pnl >= 0 ? "text-green-400" : "text-red-400"
-                        }`}
-                      >
-                        {trade.pnl >= 0 ? "+" : ""}${Math.abs(trade.pnl).toFixed(2)}
-                      </TableCell>
-                      <TableCell
-                        className={`text-right font-mono text-xs ${
-                          trade.pnlPercent >= 0 ? "text-green-400" : "text-red-400"
-                        }`}
-                      >
-                        {trade.pnlPercent >= 0 ? "+" : ""}{trade.pnlPercent.toFixed(2)}%
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {new Date(trade.closedAt).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Asset</TableHead>
+                      <TableHead>Side</TableHead>
+                      <TableHead className="text-right">Entry</TableHead>
+                      <TableHead className="text-right">Exit</TableHead>
+                      <TableHead className="text-right">P&L</TableHead>
+                      <TableHead className="text-right">Return</TableHead>
+                      <TableHead>Closed</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {state.closedTrades.slice(0, 20).map((trade) => (
+                      <TableRow key={trade.id + trade.closedAt}>
+                        <TableCell className="font-medium text-white">
+                          {trade.asset}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            className={
+                              trade.direction === "LONG"
+                                ? "bg-green-500/20 text-green-400 border-green-500/30"
+                                : "bg-red-500/20 text-red-400 border-red-500/30"
+                            }
+                          >
+                            {trade.direction}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-muted-foreground text-xs">
+                          ${trade.entryPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-white text-xs">
+                          ${trade.exitPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell
+                          className={`text-right font-mono ${
+                            trade.pnl >= 0 ? "text-green-400" : "text-red-400"
+                          }`}
+                        >
+                          {trade.pnl >= 0 ? "+" : ""}${Math.abs(trade.pnl).toFixed(2)}
+                        </TableCell>
+                        <TableCell
+                          className={`text-right font-mono text-xs ${
+                            trade.pnlPercent >= 0 ? "text-green-400" : "text-red-400"
+                          }`}
+                        >
+                          {trade.pnlPercent >= 0 ? "+" : ""}{trade.pnlPercent.toFixed(2)}%
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {new Date(trade.closedAt).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         )}

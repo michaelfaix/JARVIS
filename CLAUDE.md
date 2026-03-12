@@ -393,11 +393,14 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
   - Auto-dismiss nach 3s, manuelles Dismiss per X-Button
   - Fixed bottom-right, slide-in Animation
   - Integriert in Signals-Seite (Accept/Close) und Portfolio-Seite (Close/Close All)
-- **Mobile Sidebar Auto-Collapse**: Responsive Sidebar für mobile Geräte
-  - Auto-Detect < 768px via matchMedia
-  - Sidebar hidden auf Mobile, Hamburger-Button öffnet Overlay
-  - Click-outside-to-close mit Backdrop-Overlay
-  - Sidebar Props erweitert: `mobile`, `mobileOpen`
+- **Fully Responsive Layout**: 3-Breakpoint System (Mobile <768px, Tablet 768-1023px, Desktop ≥1024px)
+  - **Sidebar**: Mobile = overlay mit Hamburger-Button + Backdrop, Tablet = always collapsed (icons only), Desktop = user-controlled collapse
+  - **Layout** (`layout.tsx`): `matchMedia` Breakpoint-Detection, `overflow-x-hidden` prevents horizontal scroll
+  - **All Pages**: Responsive padding `p-3 sm:p-4 md:p-6`, responsive spacing `space-y-4 md:space-y-6`
+  - **Tables** (Signals, Portfolio, Journal, Leaderboard): `overflow-x-auto` wrapper für horizontal scroll auf kleinen Screens
+  - **Chart**: Responsive price header (`flex-wrap`, responsive font sizes), responsive asset selector buttons
+  - **Dashboard**: Flex-wrap chart header, responsive grid columns
+  - **Sidebar**: `overflow-hidden` prevents text leaking when collapsed
 - Build: 0 Errors, 10 Routes (9 Pages + 1 API) | Backend: 8897 Tests grün
 
 ---

@@ -139,7 +139,7 @@ function ChatContent() {
   return (
     <>
       <AppHeader title="AI Chat" subtitle="Ask JARVIS" />
-      <div className="flex flex-col h-[calc(100vh-3.5rem-2.5rem)] p-6">
+      <div className="flex flex-col h-[calc(100vh-3.5rem-2.5rem)] p-3 sm:p-4 md:p-6">
         {/* Chat Area */}
         <Card className="bg-card/50 border-border/50 flex-1 flex flex-col overflow-hidden">
           <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">

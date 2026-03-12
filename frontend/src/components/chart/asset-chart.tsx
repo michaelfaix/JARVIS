@@ -535,9 +535,9 @@ export function AssetChart({
   return (
     <div className="w-full">
       {/* Price Header */}
-      <div className="flex items-baseline gap-4 mb-4">
-        <h2 className="text-2xl font-bold text-white">{symbol}/USD</h2>
-        <span className="text-xs text-muted-foreground">{name}</span>
+      <div className="flex items-baseline gap-2 sm:gap-4 mb-4 flex-wrap">
+        <h2 className="text-lg sm:text-2xl font-bold text-white">{symbol}/USD</h2>
+        <span className="text-xs text-muted-foreground hidden sm:inline">{name}</span>
         {isCrypto && (wsLive || klines.length > 0) ? (
           <span
             className={`text-[10px] px-1.5 py-0.5 rounded ${
@@ -553,7 +553,7 @@ export function AssetChart({
             SIM LIVE
           </span>
         ) : null}
-        <span className="text-3xl font-mono font-bold text-white">
+        <span className="text-xl sm:text-3xl font-mono font-bold text-white">
           $
           {displayPrice.toLocaleString("en-US", {
             minimumFractionDigits: 2,
@@ -574,7 +574,7 @@ export function AssetChart({
       <div ref={containerRef} className="w-full rounded-lg overflow-hidden" />
 
       {/* Legend */}
-      <div className="flex gap-6 mt-3 text-xs text-muted-foreground">
+      <div className="flex gap-3 sm:gap-6 mt-3 text-xs text-muted-foreground flex-wrap">
         <span className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-green-500" />
           LONG Signal

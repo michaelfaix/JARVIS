@@ -159,7 +159,7 @@ export default function RiskPage() {
   return (
     <>
       <AppHeader title="Risk Guardian" subtitle="Portfolio Risk Monitor" />
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Overall Status */}
         <Card className={`border ${levelBg[overallLevel]}`}>
           <CardContent className="pt-5 pb-4 px-6">

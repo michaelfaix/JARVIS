@@ -63,7 +63,7 @@ export function Sidebar({ collapsed, onToggle, connected, mobile, mobileOpen }: 
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-border/50 bg-card/95 backdrop-blur-md transition-all duration-200",
+        "fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-border/50 bg-card/95 backdrop-blur-md transition-all duration-200 overflow-hidden",
         mobile ? "w-60" : collapsed ? "w-16" : "w-60"
       )}
     >

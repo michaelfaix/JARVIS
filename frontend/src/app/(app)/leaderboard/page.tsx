@@ -130,7 +130,7 @@ export default function LeaderboardPage() {
   return (
     <>
       <AppHeader title="Leaderboard" subtitle="Community Rankings" />
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Top 3 Podium */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {leaderboard.slice(0, 3).map((entry, i) => (
@@ -262,6 +262,7 @@ function RankingTable({
   return (
     <Card className="bg-card/50 border-border/50 mt-4">
       <CardContent className="pt-0 px-0">
+        <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -347,6 +348,7 @@ function RankingTable({
             ))}
           </TableBody>
         </Table>
+        </div>
       </CardContent>
     </Card>
   );

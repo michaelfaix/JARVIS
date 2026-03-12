@@ -1,5 +1,7 @@
 // =============================================================================
 // src/app/(app)/layout.tsx — Shared layout with sidebar navigation
+//
+// Responsive: <768px overlay sidebar, 768-1024px collapsed, >1024px user choice
 // =============================================================================
 
 "use client";
@@ -20,26 +22,43 @@ export default function AppLayout({
 }) {
   const { connected } = useBackendHealth();
   const { collapsed, toggle } = useSidebar();
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(false); // <768px
+  const [isTablet, setIsTablet] = useState(false); // 768-1023px
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Detect mobile viewport
+  // Detect viewport breakpoints
   useEffect(() => {
-    const mq = window.matchMedia("(max-width: 768px)");
-    const handler = (e: MediaQueryListEvent | MediaQueryList) => {
-      setIsMobile(e.matches);
-      if (e.matches) setMobileOpen(false);
+    const mqMobile = window.matchMedia("(max-width: 767px)");
+    const mqTablet = window.matchMedia("(min-width: 768px) and (max-width: 1023px)");
+
+    const update = () => {
+      setIsMobile(mqMobile.matches);
+      setIsTablet(mqTablet.matches);
+      if (mqMobile.matches) setMobileOpen(false);
     };
-    handler(mq);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
+    update();
+
+    mqMobile.addEventListener("change", update);
+    mqTablet.addEventListener("change", update);
+    return () => {
+      mqMobile.removeEventListener("change", update);
+      mqTablet.removeEventListener("change", update);
+    };
   }, []);
+
+  // Sidebar is always collapsed on tablet, user-controlled on desktop
+  const sidebarCollapsed = isMobile ? !mobileOpen : isTablet ? true : collapsed;
+  const sidebarToggle = isMobile
+    ? () => setMobileOpen((p) => !p)
+    : isTablet
+      ? () => {} // no toggle on tablet — always collapsed
+      : toggle;
 
   return (
     <NotificationProvider>
     <ToastProvider>
-      <div className="min-h-screen bg-background">
-        {/* Mobile overlay */}
+      <div className="min-h-screen bg-background overflow-x-hidden">
+        {/* Mobile overlay backdrop */}
         {isMobile && mobileOpen && (
           <div
             className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm"
@@ -48,8 +67,8 @@ export default function AppLayout({
         )}
 
         <Sidebar
-          collapsed={isMobile ? !mobileOpen : collapsed}
-          onToggle={isMobile ? () => setMobileOpen((p) => !p) : toggle}
+          collapsed={sidebarCollapsed}
+          onToggle={sidebarToggle}
           connected={connected}
           mobile={isMobile}
           mobileOpen={mobileOpen}
@@ -57,11 +76,11 @@ export default function AppLayout({
 
         <div
           className={cn(
-            "flex min-h-screen flex-col transition-all duration-200",
-            isMobile ? "ml-0" : collapsed ? "ml-16" : "ml-60"
+            "flex min-h-screen flex-col transition-all duration-200 overflow-x-hidden",
+            isMobile ? "ml-0" : sidebarCollapsed ? "ml-16" : "ml-60"
           )}
         >
-          {/* Mobile hamburger */}
+          {/* Mobile hamburger button */}
           {isMobile && (
             <button
               onClick={() => setMobileOpen(true)}
@@ -83,7 +102,7 @@ export default function AppLayout({
             </button>
           )}
 
-          <main className="flex-1">{children}</main>
+          <main className="flex-1 w-full max-w-full">{children}</main>
           <Footer />
         </div>
       </div>
