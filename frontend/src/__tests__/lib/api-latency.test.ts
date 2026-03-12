@@ -5,7 +5,7 @@
 describe("API latency tracking", () => {
   it("getLastApiLatency returns null initially", async () => {
     // Simulate the module's initial state
-    let lastLatency: number | null = null;
+    const lastLatency: number | null = null;
     expect(lastLatency).toBeNull();
   });
 
