@@ -42,6 +42,7 @@ import {
   type BacktestResult,
   type WFVResult,
 } from "@/lib/backtest-engine";
+import { ComparisonTable, type BacktestResultSummary } from "@/components/strategy/comparison-table";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -88,6 +89,7 @@ function StrategyLabContent() {
   const [wfvResult, setWfvResult] = useState<WFVResult | null>(null);
   const [running, setRunning] = useState(false);
   const [runningWFV, setRunningWFV] = useState(false);
+  const [comparisonHistory, setComparisonHistory] = useState<BacktestResultSummary[]>([]);
 
   const buildConfig = useCallback((): BacktestConfig => ({
     strategy: selectedStrategy,
@@ -103,8 +105,26 @@ function StrategyLabContent() {
     setRunning(true);
     setWfvResult(null);
     setTimeout(() => {
-      const r = runBacktest(buildConfig());
+      const config = buildConfig();
+      const r = runBacktest(config);
       setResult(r);
+      setComparisonHistory((prev) => {
+        const summary: BacktestResultSummary = {
+          strategy: config.strategy,
+          asset: config.assets.join(", "),
+          period: config.period,
+          totalReturn: r.totalReturn,
+          winRate: r.winRate,
+          sharpeRatio: r.sharpeRatio,
+          maxDrawdown: r.maxDrawdown,
+          profitFactor: r.profitFactor,
+          totalTrades: r.trades.length,
+          avgWin: r.avgWin,
+          avgLoss: r.avgLoss,
+        };
+        const next = [...prev, summary];
+        return next.slice(-5); // keep last 5
+      });
       setRunning(false);
     }, 400);
   }, [buildConfig]);
@@ -502,6 +522,11 @@ function StrategyLabContent() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Strategy Comparison */}
+        {comparisonHistory.length >= 2 && (
+          <ComparisonTable results={comparisonHistory} />
+        )}
       </div>
     </>
   );

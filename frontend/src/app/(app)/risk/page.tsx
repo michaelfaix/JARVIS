@@ -15,6 +15,7 @@ import { usePrices } from "@/hooks/use-prices";
 import { inferRegime, REGIME_COLORS, type RegimeState } from "@/lib/types";
 import { CorrelationMatrix } from "@/components/risk/correlation-matrix";
 import { PositionCalculator } from "@/components/risk/position-calculator";
+import { RiskScoreGauge } from "@/components/risk/risk-score-gauge";
 import { DEFAULT_ASSETS } from "@/lib/constants";
 import {
   ShieldCheck,
@@ -190,6 +191,19 @@ export default function RiskPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Risk Score Gauge */}
+        <RiskScoreGauge
+          score={Math.min(100, Math.round(
+            (maxSingleExposurePct / MAX_SINGLE_EXPOSURE_PCT) * 25 +
+            (drawdown / MAX_DRAWDOWN_PCT) * 25 +
+            (state.positions.length / MAX_OPEN_POSITIONS) * 25 +
+            ((100 - availablePct) / (100 - MIN_AVAILABLE_CAPITAL_PCT)) * 25
+          ))}
+          maxExposure={maxSingleExposurePct}
+          openPositions={state.positions.length}
+          drawdown={drawdown}
+        />
 
         {/* Risk Checks Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

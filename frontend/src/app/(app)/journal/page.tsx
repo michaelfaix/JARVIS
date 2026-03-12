@@ -21,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePortfolio } from "@/hooks/use-portfolio";
 import { useTradeNotes, TAG_SUGGESTIONS } from "@/hooks/use-trade-notes";
 import { TradeNoteEditor } from "@/components/journal/trade-note-editor";
+import { TradeStatsDashboard } from "@/components/portfolio/trade-stats-dashboard";
 import {
   BookOpen,
   TrendingUp,
@@ -546,6 +547,9 @@ export default function JournalPage() {
                 </Card>
               </TabsContent>
             </Tabs>
+
+            {/* Advanced Trade Statistics */}
+            <TradeStatsDashboard closedTrades={state.closedTrades} />
           </>
         )}
       </div>

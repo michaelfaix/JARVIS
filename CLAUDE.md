@@ -1029,6 +1029,34 @@ Analyse-Ergebnis: 6 P1-Bugs, 5 P2-Issues, 3 P3-Qualitätsthemen identifiziert.
 
 ---
 
+## ✅ ABGESCHLOSSEN: Strategy Comparison + Trade Statistics + Risk Score Gauge
+
+### Erstellt:
+- **Strategy Comparison Table** (`components/strategy/comparison-table.tsx`):
+  - Side-by-Side Vergleich von bis zu 5 Backtest-Ergebnissen
+  - Metriken: Total Return, Win Rate, Sharpe, Max Drawdown, Profit Factor, Avg Win/Loss, Risk-Adjusted
+  - Winner-Badges: Gold Crown bei bestem Wert pro Metrik
+  - Overall Winner mit Trophy-Icon und Gesamtsieg-Zähler
+  - Integriert in Strategy Lab — Vergleich erscheint ab 2+ Backtests
+  - `BacktestResultSummary` Interface exportiert für externe Nutzung
+- **Trade Statistics Dashboard** (`components/portfolio/trade-stats-dashboard.tsx`):
+  - Win/Loss Distribution: Gestapelte Balken für Overall, LONG, SHORT
+  - P&L Distribution Histogram: SVG mit 10 Bins, grün/rot Bars
+  - Holding Period Analysis: Avg Duration Winners vs Losers, Short/Medium/Long Buckets
+  - Streak Analysis: Current/Longest Win/Loss Streak + Visual Timeline (letzte 20 Trades)
+  - Performance by Direction: LONG vs SHORT Side-by-Side Vergleich
+  - Integriert auf Journal-Seite nach den Tabs
+- **Risk Score Gauge** (`components/risk/risk-score-gauge.tsx`):
+  - SVG Semi-Circular Gauge (0-100) mit Nadel und Farbzonen
+  - Grün (0-30 Low Risk), Gelb (31-60 Medium), Rot (61-100 High Risk)
+  - Risk Breakdown: Max Exposure, Open Positions, Drawdown, Diversification
+  - Risk Level Badge mit Farbe und Icon
+  - Score berechnet aus 4 gewichteten Faktoren
+  - Integriert auf Risk Guardian Seite nach Overall Status
+- Build: 0 Errors, **32 Routes** + Middleware
+
+---
+
 ## ✅ ABGESCHLOSSEN: Economic Calendar + Multi-TF Analysis + Portfolio Goals
 
 ### Erstellt:
@@ -1103,7 +1131,8 @@ frontend/src/
 │   ├── dashboard/          # 9 Dashboard Widgets
 │   ├── chart/              # 5 Chart (AssetChart, Equity, Drawings, ...)
 │   ├── signals/            # 1 Signals (MultiTfAnalysis)
-│   ├── risk/               # 2 Risk (Correlation, Calculator)
+│   ├── strategy/           # 1 Strategy (ComparisonTable)
+│   ├── risk/               # 3 Risk (Correlation, Calculator, RiskScoreGauge)
 │   ├── trading/            # 1 Trading (OrderDialog)
 │   ├── social/             # 2 Social (TraderCard, Feed)
 │   └── upgrade/            # 2 Upgrade (Gate, PricingModal)
@@ -1172,5 +1201,5 @@ frontend/src/
 
 ---
 
-*CLAUDE.md — Version 10.7.0 | März 2026*
+*CLAUDE.md — Version 10.8.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*
