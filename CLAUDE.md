@@ -1177,6 +1177,40 @@ frontend/src/
 
 ---
 
+## 🧪 FRONTEND TEST-SUITE
+
+| Metrik | Wert |
+|--------|------|
+| **Framework** | Jest 30 + React Testing Library + jest-dom |
+| **Tests** | **97** ✅ |
+| **Suites** | **11** ✅ |
+| **Laufzeit** | ~3s |
+| **Pre-Commit Hook** | ✅ Tests müssen grün sein |
+
+### Test-Abdeckung
+| Kategorie | Datei | Tests | Beschreibung |
+|-----------|-------|-------|-------------|
+| Hook | `use-portfolio.test.ts` | 13 | Position open/close, P&L, localStorage, drawdown, exposure |
+| Hook | `use-alerts.test.ts` | 11 | Alert add/remove/trigger, cooldown, localStorage |
+| Hook | `use-auth.test.ts` | 8 | Login/Logout, Supabase subscription, state changes |
+| Hook | `use-prices.test.ts` | 8 | WebSocket, REST fallback, synthetic prices, cleanup |
+| Hook | `use-sidebar.test.ts` | 4 | Toggle, localStorage persistence |
+| Component | `sidebar.test.tsx` | 13 | 15 Nav-Links, aktiver State, mobile, connection indicator |
+| Component | `portfolio-display.test.tsx` | 5 | Unrealized P&L, totalValue, avgWin/avgLoss, exposure |
+| Integration | `backend-health.test.ts` | 5 | /health endpoint, error handling, API client |
+| Integration | `css-loading.test.ts` | 9 | CSS existiert, Tailwind directives, dark theme vars |
+| Lib | `storage.test.ts` | 9 | loadJSON/saveJSON, roundtrip, error handling |
+| Lib | `types.test.ts` | 8 | inferRegime mapping für alle Modus-Werte |
+
+### Befehle
+```bash
+npm test          # Alle Tests ausführen
+npm run test:watch # Watch-Modus
+npm run test:ci    # CI-Modus mit Coverage
+```
+
+---
+
 ## 🔜 NÄCHSTER SCHRITT
 
 ### Sofort (ohne Code):
@@ -1201,5 +1235,5 @@ frontend/src/
 
 ---
 
-*CLAUDE.md — Version 10.8.0 | März 2026*
+*CLAUDE.md — Version 10.9.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*
