@@ -9,6 +9,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Radio,
+  CandlestickChart,
   PieChart,
   ShieldAlert,
   Radar,
@@ -30,6 +31,7 @@ import { useAuth } from "@/hooks/use-auth";
 
 const NAV_ITEMS = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/" },
+  { label: "Charts", icon: CandlestickChart, path: "/charts" },
   { label: "Signals", icon: Radio, path: "/signals" },
   { label: "Portfolio", icon: PieChart, path: "/portfolio" },
   { label: "Risk Guardian", icon: ShieldAlert, path: "/risk" },

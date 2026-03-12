@@ -13,6 +13,9 @@ import { usePortfolio } from "@/hooks/use-portfolio";
 import { useSystemStatus } from "@/hooks/use-jarvis";
 import { usePrices } from "@/hooks/use-prices";
 import { inferRegime, REGIME_COLORS, type RegimeState } from "@/lib/types";
+import { CorrelationMatrix } from "@/components/risk/correlation-matrix";
+import { PositionCalculator } from "@/components/risk/position-calculator";
+import { DEFAULT_ASSETS } from "@/lib/constants";
 import {
   ShieldCheck,
   ShieldAlert,
@@ -22,6 +25,7 @@ import {
   Target,
   Layers,
   BarChart3,
+  Grid3X3,
 } from "lucide-react";
 
 // Risk thresholds
@@ -352,6 +356,32 @@ export default function RiskPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Position Size Calculator */}
+        <PositionCalculator
+          availableCapital={state.availableCapital}
+          totalValue={totalValue}
+          prices={prices}
+        />
+
+        {/* Correlation Matrix */}
+        <Card className="bg-card/50 border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Grid3X3 className="h-4 w-4" />
+              Asset Correlation Matrix
+              <span className="text-[10px] text-muted-foreground ml-auto">
+                Red = concentrated risk · Green = diversification benefit
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CorrelationMatrix
+              assets={DEFAULT_ASSETS.map((a) => a.symbol)}
+              prices={prices}
+            />
+          </CardContent>
+        </Card>
       </div>
     </>
   );

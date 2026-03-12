@@ -677,6 +677,32 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 
 ---
 
+## ✅ ABGESCHLOSSEN: Charts Page + Correlation Matrix + Position Calculator
+
+### Erstellt:
+- **Dedicated Charts Page** (`/charts`):
+  - Vollbild-Chart mit allen 8 Assets als Tabs
+  - **7 Timeframe-Buttons**: 1m, 5m, 15m, 1H, 4H, 1D, 1W — inline Selector
+  - Live-Preis + Signal Badge (LONG/SHORT mit Confidence) pro Asset
+  - Signal Details Panel: Direction, Entry, SL, TP, Confidence
+  - Feed Status (WS Live / REST / Synthetic)
+  - Chart-Höhe 500px für bessere Analyse
+- **Correlation Matrix** (`components/risk/correlation-matrix.tsx`):
+  - 8x8 Heatmap aller Assets auf Risk Guardian Seite
+  - Realistische Korrelationswerte (Crypto untereinander ~0.78-0.85, Crypto-SPY ~0.28-0.35, GLD negativ)
+  - Farbcodiert: Rot = konzentriertes Risiko, Grün = Diversifikation
+  - Legende mit 4 Stufen (Negative, Low, Moderate, High)
+- **Position Size Calculator** (`components/risk/position-calculator.tsx`):
+  - Risk-basierter Positionsgrößen-Rechner auf Risk Guardian Seite
+  - Inputs: Asset, Risk per Trade (%), Stop Loss (%)
+  - Risk Presets: 1%, 2%, 3%, 5% Buttons
+  - Berechnet: Entry, SL-Preis, Risk Amount, Position Size, Position Value, % of Portfolio
+  - Warnungen: Insufficient Capital, >25% Exposure Limit
+- **Sidebar Update**: Neuer Nav-Item "Charts" mit CandlestickChart-Icon (14 Nav-Items)
+- Build: 0 Errors, **26 Routes** + Middleware
+
+---
+
 ## 🔜 NÄCHSTER SCHRITT
 
 ### Sofort (ohne Code):
@@ -690,10 +716,10 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 3. Capacitor.js (PWA → App Store)
 4. Social Trading: Top-Trader folgen + kopieren
 5. Leaderboard mit Supabase (echte User-Daten)
-6. Multi-Timeframe Chart Dashboard (1m-1W mit Sync)
-7. Advanced Risk Analytics (Correlation Matrix, VaR)
+6. News Feed / Market Sentiment Widget
+7. Advanced Order Types (Limit, OCO, Trailing Stop)
 
 ---
 
-*CLAUDE.md — Version 8.8.0 | März 2026*
+*CLAUDE.md — Version 8.9.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*
