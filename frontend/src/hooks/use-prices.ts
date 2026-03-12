@@ -73,7 +73,7 @@ function syntheticPrices(
   return prices;
 }
 
-const HISTORY_SIZE = 20; // ring buffer size for sparklines
+const HISTORY_SIZE = 60; // ring buffer: 60 snapshots × 3s = 3 min window
 
 export function usePrices(intervalMs: number = 5000) {
   const [prices, setPrices] = useState<Record<string, number>>(() => {

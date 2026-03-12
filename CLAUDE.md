@@ -1345,5 +1345,22 @@ Jeder Tab hat eigene Fear & Greed Gauge, 7d-History-Sparkline, Momentum, Volatil
 
 ---
 
-*CLAUDE.md — Version 11.4.0 | März 2026*
+## ✅ ABGESCHLOSSEN: Sentiment v2 — Qualitätsverbesserungen
+
+### 4 Verbesserungen:
+1. **CNN Proxy Route** (`/api/sentiment`): Next.js API Route fetcht CNN F&G + CoinGecko server-side → kein CORS-Problem mehr. In-Memory Cache (60s TTL) gegen Rate Limits.
+2. **Composite Commodity F&G**: Multi-Faktor statt simpler Preis-Delta. 40% Momentum + 30% inverse Volatility + 30% Preis-vs-MA. Reagiert auf echte Marktdynamik.
+3. **Intraday Crypto Boost**: alternative.me F&G (daily) + BTC-Echtzeit-Momentum-Korrektur (±10 Punkte). F&G reagiert jetzt intraday auf Marktbewegungen.
+4. **Ring Buffer 20→60**: 3-Minuten-Fenster (60×3s) statt 1 Minute. Momentum/Volatility-Berechnung stabiler und aussagekräftiger. Scaling-Faktoren angepasst.
+
+### Neue Dateien:
+- `src/app/api/sentiment/route.ts` — Server-side proxy mit Cache
+
+### Tests:
+- 177 Tests in 20 Suiten
+- Build: 0 Errors, **32 Routes** (neu: /api/sentiment) + Middleware
+
+---
+
+*CLAUDE.md — Version 11.5.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*

@@ -3,7 +3,7 @@
  */
 
 describe("Price history ring buffer", () => {
-  const HISTORY_SIZE = 20;
+  const HISTORY_SIZE = 60;
 
   function pushToRingBuffer(
     history: Record<string, number[]>,
@@ -32,12 +32,12 @@ describe("Price history ring buffer", () => {
   });
 
   it("caps at HISTORY_SIZE entries", () => {
-    const prev = { BTC: Array.from({ length: 20 }, (_, i) => 60000 + i * 100) };
-    expect(prev.BTC).toHaveLength(20);
-    const result = pushToRingBuffer(prev, { BTC: 62100 });
-    expect(result.BTC).toHaveLength(20);
+    const prev = { BTC: Array.from({ length: 60 }, (_, i) => 60000 + i * 100) };
+    expect(prev.BTC).toHaveLength(60);
+    const result = pushToRingBuffer(prev, { BTC: 66100 });
+    expect(result.BTC).toHaveLength(60);
     expect(result.BTC[0]).toBe(60100); // first element shifted
-    expect(result.BTC[19]).toBe(62100); // new element at end
+    expect(result.BTC[59]).toBe(66100); // new element at end
   });
 
   it("handles multiple assets independently", () => {

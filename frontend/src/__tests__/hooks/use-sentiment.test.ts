@@ -1,5 +1,5 @@
 /**
- * Tests for multi-market sentiment calculation helpers.
+ * Tests for multi-market sentiment calculation helpers (v2).
  */
 import {
   classify,
@@ -7,6 +7,7 @@ import {
   volatilityLabel,
   calculateMomentumFromHistory,
   calculateVolatilityFromHistory,
+  compositeCommodityFG,
 } from "@/hooks/use-sentiment";
 
 describe("classify", () => {
@@ -54,14 +55,14 @@ describe("volatilityLabel", () => {
   });
 });
 
-describe("calculateMomentumFromHistory", () => {
+describe("calculateMomentumFromHistory (3-min buffer)", () => {
   it("returns 0 for empty history", () => {
     expect(calculateMomentumFromHistory({}, ["BTC"])).toBe(0);
   });
 
   it("returns positive for rising prices", () => {
     const result = calculateMomentumFromHistory(
-      { BTC: [60000, 60500, 61000], ETH: [3000, 3050, 3100] },
+      { BTC: [60000, 60100, 60200, 60300], ETH: [3000, 3010, 3020, 3030] },
       ["BTC", "ETH"]
     );
     expect(result).toBeGreaterThan(0);
@@ -69,7 +70,7 @@ describe("calculateMomentumFromHistory", () => {
 
   it("returns negative for falling prices", () => {
     const result = calculateMomentumFromHistory(
-      { BTC: [61000, 60500, 60000], ETH: [3100, 3050, 3000] },
+      { BTC: [61000, 60800, 60600], ETH: [3100, 3080, 3060] },
       ["BTC", "ETH"]
     );
     expect(result).toBeLessThan(0);
@@ -85,7 +86,7 @@ describe("calculateMomentumFromHistory", () => {
 
   it("works for stock symbols", () => {
     const result = calculateMomentumFromHistory(
-      { SPY: [520, 525, 530], AAPL: [195, 197, 199] },
+      { SPY: [520, 521, 522, 523], AAPL: [195, 196, 197, 198] },
       ["SPY", "AAPL"]
     );
     expect(result).toBeGreaterThan(0);
@@ -93,14 +94,22 @@ describe("calculateMomentumFromHistory", () => {
 
   it("works for commodity symbols", () => {
     const result = calculateMomentumFromHistory(
-      { GLD: [215, 213, 211] },
+      { GLD: [215, 214, 213, 212] },
       ["GLD"]
     );
     expect(result).toBeLessThan(0);
   });
+
+  it("ignores symbols not in history", () => {
+    const result = calculateMomentumFromHistory(
+      { BTC: [60000, 60100] },
+      ["BTC", "XYZ"]
+    );
+    expect(result).toBeGreaterThan(0);
+  });
 });
 
-describe("calculateVolatilityFromHistory", () => {
+describe("calculateVolatilityFromHistory (3-min buffer)", () => {
   it("returns default 30 for empty history", () => {
     expect(calculateVolatilityFromHistory({}, ["BTC"])).toBe(30);
   });
@@ -133,12 +142,37 @@ describe("calculateVolatilityFromHistory", () => {
     expect(result).toBeGreaterThanOrEqual(0);
     expect(result).toBeLessThanOrEqual(100);
   });
+});
 
-  it("works across multiple symbol groups", () => {
-    const result = calculateVolatilityFromHistory(
-      { SPY: [520, 521, 519, 522], NVDA: [890, 895, 885, 900] },
-      ["SPY", "NVDA"]
-    );
+describe("compositeCommodityFG", () => {
+  it("returns 50 (neutral) for flat prices", () => {
+    const hist = { GLD: Array.from({ length: 20 }, () => 215) };
+    const result = compositeCommodityFG(hist, ["GLD"]);
+    // Flat: momentum=50, vol=100 (low vol inverted), MA=50 → ~65
+    expect(result).toBeGreaterThanOrEqual(40);
+    expect(result).toBeLessThanOrEqual(80);
+  });
+
+  it("returns higher values for rising prices", () => {
+    const rising = { GLD: Array.from({ length: 20 }, (_, i) => 215 + i * 0.1) };
+    const falling = { GLD: Array.from({ length: 20 }, (_, i) => 215 - i * 0.1) };
+    const rResult = compositeCommodityFG(rising, ["GLD"]);
+    const fResult = compositeCommodityFG(falling, ["GLD"]);
+    expect(rResult).toBeGreaterThan(fResult);
+  });
+
+  it("is bounded 0-100", () => {
+    const extreme = { GLD: [100, 200, 100, 200, 100, 200, 100] };
+    const result = compositeCommodityFG(extreme, ["GLD"]);
     expect(result).toBeGreaterThanOrEqual(0);
+    expect(result).toBeLessThanOrEqual(100);
+  });
+
+  it("works with insufficient data", () => {
+    // Less than 5 entries → momentum/vol return defaults
+    const short = { GLD: [215, 216] };
+    const result = compositeCommodityFG(short, ["GLD"]);
+    expect(result).toBeGreaterThanOrEqual(0);
+    expect(result).toBeLessThanOrEqual(100);
   });
 });
