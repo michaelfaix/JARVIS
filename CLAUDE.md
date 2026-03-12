@@ -1029,6 +1029,33 @@ Analyse-Ergebnis: 6 P1-Bugs, 5 P2-Issues, 3 P3-Qualitätsthemen identifiziert.
 
 ---
 
+## ✅ ABGESCHLOSSEN: Watchlist Sparklines + P&L Ticker + Activity Feed
+
+### Erstellt:
+- **Watchlist Sparklines** (`components/dashboard/watchlist.tsx`):
+  - Mini SVG Sparkline-Charts (60×20px) neben jedem Asset in der Watchlist
+  - Neues `priceHistory` Prop: `Record<string, number[]>` für historische Preisdaten
+  - Farbe dynamisch: Grün wenn Trend steigend, Rot wenn fallend, Grau wenn flat
+  - Inline `Sparkline` Komponente mit Polyline-Rendering
+  - Bestehende Watchlist-Funktionalität komplett erhalten
+- **Floating P&L Ticker** (`components/dashboard/pnl-ticker.tsx`):
+  - Kompakter horizontaler Ticker am Dashboard-Top mit Echtzeit-P&L aller offenen Positionen
+  - Pro Position: Symbol + Direction-Arrow (▲/▼) + P&L farbcodiert
+  - Gesamt-P&L rechts, fett, farbcodiert
+  - Sticky, z-10, backdrop-blur, `scrollbar-hide` bei Overflow
+  - Zeigt nichts wenn keine offenen Positionen
+- **Recent Activity Feed** (`components/dashboard/activity-feed.tsx`):
+  - Letzte 10 Trading-Aktivitäten auf dem Dashboard
+  - Geschlossene Trades: TrendingUp/TrendingDown Icons mit P&L
+  - Geöffnete Positionen: ArrowRightCircle Icon in Blau
+  - Relative Zeitanzeige (just now, Xm ago, Xh ago, Xd ago)
+  - Sortiert nach Zeit (neueste zuerst)
+  - Empty State: "No recent activity"
+  - Integriert in Dashboard neben Watchlist
+- Build: 0 Errors, **31 Routes** + Middleware
+
+---
+
 ## 📊 FRONTEND STATUS-ÜBERSICHT (FAS-Stil)
 
 ### Architektur
@@ -1043,7 +1070,7 @@ frontend/src/
 ├── components/             # 35 Komponenten
 │   ├── ui/                 # 15 Base UI (Badge, Button, Card, Toast, CommandPalette, ...)
 │   ├── layout/             # 4 Layout (Sidebar, Header, Footer, MobileNav)
-│   ├── dashboard/          # 7 Dashboard Widgets
+│   ├── dashboard/          # 9 Dashboard Widgets
 │   ├── chart/              # 5 Chart (AssetChart, Equity, Drawings, ...)
 │   ├── risk/               # 2 Risk (Correlation, Calculator)
 │   ├── trading/            # 1 Trading (OrderDialog)
@@ -1113,5 +1140,5 @@ frontend/src/
 
 ---
 
-*CLAUDE.md — Version 10.5.0 | März 2026*
+*CLAUDE.md — Version 10.6.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*

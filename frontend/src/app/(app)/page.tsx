@@ -23,6 +23,8 @@ import { MarketPulse } from "@/components/dashboard/market-pulse";
 // useWebSocket for backend stream (optional)
 import { inferRegime, type RegimeState } from "@/lib/types";
 import { Watchlist } from "@/components/dashboard/watchlist";
+import { PnlTicker } from "@/components/dashboard/pnl-ticker";
+import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -79,6 +81,9 @@ export default function DashboardPage() {
     <>
       <AppHeader title="Dashboard" subtitle="Market Overview" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
+        {/* Open P&L Ticker */}
+        <PnlTicker positions={portfolio.positions} prices={prices} />
+
         {/* Backend offline banner */}
         {backendOffline && (
           <div className="flex items-center gap-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20 px-4 py-2.5 text-sm text-yellow-400">
@@ -338,15 +343,29 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Watchlist */}
+        {/* Watchlist + Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-6">
             <Watchlist
               prices={prices}
               signals={signals.map((s) => ({
                 asset: s.asset,
                 direction: s.direction,
                 confidence: s.confidence,
+              }))}
+            />
+            <ActivityFeed
+              closedTrades={portfolio.closedTrades.map((t) => ({
+                id: t.id,
+                asset: t.asset,
+                direction: t.direction,
+                pnl: t.pnl,
+                closedAt: t.closedAt,
+              }))}
+              openPositions={portfolio.positions.map((p) => ({
+                asset: p.asset,
+                direction: p.direction,
+                openedAt: p.openedAt,
               }))}
             />
           </div>

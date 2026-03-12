@@ -32,9 +32,38 @@ function loadWatchlist(): string[] {
 interface WatchlistProps {
   prices: Record<string, number>;
   signals?: { asset: string; direction: "LONG" | "SHORT"; confidence: number }[];
+  priceHistory?: Record<string, number[]>;
 }
 
-export function Watchlist({ prices, signals = [] }: WatchlistProps) {
+function Sparkline({ data, color }: { data: number[]; color: string }) {
+  if (data.length < 2) return null;
+  const w = 60;
+  const h = 20;
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const points = data
+    .map((v, i) => {
+      const x = (i / (data.length - 1)) * w;
+      const y = h - ((v - min) / range) * h;
+      return `${x},${y}`;
+    })
+    .join(" ");
+  return (
+    <svg width={w} height={h} className="shrink-0">
+      <polyline
+        points={points}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function Watchlist({ prices, signals = [], priceHistory }: WatchlistProps) {
   const [watchlist, setWatchlist] = useState<string[]>(loadWatchlist);
   const [prevPrices, setPrevPrices] = useState<Record<string, number>>({});
   const [editing, setEditing] = useState(false);
@@ -138,6 +167,20 @@ export function Watchlist({ prices, signals = [] }: WatchlistProps) {
                   )}
                 </div>
               </div>
+              {priceHistory?.[symbol] && priceHistory[symbol].length >= 2 && (
+                <Sparkline
+                  data={priceHistory[symbol]}
+                  color={
+                    priceHistory[symbol][priceHistory[symbol].length - 1] >
+                    priceHistory[symbol][0]
+                      ? "#4ade80"
+                      : priceHistory[symbol][priceHistory[symbol].length - 1] <
+                        priceHistory[symbol][0]
+                      ? "#f87171"
+                      : "#6b7280"
+                  }
+                />
+              )}
               <div className="text-right">
                 <div className="text-sm font-mono text-white">
                   $
