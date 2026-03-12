@@ -20,6 +20,7 @@ import { usePortfolio } from "@/hooks/use-portfolio";
 import { usePrices } from "@/hooks/use-prices";
 // useWebSocket for backend stream (optional)
 import { inferRegime, type RegimeState } from "@/lib/types";
+import { Watchlist } from "@/components/dashboard/watchlist";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -308,8 +309,21 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Stats Row */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Watchlist */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1">
+            <Watchlist
+              prices={prices}
+              signals={signals.map((s) => ({
+                asset: s.asset,
+                direction: s.direction,
+                confidence: s.confidence,
+              }))}
+            />
+          </div>
+          <div className="lg:col-span-2">
+            {/* Stats Row */}
+            <div className="grid grid-cols-2 gap-4">
           <StatCard
             label="Predictions Today"
             value={status?.entscheidungs_count?.toString() ?? "0"}
@@ -331,6 +345,8 @@ export default function DashboardPage() {
             }
           />
           <StatCard label="System Uptime" value="100%" />
+            </div>
+          </div>
         </div>
       </div>
     </>

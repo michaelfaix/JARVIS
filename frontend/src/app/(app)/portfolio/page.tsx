@@ -23,6 +23,7 @@ import { useSystemStatus } from "@/hooks/use-jarvis";
 import { usePrices } from "@/hooks/use-prices";
 import { inferRegime, REGIME_COLORS, type RegimeState } from "@/lib/types";
 import { useToast } from "@/components/ui/toast";
+import { EquityCurve } from "@/components/chart/equity-curve";
 import {
   TrendingUp,
   TrendingDown,
@@ -32,6 +33,7 @@ import {
   WifiOff,
   Trophy,
   BarChart3,
+  LineChart,
   X,
   Download,
 } from "lucide-react";
@@ -432,6 +434,26 @@ export default function PortfolioPage() {
               </CardContent>
             </Card>
           </div>
+        )}
+
+        {/* Equity Curve */}
+        {state.closedTrades.length >= 2 && (
+          <Card className="bg-card/50 border-border/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <LineChart className="h-4 w-4" />
+                Equity Curve
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <EquityCurve
+                closedTrades={state.closedTrades}
+                initialCapital={state.totalCapital}
+                currentValue={totalValue}
+                height={220}
+              />
+            </CardContent>
+          </Card>
         )}
 
         {/* Trade History */}

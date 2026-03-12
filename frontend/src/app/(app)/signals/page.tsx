@@ -4,7 +4,7 @@
 
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { AppHeader } from "@/components/layout/app-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +26,7 @@ import { useProfile } from "@/hooks/use-profile";
 import { inferRegime } from "@/lib/types";
 import { DEFAULT_ASSETS, FREE_ASSETS, TIER_LIMITS } from "@/lib/constants";
 import { useToast } from "@/components/ui/toast";
+import { useSignalAlerts } from "@/hooks/use-signal-alerts";
 import {
   AlertTriangle,
   Radio,
@@ -48,7 +49,13 @@ export default function SignalsPage() {
   const { prices, binanceConnected, wsConnected } = usePrices(5000);
   const { toast } = useToast();
   const { tier, isPro } = useProfile();
+  const { checkSignals } = useSignalAlerts();
   const limits = TIER_LIMITS[tier];
+
+  // Notify on high-confidence signals
+  useEffect(() => {
+    if (allSignals.length > 0) checkSignals(allSignals);
+  }, [allSignals, checkSignals]);
 
   // Filter signals by tier
   const signals = useMemo(

@@ -570,6 +570,28 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 
 ---
 
+## ✅ ABGESCHLOSSEN: Signal-Alerts + Watchlist + Equity Curve
+
+### Erstellt:
+- **Signal-Alerts** (`use-signal-alerts.ts`): Automatische Browser-Benachrichtigungen bei High-Confidence Signals
+  - Threshold: ≥70% Confidence → Browser Notification
+  - Cooldown: 1 Minute pro Asset (kein Spam)
+  - Integriert in Signals-Seite — läuft automatisch im Hintergrund
+- **Watchlist** (`components/dashboard/watchlist.tsx`): Anpassbare Asset-Favoriten auf dem Dashboard
+  - Default: BTC, ETH, SOL — erweiterbar über Edit-Modus
+  - Live-Preise mit Trend-Indikator (grün/rot Pfeile + %-Change)
+  - Signal-Badges zeigen aktuelle JARVIS-Signale pro Asset
+  - localStorage-Persistenz
+  - Integriert im Dashboard neben den Stats
+- **Equity Curve** (`components/chart/equity-curve.tsx`): SVG Portfolio-Performance-Chart
+  - Zeigt Equity-Verlauf basierend auf geschlossenen Trades
+  - Grün bei Gewinn, Rot bei Verlust, mit Datenpunkten pro Trade
+  - Y-Achse mit Grid, Start/End Labels
+  - Integriert auf Portfolio-Seite (ab 2+ geschlossenen Trades sichtbar)
+- Build: 0 Errors, **18 Routes** + Middleware
+
+---
+
 ## 🔜 NÄCHSTER SCHRITT
 
 ### Sofort (ohne Code):
@@ -582,10 +604,10 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 2. Stripe Integration (Subscriptions, Checkout)
 3. Capacitor.js (PWA → App Store)
 4. Community Features (Leaderboards, v0.2)
-5. Notification System: Signal-Alerts (bei neuen High-Confidence Signals)
-6. Watchlist: Custom Asset-Listen mit Favoriten
+5. Social Trading: Top-Trader folgen
+6. Multi-Timeframe Chart mit echten OHLC-Daten
 
 ---
 
-*CLAUDE.md — Version 8.4.0 | März 2026*
+*CLAUDE.md — Version 8.5.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*
