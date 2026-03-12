@@ -2,8 +2,9 @@
 // src/hooks/use-prices.ts — Live prices via Binance WebSocket + REST fallback
 //
 // Crypto (BTC, ETH, SOL): Real-time via Binance WebSocket combined stream.
-// Non-crypto: Synthetic random-walk prices updated on an interval.
+// Non-crypto: Synthetic random-walk prices updated every 1 second.
 // Falls back to REST polling if WebSocket fails.
+// Visibility API: reconnects when tab becomes visible again.
 // =============================================================================
 
 "use client";
@@ -62,9 +63,12 @@ function syntheticPrices(
   const prices: Record<string, number> = {};
   for (const [symbol, base] of Object.entries(FALLBACK_BASE)) {
     const current = prev[symbol] ?? base;
-    const pctMove = (Math.random() * 0.0004 + 0.0001) * (Math.random() > 0.5 ? 1 : -1);
-    const reversion = (base - current) / base * 0.0002;
-    prices[symbol] = parseFloat((current * (1 + pctMove + reversion)).toFixed(2));
+    const pctMove =
+      (Math.random() * 0.0004 + 0.0001) * (Math.random() > 0.5 ? 1 : -1);
+    const reversion = ((base - current) / base) * 0.0002;
+    prices[symbol] = parseFloat(
+      (current * (1 + pctMove + reversion)).toFixed(2)
+    );
   }
   return prices;
 }
@@ -82,9 +86,9 @@ export function usePrices(intervalMs: number = 5000) {
   const prevRef = useRef(prices);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout>>();
-  const reconnectAttempts = useRef(0);
+  const mountedRef = useRef(true);
 
-  // Update synthetic prices every 1 second (stock tick simulation)
+  // --- Synthetic prices every 1s ---
   useEffect(() => {
     const id = setInterval(() => {
       const synthetic = syntheticPrices(prevRef.current);
@@ -94,9 +98,29 @@ export function usePrices(intervalMs: number = 5000) {
     return () => clearInterval(id);
   }, []);
 
-  // Binance WebSocket for real-time crypto prices
+  // --- WebSocket connection ---
+  const closeWs = useCallback(() => {
+    if (reconnectTimer.current) {
+      clearTimeout(reconnectTimer.current);
+      reconnectTimer.current = undefined;
+    }
+    if (wsRef.current) {
+      // Remove onclose to prevent reconnect during cleanup
+      wsRef.current.onclose = null;
+      wsRef.current.onerror = null;
+      wsRef.current.onmessage = null;
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    setWsConnected(false);
+  }, []);
+
   const connectWs = useCallback(() => {
+    if (!mountedRef.current) return;
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
+
+    // Clean up any existing connection first
+    closeWs();
 
     try {
       const streams = Object.values(BINANCE_SYMBOLS)
@@ -107,20 +131,24 @@ export function usePrices(intervalMs: number = 5000) {
       );
 
       ws.onopen = () => {
+        if (!mountedRef.current) {
+          ws.close();
+          return;
+        }
         setWsConnected(true);
         setBinanceConnected(true);
-        reconnectAttempts.current = 0;
+        reconnectTimer.current = undefined;
       };
 
       ws.onmessage = (event) => {
+        if (!mountedRef.current) return;
         try {
           const msg = JSON.parse(event.data);
-          // Combined stream format: { stream: "btcusdt@miniTicker", data: { s: "BTCUSDT", c: "65000.00" } }
           const data = msg.data;
           if (!data?.s) return;
           const symbol = REVERSE_BINANCE[data.s.toLowerCase()];
           if (!symbol) return;
-          const price = parseFloat(data.c); // "c" = close price in miniTicker
+          const price = parseFloat(data.c);
           if (isNaN(price)) return;
 
           prevRef.current = { ...prevRef.current, [symbol]: price };
@@ -131,14 +159,15 @@ export function usePrices(intervalMs: number = 5000) {
       };
 
       ws.onclose = () => {
+        if (!mountedRef.current) return;
         setWsConnected(false);
         wsRef.current = null;
         // Reconnect with backoff
-        const delay = Math.min(1000 * 2 ** reconnectAttempts.current, 30000);
-        reconnectAttempts.current++;
-        if (reconnectAttempts.current <= 10) {
-          reconnectTimer.current = setTimeout(connectWs, delay);
-        }
+        const attempts = reconnectTimer.current ? 1 : 0;
+        const delay = Math.min(1000 * 2 ** attempts, 30000);
+        reconnectTimer.current = setTimeout(() => {
+          if (mountedRef.current) connectWs();
+        }, delay);
       };
 
       ws.onerror = () => {
@@ -147,25 +176,28 @@ export function usePrices(intervalMs: number = 5000) {
 
       wsRef.current = ws;
     } catch {
-      // WebSocket not available, fall back to REST
       setWsConnected(false);
     }
-  }, []);
+  }, [closeWs]);
 
-  // REST fallback: fetch once on mount and as fallback
+  // --- REST fallback ---
   const fetchRest = useCallback(async () => {
+    if (!mountedRef.current) return;
     try {
       const binance = await fetchBinancePrices();
+      if (!mountedRef.current) return;
       setBinanceConnected(true);
       prevRef.current = { ...prevRef.current, ...binance };
       setPrices((p) => ({ ...p, ...binance }));
     } catch {
-      setBinanceConnected(false);
+      if (mountedRef.current) setBinanceConnected(false);
     }
   }, []);
 
+  // --- Main effect: connect on mount, clean on unmount ---
   useEffect(() => {
-    // Try WebSocket first, REST as initial data
+    mountedRef.current = true;
+
     fetchRest();
     connectWs();
 
@@ -177,14 +209,28 @@ export function usePrices(intervalMs: number = 5000) {
     }, intervalMs);
 
     return () => {
+      mountedRef.current = false;
       clearInterval(restFallbackId);
-      if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
+      closeWs();
+    };
+  }, [connectWs, fetchRest, closeWs, intervalMs]);
+
+  // --- Visibility API: reconnect when tab becomes visible ---
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible" && mountedRef.current) {
+        // Reconnect WS if not connected
+        if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+          connectWs();
+        }
+        // Refresh REST prices immediately
+        fetchRest();
       }
     };
-  }, [connectWs, fetchRest, intervalMs]);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibility);
+  }, [connectWs, fetchRest]);
 
   return { prices, binanceConnected, wsConnected };
 }

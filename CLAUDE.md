@@ -738,6 +738,11 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
   - WS-Preis wird im Dashboard angezeigt (wsPrice state)
   - Feed-Status zeigt korrekt: "WS Live" / "REST" / "Live Sim"
 - **use-prices.ts**: Synthetic Prices jetzt jede 1s statt 5s (Random Walk ±0.01-0.05%)
+- **WebSocket Lifecycle Fix** (alle 3 Hooks):
+  - `mountedRef` verhindert State-Updates und Reconnect auf unmounted Componenten
+  - `closeWs()` entfernt alle Event-Handler VOR `.close()` → kein orphaned Reconnect-Timer
+  - Visibility API: Tab wird sichtbar → WS reconnect + REST refetch + Klines reload
+  - Navigation Dashboard→Signals→zurück: Preise aktualisieren sich sofort wieder
 - Build: 0 Errors, **26 Routes** + Middleware
 
 ---
@@ -760,5 +765,5 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 
 ---
 
-*CLAUDE.md — Version 9.2.0 | März 2026*
+*CLAUDE.md — Version 9.3.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*

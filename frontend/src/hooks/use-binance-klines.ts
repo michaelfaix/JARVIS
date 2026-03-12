@@ -1,10 +1,12 @@
 // =============================================================================
 // src/hooks/use-binance-klines.ts — Fetch real OHLC klines from Binance
+//
+// Visibility API: refetches when tab becomes visible again.
 // =============================================================================
 
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const BINANCE_SYMBOLS: Record<string, string> = {
   BTC: "BTCUSDT",
@@ -34,13 +36,13 @@ const INTERVAL_MAP: Record<string, string> = {
 
 // Sensible candle counts per timeframe
 const LIMIT_MAP: Record<string, number> = {
-  "1m": 60,   // last hour
-  "5m": 72,   // last 6 hours
-  "15m": 96,  // last 24 hours
-  "1h": 90,   // last ~4 days
-  "4h": 90,   // last ~15 days
-  "1d": 90,   // last 90 days
-  "1w": 52,   // last year
+  "1m": 60, // last hour
+  "5m": 72, // last 6 hours
+  "15m": 96, // last 24 hours
+  "1h": 90, // last ~4 days
+  "4h": 90, // last ~15 days
+  "1d": 90, // last 90 days
+  "1w": 52, // last year
 };
 
 export function useBinanceKlines(
@@ -51,6 +53,7 @@ export function useBinanceKlines(
   const [klines, setKlines] = useState<Kline[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
 
   const isCrypto = symbol in BINANCE_SYMBOLS;
   const binanceInterval = INTERVAL_MAP[interval] ?? "1d";
@@ -75,7 +78,6 @@ export function useBinanceKlines(
 
       const parsed: Kline[] = data.map((k) => {
         const openTime = k[0] as number;
-        // Unix timestamp in seconds (lightweight-charts UTCTimestamp)
         const time = Math.floor(openTime / 1000);
 
         return {
@@ -88,18 +90,44 @@ export function useBinanceKlines(
         };
       });
 
-      setKlines(parsed);
+      if (mountedRef.current) {
+        setKlines(parsed);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch klines");
-      setKlines([]);
+      if (mountedRef.current) {
+        setError(
+          err instanceof Error ? err.message : "Failed to fetch klines"
+        );
+        setKlines([]);
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [symbol, binanceInterval, effectiveLimit, isCrypto]);
 
+  // Fetch on mount and when params change
   useEffect(() => {
+    mountedRef.current = true;
     fetch_();
+    return () => {
+      mountedRef.current = false;
+    };
   }, [fetch_]);
+
+  // Visibility API: refetch when tab becomes visible
+  useEffect(() => {
+    if (!isCrypto) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible" && mountedRef.current) {
+        fetch_();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibility);
+  }, [fetch_, isCrypto]);
 
   return { klines, loading, error, isCrypto, refetch: fetch_ };
 }

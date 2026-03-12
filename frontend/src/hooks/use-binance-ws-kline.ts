@@ -4,6 +4,7 @@
 // Subscribes to wss://stream.binance.com/ws/<symbol>@kline_<interval>
 // Returns the latest tick (price + OHLCV of the current forming candle).
 // Only active for crypto assets (BTC, ETH, SOL).
+// Visibility API: reconnects when tab becomes visible again.
 // =============================================================================
 
 "use client";
@@ -17,11 +18,11 @@ const BINANCE_SYMBOLS: Record<string, string> = {
 };
 
 export interface LiveKlineTick {
-  time: number;      // candle open time (unix seconds)
+  time: number; // candle open time (unix seconds)
   open: number;
   high: number;
   low: number;
-  close: number;     // current price
+  close: number; // current price
   volume: number;
   isClosed: boolean; // true when the candle has finalized
 }
@@ -31,14 +32,32 @@ export function useBinanceWsKline(symbol: string, interval: string = "1d") {
   const [connected, setConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout>>();
-  const reconnectAttempts = useRef(0);
+  const mountedRef = useRef(true);
 
   const isCrypto = symbol in BINANCE_SYMBOLS;
   const binanceSymbol = BINANCE_SYMBOLS[symbol];
 
+  const closeWs = useCallback(() => {
+    if (reconnectTimer.current) {
+      clearTimeout(reconnectTimer.current);
+      reconnectTimer.current = undefined;
+    }
+    if (wsRef.current) {
+      wsRef.current.onclose = null;
+      wsRef.current.onerror = null;
+      wsRef.current.onmessage = null;
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    setConnected(false);
+  }, []);
+
   const connect = useCallback(() => {
+    if (!mountedRef.current) return;
     if (!isCrypto || !binanceSymbol) return;
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
+
+    closeWs();
 
     try {
       const ws = new WebSocket(
@@ -46,11 +65,15 @@ export function useBinanceWsKline(symbol: string, interval: string = "1d") {
       );
 
       ws.onopen = () => {
+        if (!mountedRef.current) {
+          ws.close();
+          return;
+        }
         setConnected(true);
-        reconnectAttempts.current = 0;
       };
 
       ws.onmessage = (event) => {
+        if (!mountedRef.current) return;
         try {
           const msg = JSON.parse(event.data);
           const k = msg.k;
@@ -71,13 +94,14 @@ export function useBinanceWsKline(symbol: string, interval: string = "1d") {
       };
 
       ws.onclose = () => {
+        if (!mountedRef.current) return;
         setConnected(false);
         wsRef.current = null;
-        const delay = Math.min(1000 * 2 ** reconnectAttempts.current, 30000);
-        reconnectAttempts.current++;
-        if (reconnectAttempts.current <= 10) {
-          reconnectTimer.current = setTimeout(connect, delay);
-        }
+        // Reconnect with backoff
+        const delay = Math.min(2000, 30000);
+        reconnectTimer.current = setTimeout(() => {
+          if (mountedRef.current) connect();
+        }, delay);
       };
 
       ws.onerror = () => {
@@ -88,21 +112,33 @@ export function useBinanceWsKline(symbol: string, interval: string = "1d") {
     } catch {
       setConnected(false);
     }
-  }, [isCrypto, binanceSymbol, interval]);
+  }, [isCrypto, binanceSymbol, interval, closeWs]);
 
+  // Main effect: connect on mount, clean on unmount
   useEffect(() => {
+    mountedRef.current = true;
     connect();
     return () => {
-      if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
+      mountedRef.current = false;
+      closeWs();
       setTick(null);
-      setConnected(false);
-      reconnectAttempts.current = 0;
     };
-  }, [connect]);
+  }, [connect, closeWs]);
+
+  // Visibility API: reconnect when tab becomes visible
+  useEffect(() => {
+    if (!isCrypto) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible" && mountedRef.current) {
+        if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+          connect();
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibility);
+  }, [connect, isCrypto]);
 
   return { tick, connected, isCrypto };
 }
