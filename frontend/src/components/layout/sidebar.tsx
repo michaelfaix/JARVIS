@@ -17,9 +17,12 @@ import {
   Settings,
   ChevronsLeft,
   ChevronsRight,
+  LogOut,
+  User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/hooks/use-auth";
 
 const NAV_ITEMS = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/" },
@@ -42,6 +45,7 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed, onToggle, connected, mobile, mobileOpen }: SidebarProps) {
   const pathname = usePathname();
+  const { user, signOut } = useAuth();
 
   // On mobile: hidden by default, slides in when open
   if (mobile && !mobileOpen) return null;
@@ -94,6 +98,35 @@ export function Sidebar({ collapsed, onToggle, connected, mobile, mobileOpen }: 
           );
         })}
       </nav>
+
+      <Separator className="opacity-50" />
+
+      {/* User section */}
+      {user && (
+        <div className="px-3 py-2">
+          <div className="flex items-center gap-2 rounded-lg px-2 py-2">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600/20 text-blue-400">
+              <User className="h-3.5 w-3.5" />
+            </div>
+            {!collapsed && (
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-xs font-medium text-white">
+                  {user.email}
+                </div>
+              </div>
+            )}
+          </div>
+          <button
+            onClick={signOut}
+            className={cn(
+              "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-red-500/10 hover:text-red-400 transition-colors",
+            )}
+          >
+            <LogOut className="h-4 w-4 shrink-0" />
+            {!collapsed && <span>Sign Out</span>}
+          </button>
+        </div>
+      )}
 
       <Separator className="opacity-50" />
 

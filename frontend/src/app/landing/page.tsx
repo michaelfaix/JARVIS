@@ -226,7 +226,7 @@ export default function LandingPage() {
               Pricing
             </a>
             <Link
-              href="/"
+              href="/login"
               className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
             >
               Open App
@@ -275,10 +275,10 @@ export default function LandingPage() {
               <ArrowRight className="h-4 w-4" />
             </a>
             <Link
-              href="/"
+              href="/register"
               className="flex items-center gap-2 rounded-lg border border-border/50 bg-card/50 px-6 py-3 text-sm font-medium text-muted-foreground hover:text-white hover:border-border transition-all"
             >
-              Try Demo
+              Get Started Free
               <ChevronRight className="h-4 w-4" />
             </Link>
           </div>

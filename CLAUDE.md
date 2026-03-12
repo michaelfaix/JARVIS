@@ -402,16 +402,48 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 
 ---
 
-## 🔜 NÄCHSTER SCHRITT
+## ✅ ABGESCHLOSSEN: Supabase Auth (Phase 2) + Tailwind Fix
 
-### Sofort (ohne Code, diese Woche):
-1. Domain: **jarvis-trader.app** registrieren (~€15)
-2. **Supabase** Account: supabase.com (kostenlos)
-3. **Railway** Account: railway.app (kostenlos)
-4. **Stripe** Account: stripe.com
-5. **Anthropic API Credits** aufladen für AI Chat
+### Erstellt:
+- **Supabase Auth Integration**: Vollständige Authentifizierung mit Email/Passwort + Google OAuth
+  - `@supabase/supabase-js` + `@supabase/ssr` installiert
+  - Supabase Browser-Client (`src/lib/supabase/client.ts`) + Server-Client (`src/lib/supabase/server.ts`)
+  - **Login-Seite** (`/login`): Email/Passwort + Google SSO, Redirect nach Login, Error Handling
+  - **Register-Seite** (`/register`): Email/Passwort + Bestätigungs-Email-Flow + Google SSO
+  - **Auth Layout** (`(auth)/layout.tsx`): Zentriertes Layout ohne Sidebar
+  - **OAuth Callback** (`/auth/callback/route.ts`): Server-seitige Code→Session Exchange
+  - **Auth Hook** (`use-auth.ts`): Reaktiver User-State + Sign-Out Funktion
+  - **Middleware** (`src/middleware.ts`): Route Protection — unauthentifizierte User → `/login`, authentifizierte User weg von `/login`+`/register`
+  - Public Paths: `/landing`, `/login`, `/register`, `/auth`
+  - API-Routes (`/api/*`) nicht von Auth-Middleware blockiert
+- **Sidebar User Section**: User-Email + Sign-Out Button im Sidebar-Footer
+- **Landing Page Update**: CTAs verlinken auf `/login` + `/register` statt interner Navigations
+- **Tailwind CSS Fix**: `<alpha-value>` Platzhalter in allen Custom Colors (`tailwind.config.ts`) — behebt fehlende Styles bei Opacity-Modifiern (`bg-card/30`, `border-border/50`, etc.)
+- **ENV**: `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local` (Platzhalter — Supabase-Projekt erstellen und Keys eintragen)
+- Build: 0 Errors, 13 Routes (11 Pages + 2 API) + Middleware | Backend: 8897 Tests grün
+
+### Setup-Anleitung (Supabase):
+1. Supabase-Projekt erstellen auf https://supabase.com
+2. Project URL + Anon Key kopieren → `.env.local` eintragen
+3. Google OAuth: Supabase Dashboard → Authentication → Providers → Google aktivieren
+4. Redirect-URL in Google Cloud Console: `https://YOUR_PROJECT.supabase.co/auth/v1/callback`
 
 ---
 
-*CLAUDE.md — Version 7.8.0 | März 2026*
+## 🔜 NÄCHSTER SCHRITT
+
+### Sofort (ohne Code):
+1. Domain: **jarvis-trader.app** registrieren (~€15)
+2. **Supabase** Projekt erstellen + Keys in `.env.local` eintragen
+3. **Railway** Account: railway.app (kostenlos)
+4. **Anthropic API Credits** aufladen für AI Chat
+
+### Nächste Code-Features:
+1. Portfolio-Persistenz in Supabase DB (statt nur localStorage)
+2. User Profile + Settings in Supabase
+3. Deployment auf Railway
+
+---
+
+*CLAUDE.md — Version 7.9.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*
