@@ -703,6 +703,32 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 
 ---
 
+## ✅ ABGESCHLOSSEN: Live WebSocket Candles + Signal-Refresh Integration
+
+### Erstellt:
+- **Binance Kline WebSocket** (`hooks/use-binance-ws-kline.ts`): Echtzeit-Candlestick-Updates
+  - Verbindet sich mit `wss://stream.binance.com/ws/<symbol>@kline_<interval>`
+  - Liefert ~1/s Tick-Updates: OHLCV + isClosed Flag
+  - Auto-Reconnect mit Exponential Backoff (max 10 Versuche)
+  - Nur aktiv für Crypto-Assets (BTC, ETH, SOL)
+- **Live Candle Update** (`asset-chart.tsx`):
+  - Letzter Candlestick wächst live mit — `series.update()` statt `setData()`
+  - Volume-Bar aktualisiert sich synchron
+  - Preis-Anzeige im Chart-Header aktualisiert sich sekündlich
+  - WS LIVE / REST DATA Badge zeigt Datenquelle
+  - `onPriceChange` Callback für Parent-Integration
+- **Signal-Refresh bei Preisänderung** (`charts/page.tsx`):
+  - WebSocket-Preise fließen in die Charts-Seite
+  - Debounced Signal-Refresh: `useSignals.refresh()` wird alle 5s getriggert wenn Preis sich ändert
+  - JARVIS `/api/v1/predict` bekommt aktuelle Preise → Signal (LONG/SHORT) aktualisiert sich automatisch
+  - Asset Info Bar zeigt WS-Live-Preis statt REST-Polling-Preis
+- **Timeframe-spezifische Kline-Limits** (`use-binance-klines.ts`):
+  - 1m→60, 5m→72, 15m→96, 1h→90, 4h→90, 1d→90, 1w→52 Candles
+  - Synthetische Daten für Stocks mit unterschiedlichen Mustern pro Timeframe
+- Build: 0 Errors, **26 Routes** + Middleware
+
+---
+
 ## 🔜 NÄCHSTER SCHRITT
 
 ### Sofort (ohne Code):
@@ -721,5 +747,5 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 
 ---
 
-*CLAUDE.md — Version 8.9.0 | März 2026*
+*CLAUDE.md — Version 9.0.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*

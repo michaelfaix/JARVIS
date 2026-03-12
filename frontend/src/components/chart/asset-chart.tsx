@@ -1,17 +1,18 @@
 // =============================================================================
 // src/components/chart/asset-chart.tsx — Multi-Asset Candlestick Chart
 //
-// Crypto (BTC, ETH, SOL): Real Binance OHLC klines.
+// Crypto (BTC, ETH, SOL): Real Binance OHLC klines + live WebSocket candle.
 // Other assets: Synthetic candlestick data.
 // Uses TradingView Lightweight Charts with JARVIS signal overlay markers.
 // =============================================================================
 
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   createChart,
   type IChartApi,
+  type ISeriesApi,
   ColorType,
   type CandlestickData as LWCandlestickData,
   type Time,
@@ -19,13 +20,14 @@ import {
 import type { RegimeState } from "@/lib/types";
 import { REGIME_COLORS } from "@/lib/types";
 import { useBinanceKlines, type Kline } from "@/hooks/use-binance-klines";
+import { useBinanceWsKline } from "@/hooks/use-binance-ws-kline";
 
 // ---------------------------------------------------------------------------
 // Synthetic data generation — for non-crypto assets
 // ---------------------------------------------------------------------------
 
 interface CandlePoint {
-  time: string;
+  time: number; // Unix timestamp in seconds (UTCTimestamp)
   open: number;
   high: number;
   low: number;
@@ -33,7 +35,7 @@ interface CandlePoint {
 }
 
 interface SignalMarker {
-  time: string;
+  time: number;
   position: "aboveBar" | "belowBar";
   color: string;
   shape: "arrowUp" | "arrowDown" | "circle";
@@ -48,43 +50,117 @@ function hashSymbol(symbol: string): number {
   return h;
 }
 
+// Interval → { stepSeconds, count, volMultiplier, trendFreq, noiseFreq }
+const TIMEFRAME_CONFIG: Record<
+  string,
+  {
+    stepSeconds: number;
+    count: number;
+    volMul: number;
+    trendFreq: number;
+    noiseFreq: number;
+  }
+> = {
+  "1m": {
+    stepSeconds: 60,
+    count: 60,
+    volMul: 0.15,
+    trendFreq: 8,
+    noiseFreq: 12,
+  },
+  "5m": {
+    stepSeconds: 300,
+    count: 72,
+    volMul: 0.3,
+    trendFreq: 5,
+    noiseFreq: 8,
+  },
+  "15m": {
+    stepSeconds: 900,
+    count: 96,
+    volMul: 0.5,
+    trendFreq: 3.5,
+    noiseFreq: 5,
+  },
+  "1h": {
+    stepSeconds: 3600,
+    count: 90,
+    volMul: 0.8,
+    trendFreq: 2.5,
+    noiseFreq: 3.5,
+  },
+  "4h": {
+    stepSeconds: 14400,
+    count: 90,
+    volMul: 1.2,
+    trendFreq: 2,
+    noiseFreq: 2,
+  },
+  "1d": {
+    stepSeconds: 86400,
+    count: 90,
+    volMul: 1.0,
+    trendFreq: 1,
+    noiseFreq: 1,
+  },
+  "1w": {
+    stepSeconds: 604800,
+    count: 52,
+    volMul: 1.8,
+    trendFreq: 0.5,
+    noiseFreq: 0.4,
+  },
+};
+
 function generateAssetData(
   symbol: string,
   basePrice: number,
-  days: number
+  interval: string
 ): CandlePoint[] {
+  const cfg = TIMEFRAME_CONFIG[interval] ?? TIMEFRAME_CONFIG["1d"];
   const data: CandlePoint[] = [];
   const seed = hashSymbol(symbol);
-  const now = new Date();
+  const nowSec = Math.floor(Date.now() / 1000);
+  const alignedNow = nowSec - (nowSec % cfg.stepSeconds);
 
-  for (let i = days; i >= 0; i--) {
-    const date = new Date(now);
-    date.setDate(date.getDate() - i);
-    const dateStr = date.toISOString().split("T")[0];
+  for (let i = cfg.count; i >= 0; i--) {
+    const timestamp = alignedNow - i * cfg.stepSeconds;
+    const idx = cfg.count - i;
+    const t = idx / cfg.count;
 
-    const t = (days - i) / days;
-    const trend = Math.sin(t * Math.PI * 2 + seed * 0.1) * basePrice * 0.05;
+    const trend =
+      Math.sin(t * Math.PI * cfg.trendFreq + seed * 0.1) *
+      basePrice *
+      0.05 *
+      cfg.volMul;
     const noise =
-      Math.sin((days - i) * 0.7 + seed) * basePrice * 0.012 +
-      Math.cos((days - i) * 1.3 + seed * 0.5) * basePrice * 0.006;
+      Math.sin(idx * 0.7 * cfg.noiseFreq + seed) *
+        basePrice *
+        0.012 *
+        cfg.volMul +
+      Math.cos(idx * 1.3 * cfg.noiseFreq + seed * 0.5) *
+        basePrice *
+        0.006 *
+        cfg.volMul;
     const price = basePrice + trend + noise;
 
-    const volScale = basePrice * 0.008;
+    const volScale = basePrice * 0.008 * cfg.volMul;
     const volatility =
-      volScale + Math.abs(Math.sin((days - i) * 0.3 + seed)) * volScale * 3;
+      volScale +
+      Math.abs(Math.sin(idx * 0.3 * cfg.noiseFreq + seed)) * volScale * 3;
     const open =
-      price + Math.sin((days - i) * 2.1 + seed) * volatility * 0.3;
+      price + Math.sin(idx * 2.1 * cfg.noiseFreq + seed) * volatility * 0.3;
     const close =
-      price + Math.cos((days - i) * 1.7 + seed) * volatility * 0.3;
+      price + Math.cos(idx * 1.7 * cfg.noiseFreq + seed) * volatility * 0.3;
     const high =
       Math.max(open, close) +
-      Math.abs(Math.sin((days - i) * 3.1 + seed)) * volatility * 0.5;
+      Math.abs(Math.sin(idx * 3.1 * cfg.noiseFreq + seed)) * volatility * 0.5;
     const low =
       Math.min(open, close) -
-      Math.abs(Math.cos((days - i) * 2.7 + seed)) * volatility * 0.5;
+      Math.abs(Math.cos(idx * 2.7 * cfg.noiseFreq + seed)) * volatility * 0.5;
 
     data.push({
-      time: dateStr,
+      time: timestamp,
       open: Math.round(open * 100) / 100,
       high: Math.round(high * 100) / 100,
       low: Math.round(low * 100) / 100,
@@ -141,10 +217,16 @@ function generateSignalMarkers(
   return markers;
 }
 
-function generateVolumeData(data: CandlePoint[], seed: number, klines?: Kline[]) {
+function generateVolumeData(
+  data: CandlePoint[],
+  seed: number,
+  klines?: Kline[]
+) {
   return data.map((candle, i) => ({
     time: candle.time,
-    value: klines?.[i]?.volume ?? 1000000 + Math.abs(Math.sin(i * 0.5 + seed)) * 5000000,
+    value:
+      klines?.[i]?.volume ??
+      1000000 + Math.abs(Math.sin(i * 0.5 + seed)) * 5000000,
     color:
       candle.close >= candle.open
         ? "rgba(34, 197, 94, 0.3)"
@@ -164,6 +246,7 @@ interface AssetChartProps {
   regime?: RegimeState;
   height?: number;
   interval?: string;
+  onPriceChange?: (price: number) => void;
 }
 
 export function AssetChart({
@@ -174,22 +257,35 @@ export function AssetChart({
   regime = "RISK_ON",
   height = 400,
   interval = "1d",
+  onPriceChange,
 }: AssetChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
+  const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
   const [lastPrice, setLastPrice] = useState<number>(0);
   const [priceChange, setPriceChange] = useState<number>(0);
+  const [wsLive, setWsLive] = useState(false);
+
+  // Stable ref for the onPriceChange callback
+  const onPriceChangeRef = useRef(onPriceChange);
+  onPriceChangeRef.current = onPriceChange;
+
+  // Keep track of previous close for % change
+  const prevCloseRef = useRef<number>(0);
 
   const seed = hashSymbol(symbol);
-  const { klines, isCrypto } = useBinanceKlines(symbol, interval, 90);
+  const { klines, isCrypto } = useBinanceKlines(symbol, interval);
 
-  const initChart = useCallback(() => {
+  // Binance kline WebSocket — live candle updates for crypto
+  const { tick, connected: wsKlineConnected } = useBinanceWsKline(
+    symbol,
+    interval
+  );
+
+  // Effect 1: Create the chart instance once
+  useEffect(() => {
     if (!containerRef.current) return;
-
-    if (chartRef.current) {
-      chartRef.current.remove();
-      chartRef.current = null;
-    }
 
     const chart = createChart(containerRef.current, {
       layout: {
@@ -226,48 +322,16 @@ export function AssetChart({
       wickUpColor: "#22c55e",
       wickDownColor: "#ef4444",
     });
-
-    // Use real klines for crypto, synthetic for others
-    const assetData =
-      isCrypto && klines.length > 0
-        ? klinesToCandles(klines)
-        : generateAssetData(symbol, basePrice, 90);
-
-    candleSeries.setData(assetData as unknown as LWCandlestickData<Time>[]);
-
-    const markers = generateSignalMarkers(assetData, regime, seed);
-    candleSeries.setMarkers(
-      markers.map((m) => ({ ...m, time: m.time as Time }))
-    );
+    candleSeriesRef.current = candleSeries;
 
     const volumeSeries = chart.addHistogramSeries({
       priceFormat: { type: "volume" },
       priceScaleId: "volume",
     });
-
     chart.priceScale("volume").applyOptions({
       scaleMargins: { top: 0.8, bottom: 0 },
     });
-
-    const volumeData = generateVolumeData(
-      assetData,
-      seed,
-      isCrypto && klines.length > 0 ? klines : undefined
-    );
-    volumeSeries.setData(
-      volumeData as unknown as { time: Time; value: number; color: string }[]
-    );
-
-    const last = assetData[assetData.length - 1];
-    const prev = assetData.length > 1 ? assetData[assetData.length - 2] : last;
-    setLastPrice(livePrice ?? last.close);
-    setPriceChange(((last.close - prev.close) / prev.close) * 100);
-
-    chart.timeScale().fitContent();
-  }, [symbol, basePrice, height, regime, seed, livePrice, klines, isCrypto, interval]);
-
-  useEffect(() => {
-    initChart();
+    volumeSeriesRef.current = volumeSeries;
 
     const handleResize = () => {
       if (chartRef.current && containerRef.current) {
@@ -276,16 +340,93 @@ export function AssetChart({
         });
       }
     };
-
     window.addEventListener("resize", handleResize);
+
     return () => {
       window.removeEventListener("resize", handleResize);
-      if (chartRef.current) {
-        chartRef.current.remove();
-        chartRef.current = null;
-      }
+      chart.remove();
+      chartRef.current = null;
+      candleSeriesRef.current = null;
+      volumeSeriesRef.current = null;
     };
-  }, [initChart]);
+  }, [symbol, interval, height]);
+
+  // Effect 2: Load initial chart data when klines arrive
+  useEffect(() => {
+    if (!candleSeriesRef.current || !volumeSeriesRef.current) return;
+
+    const assetData =
+      isCrypto && klines.length > 0
+        ? klinesToCandles(klines)
+        : generateAssetData(symbol, basePrice, interval);
+
+    candleSeriesRef.current.setData(
+      assetData as unknown as LWCandlestickData<Time>[]
+    );
+
+    const markers = generateSignalMarkers(assetData, regime, seed);
+    candleSeriesRef.current.setMarkers(
+      markers.map((m) => ({ ...m, time: m.time as Time }))
+    );
+
+    const volumeData = generateVolumeData(
+      assetData,
+      seed,
+      isCrypto && klines.length > 0 ? klines : undefined
+    );
+    volumeSeriesRef.current.setData(
+      volumeData as unknown as { time: Time; value: number; color: string }[]
+    );
+
+    // Store previous close for % change
+    const last = assetData[assetData.length - 1];
+    const prev = assetData.length > 1 ? assetData[assetData.length - 2] : last;
+    prevCloseRef.current = prev.close;
+    setLastPrice(last.close);
+    setPriceChange(((last.close - prev.close) / prev.close) * 100);
+
+    if (chartRef.current) {
+      chartRef.current.timeScale().fitContent();
+    }
+  }, [klines, isCrypto, symbol, basePrice, regime, seed, interval]);
+
+  // Effect 3: Live candle update from WebSocket tick (crypto only)
+  useEffect(() => {
+    if (!tick || !candleSeriesRef.current || !volumeSeriesRef.current) return;
+
+    setWsLive(wsKlineConnected);
+
+    // Update the last (forming) candle in-place
+    const liveCandle: LWCandlestickData<Time> = {
+      time: tick.time as Time,
+      open: tick.open,
+      high: tick.high,
+      low: tick.low,
+      close: tick.close,
+    };
+    candleSeriesRef.current.update(liveCandle);
+
+    // Update volume bar for the live candle
+    volumeSeriesRef.current.update({
+      time: tick.time as Time,
+      value: tick.volume,
+      color:
+        tick.close >= tick.open
+          ? "rgba(34, 197, 94, 0.3)"
+          : "rgba(239, 68, 68, 0.3)",
+    } as { time: Time; value: number; color: string });
+
+    // Update price display
+    setLastPrice(tick.close);
+    if (prevCloseRef.current > 0) {
+      setPriceChange(
+        ((tick.close - prevCloseRef.current) / prevCloseRef.current) * 100
+      );
+    }
+
+    // Notify parent of price change
+    onPriceChangeRef.current?.(tick.close);
+  }, [tick, wsKlineConnected]);
 
   const displayPrice = livePrice ?? lastPrice;
   const isPositive = priceChange >= 0;
@@ -294,13 +435,17 @@ export function AssetChart({
     <div className="w-full">
       {/* Price Header */}
       <div className="flex items-baseline gap-4 mb-4">
-        <h2 className="text-2xl font-bold text-white">
-          {symbol}/USD
-        </h2>
+        <h2 className="text-2xl font-bold text-white">{symbol}/USD</h2>
         <span className="text-xs text-muted-foreground">{name}</span>
-        {isCrypto && klines.length > 0 && (
-          <span className="text-[10px] text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded">
-            LIVE DATA
+        {isCrypto && (wsLive || klines.length > 0) && (
+          <span
+            className={`text-[10px] px-1.5 py-0.5 rounded ${
+              wsLive
+                ? "text-green-400 bg-green-500/10"
+                : "text-blue-400 bg-blue-500/10"
+            }`}
+          >
+            {wsLive ? "WS LIVE" : "REST DATA"}
           </span>
         )}
         <span className="text-3xl font-mono font-bold text-white">

@@ -13,7 +13,7 @@ const BINANCE_SYMBOLS: Record<string, string> = {
 };
 
 export interface Kline {
-  time: string; // YYYY-MM-DD or YYYY-MM-DDTHH:mm
+  time: number; // Unix timestamp in seconds (UTCTimestamp for lightweight-charts)
   open: number;
   high: number;
   low: number;
@@ -32,10 +32,21 @@ const INTERVAL_MAP: Record<string, string> = {
   "1w": "1w",
 };
 
+// Sensible candle counts per timeframe
+const LIMIT_MAP: Record<string, number> = {
+  "1m": 60,   // last hour
+  "5m": 72,   // last 6 hours
+  "15m": 96,  // last 24 hours
+  "1h": 90,   // last ~4 days
+  "4h": 90,   // last ~15 days
+  "1d": 90,   // last 90 days
+  "1w": 52,   // last year
+};
+
 export function useBinanceKlines(
   symbol: string,
   interval: string = "1d",
-  limit: number = 90
+  limit?: number
 ) {
   const [klines, setKlines] = useState<Kline[]>([]);
   const [loading, setLoading] = useState(false);
@@ -43,6 +54,7 @@ export function useBinanceKlines(
 
   const isCrypto = symbol in BINANCE_SYMBOLS;
   const binanceInterval = INTERVAL_MAP[interval] ?? "1d";
+  const effectiveLimit = limit ?? LIMIT_MAP[interval] ?? 90;
 
   const fetch_ = useCallback(async () => {
     if (!isCrypto) {
@@ -55,7 +67,7 @@ export function useBinanceKlines(
 
     try {
       const binanceSymbol = BINANCE_SYMBOLS[symbol];
-      const url = `https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=${binanceInterval}&limit=${limit}`;
+      const url = `https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=${binanceInterval}&limit=${effectiveLimit}`;
       const res = await globalThis.fetch(url);
       if (!res.ok) throw new Error(`Binance ${res.status}`);
 
@@ -63,12 +75,8 @@ export function useBinanceKlines(
 
       const parsed: Kline[] = data.map((k) => {
         const openTime = k[0] as number;
-        const d = new Date(openTime);
-        // For daily/weekly use YYYY-MM-DD, for intraday use ISO
-        const isIntraday = ["1m", "5m", "15m", "1h", "4h"].includes(binanceInterval);
-        const time = isIntraday
-          ? d.toISOString().slice(0, 16) // YYYY-MM-DDTHH:mm
-          : d.toISOString().split("T")[0]; // YYYY-MM-DD
+        // Unix timestamp in seconds (lightweight-charts UTCTimestamp)
+        const time = Math.floor(openTime / 1000);
 
         return {
           time,
@@ -87,7 +95,7 @@ export function useBinanceKlines(
     } finally {
       setLoading(false);
     }
-  }, [symbol, binanceInterval, limit, isCrypto]);
+  }, [symbol, binanceInterval, effectiveLimit, isCrypto]);
 
   useEffect(() => {
     fetch_();
