@@ -18,7 +18,7 @@ import { useMetrics, useSystemStatus } from "@/hooks/use-jarvis";
 import { useSignals } from "@/hooks/use-signals";
 import { usePortfolio } from "@/hooks/use-portfolio";
 import { usePrices } from "@/hooks/use-prices";
-import { useWebSocket } from "@/hooks/use-websocket";
+// useWebSocket for backend stream (optional)
 import { inferRegime, type RegimeState } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -47,13 +47,11 @@ export default function DashboardPage() {
   const { signals } = useSignals(regime, 10000);
   const { state: portfolio, unrealizedPnl, totalValue, winRate, drawdown } =
     usePortfolio();
-  const { prices } = usePrices(5000);
+  const { prices, wsConnected } = usePrices(5000);
   const [selectedAsset, setSelectedAsset] = useState(0);
   const [timeframeIdx, setTimeframeIdx] = useState(4); // default: 4H Combined
 
-  // WebSocket connection to backend stream for the selected asset
   const asset = CHART_ASSETS[selectedAsset];
-  const { status: wsStatus } = useWebSocket(asset.symbol);
 
   const totalPnl = portfolio.realizedPnl + unrealizedPnl;
   const topSignals = [...signals]
@@ -115,23 +113,17 @@ export default function DashboardPage() {
                 <Badge variant="outline" className="text-[10px]">
                   {TIMEFRAMES[timeframeIdx].label} / {TIMEFRAMES[timeframeIdx].strategyLabel}
                 </Badge>
-                {/* WebSocket Status */}
+                {/* Price Feed Status */}
                 <div className="flex items-center gap-1.5">
                   <Zap
                     className={`h-3 w-3 ${
-                      wsStatus === "connected"
+                      wsConnected
                         ? "text-green-400"
-                        : wsStatus === "connecting"
-                        ? "text-yellow-400"
-                        : "text-muted-foreground"
+                        : "text-yellow-400"
                     }`}
                   />
                   <span className="text-[10px]">
-                    {wsStatus === "connected"
-                      ? "WS Live"
-                      : wsStatus === "connecting"
-                      ? "Connecting..."
-                      : "WS Offline"}
+                    {wsConnected ? "WS Live" : "REST Polling"}
                   </span>
                 </div>
               </div>

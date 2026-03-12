@@ -547,6 +547,29 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 
 ---
 
+## ✅ ABGESCHLOSSEN: Binance WebSocket Live-Prices + Price Alert System
+
+### Erstellt:
+- **Binance WebSocket Live-Stream** (`use-prices.ts`): Echtzeit-Preise via WebSocket
+  - Verbindet sich mit `wss://stream.binance.com:9443/stream` (Combined Stream)
+  - Streams: `btcusdt@miniTicker`, `ethusdt@miniTicker`, `solusdt@miniTicker`
+  - Auto-Reconnect mit Exponential Backoff (max 10 Versuche, max 30s Delay)
+  - REST-Polling als Fallback wenn WebSocket fehlschlägt
+  - Synthetische Preise für Nicht-Crypto-Assets unverändert
+  - Neues Return-Feld: `wsConnected` zeigt WebSocket-Status
+  - Dashboard + Signals zeigen "WS Live" / "REST Polling" / "Synthetic" Status
+- **Price Alert System** (`use-alerts.ts` + `/alerts` Seite):
+  - Alerts erstellen: Asset + Condition (above/below) + Zielpreis
+  - Echtzeit-Prüfung gegen Live-Preise (WebSocket-Speed für Crypto)
+  - **Browser Notifications**: Nativer Notification API Support mit Permission-Request
+  - Triggered Alerts mit Zeitstempel, Clear-Funktion
+  - localStorage-Persistenz für Alerts
+  - Neue Seite `/alerts` mit Create-Form, Active Alerts (mit Distanz-Anzeige), Triggered History
+- **Sidebar Update**: Neuer Nav-Item "Price Alerts" mit BellRing-Icon (9 → 10 Nav-Items)
+- Build: 0 Errors, **18 Routes** (14 App + 4 Legal + 2 API) + Middleware
+
+---
+
 ## 🔜 NÄCHSTER SCHRITT
 
 ### Sofort (ohne Code):
@@ -557,12 +580,12 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 ### Nächste Code-Features (Post-MVP):
 1. Deployment auf Railway (Frontend + Backend)
 2. Stripe Integration (Subscriptions, Checkout)
-3. Binance WebSocket Live-Stream für Charts (statt REST Polling)
-4. Notification System (Preis-Alerts, Signal-Alerts)
-5. Capacitor.js (PWA → App Store)
-6. Community Features (Leaderboards, v0.2)
+3. Capacitor.js (PWA → App Store)
+4. Community Features (Leaderboards, v0.2)
+5. Notification System: Signal-Alerts (bei neuen High-Confidence Signals)
+6. Watchlist: Custom Asset-Listen mit Favoriten
 
 ---
 
-*CLAUDE.md — Version 8.3.0 | März 2026*
+*CLAUDE.md — Version 8.4.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*

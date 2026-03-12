@@ -14,6 +14,7 @@ import {
   Radar,
   FlaskConical,
   MessageSquare,
+  BellRing,
   Settings,
   ChevronsLeft,
   ChevronsRight,
@@ -32,6 +33,7 @@ const NAV_ITEMS = [
   { label: "Opportunity Radar", icon: Radar, path: "/radar" },
   { label: "Strategy Lab", icon: FlaskConical, path: "/strategy-lab" },
   { label: "AI Chat", icon: MessageSquare, path: "/chat" },
+  { label: "Price Alerts", icon: BellRing, path: "/alerts" },
   { label: "Settings", icon: Settings, path: "/settings" },
 ] as const;
 

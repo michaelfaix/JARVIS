@@ -1,8 +1,9 @@
 // =============================================================================
-// src/hooks/use-prices.ts — Live prices from Binance public API
+// src/hooks/use-prices.ts — Live prices via Binance WebSocket + REST fallback
 //
-// Uses Binance REST API (no API key required) for crypto pairs.
-// Non-crypto assets use synthetic prices with small random walk.
+// Crypto (BTC, ETH, SOL): Real-time via Binance WebSocket combined stream.
+// Non-crypto: Synthetic random-walk prices updated on an interval.
+// Falls back to REST polling if WebSocket fails.
 // =============================================================================
 
 "use client";
@@ -16,6 +17,11 @@ const BINANCE_SYMBOLS: Record<string, string> = {
   ETH: "ETHUSDT",
   SOL: "SOLUSDT",
 };
+
+const REVERSE_BINANCE: Record<string, string> = {};
+for (const [symbol, binanceSymbol] of Object.entries(BINANCE_SYMBOLS)) {
+  REVERSE_BINANCE[binanceSymbol.toLowerCase()] = symbol;
+}
 
 // Fallback base prices for non-crypto assets
 const FALLBACK_BASE: Record<string, number> = {};
@@ -40,7 +46,6 @@ async function fetchBinancePrices(): Promise<Record<string, number>> {
   const data: BinanceTickerResponse[] = await res.json();
 
   const prices: Record<string, number> = {};
-  // Reverse-map: BTCUSDT -> BTC
   for (const [symbol, binanceSymbol] of Object.entries(BINANCE_SYMBOLS)) {
     const ticker = data.find((d) => d.symbol === binanceSymbol);
     if (ticker) {
@@ -50,14 +55,13 @@ async function fetchBinancePrices(): Promise<Record<string, number>> {
   return prices;
 }
 
-// Deterministic-ish walk for non-crypto (uses Date.now for tiny drift)
+// Deterministic-ish walk for non-crypto
 function syntheticPrices(
   prev: Record<string, number>
 ): Record<string, number> {
   const prices: Record<string, number> = {};
   for (const [symbol, base] of Object.entries(FALLBACK_BASE)) {
     const current = prev[symbol] ?? base;
-    // Small random walk: ±0.3% per tick
     const seed = (Date.now() / 1000) * symbol.charCodeAt(0);
     const drift = (Math.sin(seed) * 0.003) * current;
     prices[symbol] = parseFloat((current + drift).toFixed(2));
@@ -74,31 +78,113 @@ export function usePrices(intervalMs: number = 5000) {
     return initial;
   });
   const [binanceConnected, setBinanceConnected] = useState(false);
+  const [wsConnected, setWsConnected] = useState(false);
   const prevRef = useRef(prices);
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimer = useRef<ReturnType<typeof setTimeout>>();
+  const reconnectAttempts = useRef(0);
 
-  const refresh = useCallback(async () => {
+  // Update synthetic prices on interval
+  useEffect(() => {
+    const id = setInterval(() => {
+      const synthetic = syntheticPrices(prevRef.current);
+      prevRef.current = { ...prevRef.current, ...synthetic };
+      setPrices((p) => ({ ...p, ...synthetic }));
+    }, intervalMs);
+    return () => clearInterval(id);
+  }, [intervalMs]);
+
+  // Binance WebSocket for real-time crypto prices
+  const connectWs = useCallback(() => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) return;
+
+    try {
+      const streams = Object.values(BINANCE_SYMBOLS)
+        .map((s) => `${s.toLowerCase()}@miniTicker`)
+        .join("/");
+      const ws = new WebSocket(
+        `wss://stream.binance.com:9443/stream?streams=${streams}`
+      );
+
+      ws.onopen = () => {
+        setWsConnected(true);
+        setBinanceConnected(true);
+        reconnectAttempts.current = 0;
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          // Combined stream format: { stream: "btcusdt@miniTicker", data: { s: "BTCUSDT", c: "65000.00" } }
+          const data = msg.data;
+          if (!data?.s) return;
+          const symbol = REVERSE_BINANCE[data.s.toLowerCase()];
+          if (!symbol) return;
+          const price = parseFloat(data.c); // "c" = close price in miniTicker
+          if (isNaN(price)) return;
+
+          prevRef.current = { ...prevRef.current, [symbol]: price };
+          setPrices((p) => ({ ...p, [symbol]: price }));
+        } catch {
+          // ignore parse errors
+        }
+      };
+
+      ws.onclose = () => {
+        setWsConnected(false);
+        wsRef.current = null;
+        // Reconnect with backoff
+        const delay = Math.min(1000 * 2 ** reconnectAttempts.current, 30000);
+        reconnectAttempts.current++;
+        if (reconnectAttempts.current <= 10) {
+          reconnectTimer.current = setTimeout(connectWs, delay);
+        }
+      };
+
+      ws.onerror = () => {
+        ws.close();
+      };
+
+      wsRef.current = ws;
+    } catch {
+      // WebSocket not available, fall back to REST
+      setWsConnected(false);
+    }
+  }, []);
+
+  // REST fallback: fetch once on mount and as fallback
+  const fetchRest = useCallback(async () => {
     try {
       const binance = await fetchBinancePrices();
       setBinanceConnected(true);
-      const synthetic = syntheticPrices(prevRef.current);
-      const merged = { ...prevRef.current, ...synthetic, ...binance };
-      prevRef.current = merged;
-      setPrices(merged);
+      prevRef.current = { ...prevRef.current, ...binance };
+      setPrices((p) => ({ ...p, ...binance }));
     } catch {
       setBinanceConnected(false);
-      // Still update synthetic prices
-      const synthetic = syntheticPrices(prevRef.current);
-      const merged = { ...prevRef.current, ...synthetic };
-      prevRef.current = merged;
-      setPrices(merged);
     }
   }, []);
 
   useEffect(() => {
-    refresh();
-    const id = setInterval(refresh, intervalMs);
-    return () => clearInterval(id);
-  }, [refresh, intervalMs]);
+    // Try WebSocket first, REST as initial data
+    fetchRest();
+    connectWs();
 
-  return { prices, binanceConnected };
+    // REST fallback polling if WS is down
+    const restFallbackId = setInterval(() => {
+      if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+        fetchRest();
+      }
+    }, intervalMs);
+
+    return () => {
+      clearInterval(restFallbackId);
+      if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+    };
+  }, [connectWs, fetchRest, intervalMs]);
+
+  return { prices, binanceConnected, wsConnected };
 }

@@ -45,7 +45,7 @@ export default function SignalsPage() {
   const regime = status ? inferRegime(status.modus) : "RISK_ON";
   const { signals: allSignals, loading, error, refresh } = useSignals(regime, 10000);
   const { state: portfolio, openPosition, closePosition } = usePortfolio();
-  const { prices, binanceConnected } = usePrices(5000);
+  const { prices, binanceConnected, wsConnected } = usePrices(5000);
   const { toast } = useToast();
   const { tier, isPro } = useProfile();
   const limits = TIER_LIMITS[tier];
@@ -169,8 +169,10 @@ export default function SignalsPage() {
                 Price Feed
               </div>
               <div className="text-sm font-mono text-white">
-                {binanceConnected ? (
-                  <span className="text-green-400">Binance Live</span>
+                {wsConnected ? (
+                  <span className="text-green-400">WS Live</span>
+                ) : binanceConnected ? (
+                  <span className="text-green-400">REST Live</span>
                 ) : (
                   <span className="text-yellow-400">Synthetic</span>
                 )}
