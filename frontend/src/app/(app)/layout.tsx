@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Footer } from "@/components/layout/footer";
+import { MobileNav } from "@/components/layout/mobile-nav";
 import { ToastProvider } from "@/components/ui/toast";
 import { NotificationProvider } from "@/hooks/use-notifications";
 import { NotificationToastContainer } from "@/components/ui/notification-toast";
@@ -18,6 +19,7 @@ import { useBackendHealth } from "@/hooks/use-jarvis";
 import { useSidebar } from "@/hooks/use-sidebar";
 import { WelcomeFlow } from "@/components/onboarding/welcome-flow";
 import { ShortcutsHelp } from "@/components/ui/shortcuts-help";
+import { CommandPalette } from "@/components/ui/command-palette";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +35,7 @@ export default function AppLayout({
   const [isTablet, setIsTablet] = useState(false); // 768-1023px
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
 
   // "G then X" navigation pattern — track last "g" press timestamp
   const gPressedAt = useRef<number>(0);
@@ -62,6 +65,12 @@ export default function AppLayout({
       { key: "p", description: "Portfolio (after G)", action: () => gotoIfG("/portfolio") },
       { key: "r", description: "Risk (after G)", action: () => gotoIfG("/risk") },
       {
+        key: "k",
+        ctrl: true,
+        description: "Open command palette",
+        action: () => setShowCommandPalette((prev) => !prev),
+      },
+      {
         key: "?",
         shift: true,
         description: "Toggle keyboard shortcuts help",
@@ -69,8 +78,11 @@ export default function AppLayout({
       },
       {
         key: "Escape",
-        description: "Close shortcuts help",
-        action: () => setShowShortcuts(false),
+        description: "Close modals",
+        action: () => {
+          setShowShortcuts(false);
+          setShowCommandPalette(false);
+        },
       },
     ],
     [gotoIfG],
@@ -156,11 +168,26 @@ export default function AppLayout({
             </button>
           )}
 
-          <main className="flex-1 w-full max-w-full">{children}</main>
+          <main className="flex-1 w-full max-w-full pb-16 md:pb-0">{children}</main>
           <Footer />
         </div>
+
+        {/* Mobile bottom navigation */}
+        <MobileNav />
       </div>
       <WelcomeFlow />
+      <CommandPalette
+        open={showCommandPalette}
+        onClose={() => setShowCommandPalette(false)}
+        onNavigate={(path) => {
+          setShowCommandPalette(false);
+          router.push(path);
+        }}
+        onAction={(action) => {
+          setShowCommandPalette(false);
+          if (action === "shortcuts") setShowShortcuts(true);
+        }}
+      />
       <ShortcutsHelp
         open={showShortcuts}
         onClose={() => setShowShortcuts(false)}

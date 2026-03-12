@@ -998,20 +998,51 @@ Analyse-Ergebnis: 6 P1-Bugs, 5 P2-Issues, 3 P3-Qualitätsthemen identifiziert.
 
 ---
 
+## ✅ ABGESCHLOSSEN: Command Palette + Asset Detail Pages + Mobile Bottom Nav
+
+### Erstellt:
+- **Command Palette** (`components/ui/command-palette.tsx`):
+  - Öffnet sich mit `Ctrl+K` / `Cmd+K` — Power-User Navigation
+  - Modal-Overlay mit Suchfeld, Fuzzy-Matching (case-insensitive includes)
+  - 3 Gruppen: Navigation (14 Seiten), Actions (Dark Mode, CSV Export, Shortcuts), Assets (8 Quick-Jump)
+  - Keyboard-Navigation: Arrow Up/Down, Enter zum Auswählen, Escape zum Schließen
+  - Shortcut-Hints auf der rechten Seite (z.B. "G D" für Dashboard)
+  - Auto-Scroll zum aktiven Item, Footer mit Navigation-Hints
+  - Integriert in App-Layout mit `showCommandPalette` State
+- **Asset Detail Pages** (`app/(app)/asset/[symbol]/page.tsx`):
+  - Dynamische Route `/asset/BTC`, `/asset/ETH`, etc. für alle 8 Assets
+  - Header mit Asset-Name, Live-Preis, 24h-Change Badge, Back-Button
+  - Full-Width Chart (AssetChart, 400px, interval 1h)
+  - Signal-Card: Direction, Entry, SL, TP, Confidence-Bar, Quality Score
+  - Position-Card: Open Position Details mit P&L wenn vorhanden
+  - Quick Stats: Market Cap, Volume 24h (Platzhalter), Signal Confidence, Feed Status
+  - Related Assets: Chips/Links zu allen anderen Asset-Seiten
+  - Symbol-Validierung gegen DEFAULT_ASSETS
+- **Mobile Bottom Navigation** (`components/layout/mobile-nav.tsx`):
+  - Fixed Bottom Tab Bar, nur auf Mobile (<768px, `md:hidden`)
+  - 5 Tabs: Dashboard, Charts, Signals, Portfolio, Settings
+  - Aktiver Tab: Blau mit Indicator-Bar oben, Inaktiv: Muted
+  - Glass-Morphism Design: `bg-card/95 backdrop-blur-md`
+  - Safe-Area Padding für notched Phones (`env(safe-area-inset-bottom)`)
+  - Content-Bereich bekommt `pb-16 md:pb-0` um Mobile Nav nicht zu verdecken
+- Build: 0 Errors, **31 Routes** (+ `/asset/[symbol]`) + Middleware
+
+---
+
 ## 📊 FRONTEND STATUS-ÜBERSICHT (FAS-Stil)
 
 ### Architektur
 ```
 frontend/src/
-├── app/                    # 18 App + 4 Legal + 2 Auth Seiten
-│   ├── (app)/              # Authenticated routes (14 Seiten)
+├── app/                    # 19 App + 4 Legal + 2 Auth Seiten
+│   ├── (app)/              # Authenticated routes (15 Seiten inkl. asset/[symbol])
 │   ├── (auth)/             # Login + Register
 │   ├── (legal)/            # Terms, Privacy, Disclaimer, Imprint
 │   ├── api/                # 5 API Routes (chat, stripe×3, ...)
 │   └── landing/            # Public landing page
 ├── components/             # 35 Komponenten
-│   ├── ui/                 # 14 Base UI (Badge, Button, Card, Toast, ...)
-│   ├── layout/             # 3 Layout (Sidebar, Header, Footer)
+│   ├── ui/                 # 15 Base UI (Badge, Button, Card, Toast, CommandPalette, ...)
+│   ├── layout/             # 4 Layout (Sidebar, Header, Footer, MobileNav)
 │   ├── dashboard/          # 7 Dashboard Widgets
 │   ├── chart/              # 5 Chart (AssetChart, Equity, Drawings, ...)
 │   ├── risk/               # 2 Risk (Correlation, Calculator)
@@ -1023,7 +1054,7 @@ frontend/src/
 └── middleware.ts            # Auth Route Protection
 ```
 
-### Feature-Matrix (30 Routes)
+### Feature-Matrix (31 Routes)
 | Feature | Route | Status | Hooks |
 |---------|-------|--------|-------|
 | Dashboard | `/` | ✅ | use-jarvis, use-signals, use-prices |
@@ -1037,6 +1068,7 @@ frontend/src/
 | Markets | `/markets` | ✅ | use-prices, use-signals |
 | Radar | `/radar` | ✅ | use-signals |
 | Leaderboard | `/leaderboard` | ✅ | use-social-trading |
+| Asset Detail | `/asset/[symbol]` | ✅ | use-prices, use-signals, use-portfolio |
 | Social Trading | `/social` | ✅ | use-social-trading |
 | AI Chat | `/chat` | ✅ | API Route (Claude) |
 | Settings | `/settings` | ✅ | use-settings, use-profile |
@@ -1081,5 +1113,5 @@ frontend/src/
 
 ---
 
-*CLAUDE.md — Version 10.4.0 | März 2026*
+*CLAUDE.md — Version 10.5.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*
