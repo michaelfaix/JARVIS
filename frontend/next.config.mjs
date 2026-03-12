@@ -11,6 +11,10 @@ const nextConfig = {
       config.cache = {
         type: "memory",
       };
+      // Exclude test files from webpack watching to prevent HMR chunk corruption
+      config.watchOptions = Object.assign({}, config.watchOptions, {
+        ignored: /src[\\/]__tests__/,
+      });
     }
     return config;
   },
