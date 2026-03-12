@@ -115,58 +115,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 export function useNotifications() {
   const ctx = useContext(NotificationContext);
   if (!ctx) {
-    // Fallback for when used outside provider (e.g., in tests)
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const [notifications, setNotifications] = useState<AppNotification[]>(load);
-
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const push = useCallback(
-      (type: NotificationType, title: string, message: string) => {
-        const n: AppNotification = {
-          id: `notif-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-          type,
-          title,
-          message,
-          timestamp: new Date().toISOString(),
-          read: false,
-        };
-        setNotifications((prev) => {
-          const next = [n, ...prev].slice(0, MAX_NOTIFICATIONS);
-          save(next);
-          return next;
-        });
-      },
-      []
-    );
-
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const markRead = useCallback((id: string) => {
-      setNotifications((prev) => {
-        const next = prev.map((n) =>
-          n.id === id ? { ...n, read: true } : n
-        );
-        save(next);
-        return next;
-      });
-    }, []);
-
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const markAllRead = useCallback(() => {
-      setNotifications((prev) => {
-        const next = prev.map((n) => ({ ...n, read: true }));
-        save(next);
-        return next;
-      });
-    }, []);
-
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const clearAll = useCallback(() => {
-      setNotifications([]);
-      save([]);
-    }, []);
-
-    const unreadCount = notifications.filter((n) => !n.read).length;
-    return { notifications, push, markRead, markAllRead, clearAll, unreadCount, lastPushedAt: 0 };
+    throw new Error("useNotifications must be used within a NotificationProvider");
   }
   return ctx;
 }

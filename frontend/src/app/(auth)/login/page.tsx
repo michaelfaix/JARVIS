@@ -17,7 +17,9 @@ export default function LoginPage() {
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") ?? "/";
+  // Validate next parameter — only allow relative paths to prevent open redirect
+  const rawNext = searchParams.get("next") ?? "/";
+  const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

@@ -862,6 +862,114 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 
 ---
 
+## ✅ ABGESCHLOSSEN: Frontend-Audit + P1 Bug-Fixes + CSS Permanent Fix
+
+### Vollständige Analyse aller 80+ Dateien in frontend/src/
+Analyse-Ergebnis: 6 P1-Bugs, 5 P2-Issues, 3 P3-Qualitätsthemen identifiziert.
+
+### P1-Fixes (kritisch):
+- **Open Redirect** (`login/page.tsx`): `next` Parameter validiert — nur relative Pfade erlaubt, `//`-Prefix blockiert
+- **Broken Exponential Backoff** (`use-binance-ws-kline.ts`): `Math.min(2000, 30000)` → echtes `1000 * 2^attempts` mit `attemptsRef`, Reset bei erfolgreichem Connect
+- **React Rules Violation** (`use-notifications.ts`): Conditional Hooks im Fallback entfernt — `throw Error` statt dupliziertem Hook-Code (60 Zeilen Duplikation gelöscht)
+- **Memory Leak** (`use-portfolio.ts`): `syncTimer` wird jetzt bei Component-Unmount via Cleanup-Effect aufgeräumt
+- **Division by Zero** (`alerts/page.tsx`): Guard `current > 0` vor Distance-Berechnung
+- **CSS Cache Corruption** (permanent fix):
+  - `next.config.mjs`: `webpack.cache.type: "memory"` in Dev-Mode — verhindert stale Filesystem-Cache
+  - `globals.css`: `@import "tw-animate-css"` — Animation-Klassen aktiviert
+  - `tailwind.config.js`: Content-Path vereinfacht zu `./src/**/*` — alle Source-Dateien erfasst
+  - Regel: Immer `npm run dev` statt `npx next dev` (predev-Hook löscht .next)
+
+### XSS-Analyse:
+- `chat/page.tsx`: `simpleMarkdown()` escaped `<`, `>`, `&` **vor** HTML-Erzeugung — **kein XSS-Risiko** (verified)
+
+### Frontend-Qualitäts-Tracker (FAS-Stil):
+
+| Kategorie | Status | Details |
+|-----------|--------|---------|
+| **Sicherheit** | ✅ PASS | Open Redirect gefixt, XSS verified safe, RLS enforced |
+| **React Rules** | ✅ PASS | Keine conditional Hooks mehr |
+| **Memory Leaks** | ✅ PASS | Timer-Cleanup in Portfolio + WS-Hooks |
+| **CSS Stability** | ✅ PASS | Memory-Cache + tw-animate + predev Hook |
+| **Type Safety** | ⚠️ 90% | Einige `Record<string,string>` statt typisiert |
+| **Error Handling** | ⚠️ 70% | API-Fehler zeigen keine Error-UI |
+| **Accessibility** | ⚠️ 30% | ~90% interaktive Elemente ohne aria-labels |
+| **Code Duplication** | ⚠️ WARN | use-orders ↔ use-auto-sl-tp Overlap |
+| **Performance** | ⚠️ WARN | Einige Constants in Render-Body |
+
+### Bekannte P2/P3-Issues (nicht-kritisch):
+| # | Priorität | Issue | Datei |
+|---|-----------|-------|-------|
+| 1 | P2 | CSV Injection (unescaped fields) | journal/page.tsx |
+| 2 | P2 | Theme-Toggle nicht persistent | settings/page.tsx |
+| 3 | P2 | Stale closure (isPro) | use-social-trading.ts |
+| 4 | P2 | Missing Error UI bei API-Fehlern | Dashboard, Signals |
+| 5 | P3 | Code-Duplikation Orders ↔ Auto-SLTP | hooks/ |
+| 6 | P3 | Constants in Render-Body | Components diverse |
+| 7 | P3 | Accessibility (aria-labels) | Components alle |
+
+- Build: 0 Errors, **30 Routes** + Middleware | Typecheck: PASS
+
+---
+
+## 📊 FRONTEND STATUS-ÜBERSICHT (FAS-Stil)
+
+### Architektur
+```
+frontend/src/
+├── app/                    # 18 App + 4 Legal + 2 Auth Seiten
+│   ├── (app)/              # Authenticated routes (14 Seiten)
+│   ├── (auth)/             # Login + Register
+│   ├── (legal)/            # Terms, Privacy, Disclaimer, Imprint
+│   ├── api/                # 5 API Routes (chat, stripe×3, ...)
+│   └── landing/            # Public landing page
+├── components/             # 35 Komponenten
+│   ├── ui/                 # 14 Base UI (Badge, Button, Card, Toast, ...)
+│   ├── layout/             # 3 Layout (Sidebar, Header, Footer)
+│   ├── dashboard/          # 7 Dashboard Widgets
+│   ├── chart/              # 5 Chart (AssetChart, Equity, Drawings, ...)
+│   ├── risk/               # 2 Risk (Correlation, Calculator)
+│   ├── trading/            # 1 Trading (OrderDialog)
+│   ├── social/             # 2 Social (TraderCard, Feed)
+│   └── upgrade/            # 2 Upgrade (Gate, PricingModal)
+├── hooks/                  # 22 Custom Hooks
+├── lib/                    # 9 Utility Files
+└── middleware.ts            # Auth Route Protection
+```
+
+### Feature-Matrix (30 Routes)
+| Feature | Route | Status | Hooks |
+|---------|-------|--------|-------|
+| Dashboard | `/` | ✅ | use-jarvis, use-signals, use-prices |
+| Charts | `/charts` | ✅ | use-binance-klines, use-binance-ws-kline |
+| Signals | `/signals` | ✅ | use-signals, use-orders, use-auto-sl-tp |
+| Portfolio | `/portfolio` | ✅ | use-portfolio, use-achievements |
+| Risk Guardian | `/risk` | ✅ | use-portfolio |
+| Strategy Lab | `/strategy-lab` | ✅ | backtest-engine |
+| Trade Journal | `/journal` | ✅ | use-portfolio |
+| Price Alerts | `/alerts` | ✅ | use-alerts, use-prices |
+| Markets | `/markets` | ✅ | use-prices, use-signals |
+| Radar | `/radar` | ✅ | use-signals |
+| Leaderboard | `/leaderboard` | ✅ | use-social-trading |
+| Social Trading | `/social` | ✅ | use-social-trading |
+| AI Chat | `/chat` | ✅ | API Route (Claude) |
+| Settings | `/settings` | ✅ | use-settings, use-profile |
+| Auth | `/login`, `/register` | ✅ | use-auth |
+| Legal | `/legal/*` (4 Seiten) | ✅ | — |
+| Landing | `/landing` | ✅ | — |
+
+### Tech-Stack Versionen
+| Paket | Version |
+|-------|---------|
+| Next.js | 14.2.35 |
+| React | 18.x |
+| TypeScript | 5.x |
+| Tailwind CSS | 3.4.1 |
+| TradingView Charts | 4.1.0 |
+| Supabase | 2.99.1 |
+| Stripe | 20.4.1 |
+
+---
+
 ## 🔜 NÄCHSTER SCHRITT
 
 ### Sofort (ohne Code):
@@ -877,7 +985,14 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 4. Real-time Notifications via WebSocket (statt Polling)
 5. Broker-Integration (Read-Only Portfolio Sync)
 
+### P2/P3 Qualitäts-Backlog:
+1. Error UI für API-Fehler auf allen Seiten
+2. Accessibility (aria-labels, roles, keyboard nav)
+3. CSV Export Sanitization
+4. Code-Deduplizierung (Orders/SLTP, Polling-Pattern)
+5. Performance (useMemo, Constants aus Render-Body)
+
 ---
 
-*CLAUDE.md — Version 10.0.0 | März 2026*
+*CLAUDE.md — Version 10.1.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*

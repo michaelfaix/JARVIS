@@ -32,6 +32,7 @@ export function useBinanceWsKline(symbol: string, interval: string = "1d") {
   const [connected, setConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout>>();
+  const attemptsRef = useRef(0);
   const mountedRef = useRef(true);
 
   const isCrypto = symbol in BINANCE_SYMBOLS;
@@ -69,6 +70,7 @@ export function useBinanceWsKline(symbol: string, interval: string = "1d") {
           ws.close();
           return;
         }
+        attemptsRef.current = 0;
         setConnected(true);
       };
 
@@ -97,8 +99,9 @@ export function useBinanceWsKline(symbol: string, interval: string = "1d") {
         if (!mountedRef.current) return;
         setConnected(false);
         wsRef.current = null;
-        // Reconnect with backoff
-        const delay = Math.min(2000, 30000);
+        // Reconnect with exponential backoff
+        attemptsRef.current += 1;
+        const delay = Math.min(1000 * 2 ** attemptsRef.current, 30000);
         reconnectTimer.current = setTimeout(() => {
           if (mountedRef.current) connect();
         }, delay);

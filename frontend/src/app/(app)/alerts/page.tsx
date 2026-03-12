@@ -180,9 +180,11 @@ export default function AlertsPage() {
               <div className="space-y-2">
                 {activeAlerts.map((alert) => {
                   const current = prices[alert.asset] ?? 0;
-                  const distance = alert.condition === "above"
-                    ? ((alert.targetPrice - current) / current) * 100
-                    : ((current - alert.targetPrice) / current) * 100;
+                  const distance = current > 0
+                    ? alert.condition === "above"
+                      ? ((alert.targetPrice - current) / current) * 100
+                      : ((current - alert.targetPrice) / current) * 100
+                    : 0;
 
                   return (
                     <div
