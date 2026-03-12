@@ -15,6 +15,7 @@ import { NotificationToastContainer } from "@/components/ui/notification-toast";
 import { LocaleProvider } from "@/hooks/use-locale";
 import { useBackendHealth } from "@/hooks/use-jarvis";
 import { useSidebar } from "@/hooks/use-sidebar";
+import { WelcomeFlow } from "@/components/onboarding/welcome-flow";
 import { cn } from "@/lib/utils";
 
 export default function AppLayout({
@@ -110,6 +111,7 @@ export default function AppLayout({
           <Footer />
         </div>
       </div>
+      <WelcomeFlow />
     </ToastProvider>
     </NotificationProvider>
     </LocaleProvider>

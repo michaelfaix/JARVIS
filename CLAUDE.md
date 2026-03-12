@@ -911,6 +911,36 @@ Analyse-Ergebnis: 6 P1-Bugs, 5 P2-Issues, 3 P3-Qualitätsthemen identifiziert.
 
 ---
 
+## ✅ ABGESCHLOSSEN: Portfolio Analytics + Multi-Chart + Onboarding
+
+### Erstellt:
+- **Portfolio Analytics Panel** (`components/portfolio/analytics-panel.tsx`):
+  - 7 Advanced Metrics: Sharpe Ratio, Profit Factor, Avg Holding Period, Best/Worst Trade, Consecutive Wins/Losses
+  - Monthly Returns Heatmap: Rows=Jahre, Cols=Monate, grün/rot Gradient nach Return %
+  - Drawdown Chart: SVG Area-Chart (rot) mit Y-Achse, Grid, Trade-Nummern
+  - Performance by Day of Week: Horizontal Bar-Chart mit Avg Return + Trade Count pro Wochentag
+  - Sichtbar ab 3+ geschlossenen Trades auf Portfolio-Seite
+- **Multi-Chart Layout** (`charts/page.tsx`):
+  - 3 Layout-Modi: 1x1 (Single), 1x2 (2 nebeneinander), 2x2 (4er Grid)
+  - SVG Grid-Icons als Toggle-Buttons, aktives Layout blau hervorgehoben
+  - Jeder Chart unabhängig steuerbar: eigener Asset-Selector + Timeframe-Buttons
+  - Adaptive Höhe: 500px (1x1), 400px (1x2), 300px (2x2)
+  - CompactChartHeader für Multi-View mit kleineren Controls
+  - Layout-Wahl in localStorage persistent (`jarvis-chart-layout`)
+  - Drawing Toolbar + Indicator Panel nur im Single-Modus sichtbar
+  - Default-Assets: BTC, ETH, SOL, SPY — bestehende Configs bei Layout-Wechsel erhalten
+- **Onboarding Welcome Flow** (`components/onboarding/welcome-flow.tsx`):
+  - 3-Step Overlay: Welcome → Asset-Auswahl → Feature-Tour
+  - Step 1: Value Props (AI Signals, Paper Trading, Analytics)
+  - Step 2: Asset-Picker (8 Assets, Multi-Select mit blauem Highlight)
+  - Step 3: Feature-Cards (Dashboard, Charts, Signals, Portfolio) mit Navigation
+  - Professionelles Design: Backdrop-Blur, Step-Dots, Smooth Transitions
+  - Einmalig: localStorage `jarvis-onboarding-done`, nie wieder nach Dismiss
+  - Integriert in App-Layout (z-50, über gesamter App)
+- Build: 0 Errors, **30 Routes** + Middleware
+
+---
+
 ## ✅ ABGESCHLOSSEN: P2/P3 Qualitäts-Backlog
 
 ### P2-Fixes:
@@ -1017,5 +1047,5 @@ frontend/src/
 
 ---
 
-*CLAUDE.md — Version 10.2.0 | März 2026*
+*CLAUDE.md — Version 10.3.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*

@@ -25,6 +25,7 @@ import { useAutoSLTP } from "@/hooks/use-auto-sl-tp";
 import { inferRegime, REGIME_COLORS, type RegimeState } from "@/lib/types";
 import { useToast } from "@/components/ui/toast";
 import { EquityCurve } from "@/components/chart/equity-curve";
+import { AnalyticsPanel } from "@/components/portfolio/analytics-panel";
 import { useAchievements } from "@/hooks/use-achievements";
 import { useNotifications } from "@/hooks/use-notifications";
 import { Progress } from "@/components/ui/progress";
@@ -610,6 +611,14 @@ export default function PortfolioPage() {
               />
             </CardContent>
           </Card>
+        )}
+
+        {/* Portfolio Analytics */}
+        {state.closedTrades.length >= 3 && (
+          <AnalyticsPanel
+            closedTrades={state.closedTrades}
+            totalCapital={state.totalCapital}
+          />
         )}
 
         {/* Achievements */}
