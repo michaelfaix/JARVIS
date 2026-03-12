@@ -725,6 +725,13 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 - **Timeframe-spezifische Kline-Limits** (`use-binance-klines.ts`):
   - 1m→60, 5m→72, 15m→96, 1h→90, 4h→90, 1d→90, 1w→52 Candles
   - Synthetische Daten für Stocks mit unterschiedlichen Mustern pro Timeframe
+- **Simulated Tick Feed für Stocks** (`asset-chart.tsx` Effect 4):
+  - SPY, AAPL, NVDA, TSLA, GLD bekommen sekündliche Preis-Updates
+  - Random-Walk Simulator: ±0.01–0.05% pro Sekunde, mit Mean-Reversion
+  - Letzter Candlestick wächst live (series.update) — identisch wie Crypto
+  - Neue Candle wird automatisch gestartet wenn Intervall-Grenze überschritten
+  - "SIM LIVE" Badge für Stock-Charts, "WS LIVE" für Crypto
+  - Volume simuliert sich mit
 - Build: 0 Errors, **26 Routes** + Middleware
 
 ---
@@ -747,5 +754,5 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 
 ---
 
-*CLAUDE.md — Version 9.0.0 | März 2026*
+*CLAUDE.md — Version 9.1.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*

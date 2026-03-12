@@ -428,6 +428,107 @@ export function AssetChart({
     onPriceChangeRef.current?.(tick.close);
   }, [tick, wsKlineConnected]);
 
+  // Effect 4: Simulated tick feed for non-crypto assets (1/s random walk)
+  // Mimics a real tick feed with ±0.01–0.05% moves per second
+  const simCandleRef = useRef<{
+    time: number;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (isCrypto) return; // crypto uses real WS
+    if (!candleSeriesRef.current || !volumeSeriesRef.current) return;
+    if (lastPrice <= 0) return; // wait for initial data
+
+    // Initialize the simulated candle from the last candle
+    const cfg = TIMEFRAME_CONFIG[interval] ?? TIMEFRAME_CONFIG["1d"];
+    const nowSec = Math.floor(Date.now() / 1000);
+    const candleTime = nowSec - (nowSec % cfg.stepSeconds);
+
+    simCandleRef.current = {
+      time: candleTime,
+      open: lastPrice,
+      high: lastPrice,
+      low: lastPrice,
+      close: lastPrice,
+      volume: 500000 + Math.random() * 2000000,
+    };
+
+    const id = window.setInterval(() => {
+      if (
+        !simCandleRef.current ||
+        !candleSeriesRef.current ||
+        !volumeSeriesRef.current
+      )
+        return;
+
+      const sc = simCandleRef.current;
+
+      // Check if we need to start a new candle
+      const now = Math.floor(Date.now() / 1000);
+      const newCandleTime = now - (now % cfg.stepSeconds);
+      if (newCandleTime > sc.time) {
+        // Start a new candle; the old close becomes new open
+        sc.time = newCandleTime;
+        sc.open = sc.close;
+        sc.high = sc.close;
+        sc.low = sc.close;
+        sc.volume = 500000 + Math.random() * 2000000;
+      }
+
+      // Random walk: ±0.01–0.05% per tick
+      const pctMove = (Math.random() * 0.0004 + 0.0001) * (Math.random() > 0.5 ? 1 : -1);
+      // Add slight mean-reversion toward basePrice
+      const reversion = (basePrice - sc.close) / basePrice * 0.0002;
+      const newPrice =
+        Math.round((sc.close * (1 + pctMove + reversion)) * 100) / 100;
+
+      sc.close = newPrice;
+      sc.high = Math.max(sc.high, newPrice);
+      sc.low = Math.min(sc.low, newPrice);
+      sc.volume += 10000 + Math.random() * 50000;
+
+      // Push to chart
+      candleSeriesRef.current!.update({
+        time: sc.time as Time,
+        open: sc.open,
+        high: sc.high,
+        low: sc.low,
+        close: sc.close,
+      });
+
+      volumeSeriesRef.current!.update({
+        time: sc.time as Time,
+        value: sc.volume,
+        color:
+          sc.close >= sc.open
+            ? "rgba(34, 197, 94, 0.3)"
+            : "rgba(239, 68, 68, 0.3)",
+      } as { time: Time; value: number; color: string });
+
+      // Update display
+      setLastPrice(sc.close);
+      if (prevCloseRef.current > 0) {
+        setPriceChange(
+          ((sc.close - prevCloseRef.current) / prevCloseRef.current) * 100
+        );
+      }
+
+      onPriceChangeRef.current?.(sc.close);
+    }, 1000);
+
+    return () => {
+      window.clearInterval(id);
+      simCandleRef.current = null;
+    };
+    // Only restart when initial data loads (lastPrice changes from 0 to real value)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCrypto, interval, lastPrice > 0, basePrice]);
+
   const displayPrice = livePrice ?? lastPrice;
   const isPositive = priceChange >= 0;
 
@@ -437,7 +538,7 @@ export function AssetChart({
       <div className="flex items-baseline gap-4 mb-4">
         <h2 className="text-2xl font-bold text-white">{symbol}/USD</h2>
         <span className="text-xs text-muted-foreground">{name}</span>
-        {isCrypto && (wsLive || klines.length > 0) && (
+        {isCrypto && (wsLive || klines.length > 0) ? (
           <span
             className={`text-[10px] px-1.5 py-0.5 rounded ${
               wsLive
@@ -447,7 +548,11 @@ export function AssetChart({
           >
             {wsLive ? "WS LIVE" : "REST DATA"}
           </span>
-        )}
+        ) : !isCrypto && simCandleRef.current ? (
+          <span className="text-[10px] text-yellow-400 bg-yellow-500/10 px-1.5 py-0.5 rounded">
+            SIM LIVE
+          </span>
+        ) : null}
         <span className="text-3xl font-mono font-bold text-white">
           $
           {displayPrice.toLocaleString("en-US", {
