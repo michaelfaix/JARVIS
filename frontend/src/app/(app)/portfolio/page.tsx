@@ -22,7 +22,7 @@ import { usePortfolio } from "@/hooks/use-portfolio";
 import { useSystemStatus } from "@/hooks/use-jarvis";
 import { usePrices } from "@/hooks/use-prices";
 import { useAutoSLTP } from "@/hooks/use-auto-sl-tp";
-import { inferRegime, REGIME_COLORS, type RegimeState } from "@/lib/types";
+import { REGIME_COLORS } from "@/lib/types";
 import { useToast } from "@/components/ui/toast";
 import { EquityCurve } from "@/components/chart/equity-curve";
 import { AnalyticsPanel } from "@/components/portfolio/analytics-panel";
@@ -47,6 +47,7 @@ import {
 } from "lucide-react";
 import { PerformanceReport } from "@/components/portfolio/performance-report";
 import GoalTracker from "@/components/portfolio/goal-tracker";
+import { ApiOfflineBanner } from "@/components/ui/api-offline-banner";
 
 export default function PortfolioPage() {
   const {
@@ -61,8 +62,7 @@ export default function PortfolioPage() {
     avgLoss,
     drawdown,
   } = usePortfolio();
-  const { status } = useSystemStatus(5000);
-  const regime: RegimeState = status ? inferRegime(status.modus) : "RISK_ON";
+  const { status, regime, error: statusError } = useSystemStatus(5000);
   const { prices, binanceConnected } = usePrices(5000);
   const { toast } = useToast();
   const { push: pushNotification } = useNotifications();
@@ -154,6 +154,9 @@ export default function PortfolioPage() {
   return (
     <>
       <AppHeader title="Portfolio" subtitle="Paper Trading Account" />
+      <div className="px-3 sm:px-4 md:px-6 pt-3">
+        {statusError && <ApiOfflineBanner />}
+      </div>
 
       {/* Performance Report Modal */}
       {showReport && (

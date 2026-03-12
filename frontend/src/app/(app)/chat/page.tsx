@@ -13,8 +13,8 @@ import { useSystemStatus } from "@/hooks/use-jarvis";
 import { usePortfolio } from "@/hooks/use-portfolio";
 import { useProfile } from "@/hooks/use-profile";
 import { UpgradeGate } from "@/components/ui/upgrade-gate";
-import { inferRegime } from "@/lib/types";
 import { Send, Bot, User, Loader2, Sparkles, Trash2 } from "lucide-react";
+import { ApiOfflineBanner } from "@/components/ui/api-offline-banner";
 
 interface Message {
   id: string;
@@ -48,9 +48,8 @@ function ChatContent() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const { status } = useSystemStatus(10000);
+  const { status, regime, error: statusError } = useSystemStatus(10000);
   const { state: portfolio, totalValue, drawdown } = usePortfolio();
-  const regime = status ? inferRegime(status.modus) : "RISK_ON";
 
   const buildContext = useCallback(() => {
     const parts: string[] = [];
@@ -139,7 +138,8 @@ function ChatContent() {
   return (
     <>
       <AppHeader title="AI Chat" subtitle="Ask JARVIS" />
-      <div className="flex flex-col h-[calc(100vh-3.5rem-2.5rem)] p-3 sm:p-4 md:p-6">
+      <div className="flex flex-col h-[calc(100vh-3.5rem-2.5rem)] p-3 sm:p-4 md:p-6 gap-3">
+        {statusError && <ApiOfflineBanner />}
         {/* Chat Area */}
         <Card className="bg-card/50 border-border/50 flex-1 flex flex-col overflow-hidden">
           <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">

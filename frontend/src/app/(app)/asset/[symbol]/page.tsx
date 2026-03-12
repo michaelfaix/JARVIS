@@ -19,6 +19,7 @@ import { usePrices } from "@/hooks/use-prices";
 import { useSignals } from "@/hooks/use-signals";
 import { usePortfolio } from "@/hooks/use-portfolio";
 import { cn } from "@/lib/utils";
+import { ApiOfflineBanner } from "@/components/ui/api-offline-banner";
 
 // Binance symbol mapping — matches use-prices.ts
 const BINANCE_SYMBOLS: Record<string, boolean> = {
@@ -43,7 +44,7 @@ export default function AssetDetailPage({
   const asset = DEFAULT_ASSETS.find((a) => a.symbol === symbol);
 
   const { prices, wsConnected, binanceConnected } = usePrices();
-  const { signals, loading: signalsLoading } = useSignals();
+  const { signals, loading: signalsLoading, error: signalsError } = useSignals();
   const { state: portfolioState } = usePortfolio();
 
   const assetIndex = useMemo(
@@ -112,6 +113,7 @@ export default function AssetDetailPage({
       <AppHeader title={asset.name} subtitle={symbol} />
 
       <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+        {signalsError && <ApiOfflineBanner />}
         {/* ---------------------------------------------------------------- */}
         {/* 1. Header */}
         {/* ---------------------------------------------------------------- */}

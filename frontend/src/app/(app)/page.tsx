@@ -21,13 +21,13 @@ import { usePrices } from "@/hooks/use-prices";
 import { useSentiment } from "@/hooks/use-sentiment";
 import { MarketPulse } from "@/components/dashboard/market-pulse";
 // useWebSocket for backend stream (optional)
-import { inferRegime, type RegimeState } from "@/lib/types";
 import { Watchlist } from "@/components/dashboard/watchlist";
 import { PnlTicker } from "@/components/dashboard/pnl-ticker";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { ApiOfflineBanner } from "@/components/ui/api-offline-banner";
 import {
   TrendingUp,
   TrendingDown,
@@ -35,7 +35,6 @@ import {
   ShieldAlert,
   Radio,
   Zap,
-  WifiOff,
 } from "lucide-react";
 
 const CHART_ASSETS = [
@@ -47,9 +46,8 @@ const CHART_ASSETS = [
 ] as const;
 
 export default function DashboardPage() {
-  const { status, error: statusError } = useSystemStatus(5000);
+  const { status, regime, error: statusError } = useSystemStatus(5000);
   const { metrics, error: metricsError } = useMetrics(5000);
-  const regime: RegimeState = status ? inferRegime(status.modus) : "RISK_ON";
   const { signals, error: signalsError } = useSignals(regime, 10000);
 
   const backendOffline = !!(statusError || metricsError || signalsError);
@@ -84,13 +82,7 @@ export default function DashboardPage() {
         {/* Open P&L Ticker */}
         <PnlTicker positions={portfolio.positions} prices={prices} />
 
-        {/* Backend offline banner */}
-        {backendOffline && (
-          <div className="flex items-center gap-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20 px-4 py-2.5 text-sm text-yellow-400">
-            <WifiOff className="h-4 w-4 shrink-0" />
-            <span>JARVIS Backend offline — showing cached data</span>
-          </div>
-        )}
+        {backendOffline && <ApiOfflineBanner />}
 
         {/* Top Row: Regime + System Mode + Quality + Sentiment */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">

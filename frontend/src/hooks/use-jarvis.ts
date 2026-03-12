@@ -4,7 +4,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   getHealth,
   getMetrics,
@@ -12,6 +12,7 @@ import {
   type MetricsResponse,
   type SystemStatusResponse,
 } from "@/lib/api";
+import { inferRegime, type RegimeState } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
 // useSystemStatus — polls /status every interval
@@ -19,6 +20,7 @@ import {
 
 interface UseSystemStatusResult {
   status: SystemStatusResponse | null;
+  regime: RegimeState;
   loading: boolean;
   error: string | null;
   refresh: () => void;
@@ -28,6 +30,11 @@ export function useSystemStatus(intervalMs = 5000): UseSystemStatusResult {
   const [status, setStatus] = useState<SystemStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const regime = useMemo<RegimeState>(
+    () => (status ? inferRegime(status.modus) : "RISK_ON"),
+    [status]
+  );
 
   const refresh = useCallback(async () => {
     try {
@@ -47,7 +54,7 @@ export function useSystemStatus(intervalMs = 5000): UseSystemStatusResult {
     return () => clearInterval(id);
   }, [refresh, intervalMs]);
 
-  return { status, loading, error, refresh };
+  return { status, regime, loading, error, refresh };
 }
 
 // ---------------------------------------------------------------------------

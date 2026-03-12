@@ -12,7 +12,6 @@ import { Progress } from "@/components/ui/progress";
 import { useSignals } from "@/hooks/use-signals";
 import { useSystemStatus } from "@/hooks/use-jarvis";
 import {
-  inferRegime,
   REGIME_COLORS,
   REGIME_LABELS,
   type Opportunity,
@@ -21,6 +20,7 @@ import {
 import { DEFAULT_ASSETS, FREE_ASSETS } from "@/lib/constants";
 import { useProfile } from "@/hooks/use-profile";
 import { Radar, TrendingUp, TrendingDown, Zap } from "lucide-react";
+import { ApiOfflineBanner } from "@/components/ui/api-offline-banner";
 
 // Derive opportunities from signals
 function deriveOpportunities(
@@ -48,9 +48,8 @@ function deriveOpportunities(
 }
 
 export default function RadarPage() {
-  const { status } = useSystemStatus(5000);
-  const regime: RegimeState = status ? inferRegime(status.modus) : "RISK_ON";
-  const { signals: allSignals, loading } = useSignals(regime, 10000);
+  const { regime, error: statusError } = useSystemStatus(5000);
+  const { signals: allSignals, loading, error: signalsError } = useSignals(regime, 10000);
   const { isPro } = useProfile();
 
   const signals = isPro
@@ -66,6 +65,7 @@ export default function RadarPage() {
     <>
       <AppHeader title="Opportunity Radar" subtitle="Regime + Momentum Scanner" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
+        {(statusError || signalsError) && <ApiOfflineBanner />}
         {/* Summary */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="bg-card/50 border-border/50">

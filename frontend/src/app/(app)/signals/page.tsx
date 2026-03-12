@@ -25,7 +25,6 @@ import { usePrices } from "@/hooks/use-prices";
 import { useProfile } from "@/hooks/use-profile";
 import { useOrders } from "@/hooks/use-orders";
 import { useAutoSLTP } from "@/hooks/use-auto-sl-tp";
-import { inferRegime } from "@/lib/types";
 import type { Signal } from "@/lib/types";
 import { DEFAULT_ASSETS, FREE_ASSETS, TIER_LIMITS } from "@/lib/constants";
 import { useToast } from "@/components/ui/toast";
@@ -33,6 +32,7 @@ import { useSignalAlerts } from "@/hooks/use-signal-alerts";
 import { useNotifications } from "@/hooks/use-notifications";
 import { OrderDialog } from "@/components/trading/order-dialog";
 import MultiTfAnalysis from "@/components/signals/multi-tf-analysis";
+import { ApiOfflineBanner } from "@/components/ui/api-offline-banner";
 import {
   AlertTriangle,
   Radio,
@@ -47,8 +47,7 @@ import {
 } from "lucide-react";
 
 export default function SignalsPage() {
-  const { status, error: statusError } = useSystemStatus(5000);
-  const regime = status ? inferRegime(status.modus) : "RISK_ON";
+  const { regime, error: statusError } = useSystemStatus(5000);
   const { signals: allSignals, loading, error, refresh } = useSignals(regime, 10000);
   const { state: portfolio, openPosition, closePosition } = usePortfolio();
   const { prices, binanceConnected, wsConnected } = usePrices(5000);
@@ -191,13 +190,7 @@ export default function SignalsPage() {
     <>
       <AppHeader title="Signals" subtitle="Live Signal Feed" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
-        {/* Backend offline banner */}
-        {(error || statusError) && (
-          <div className="flex items-center gap-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20 px-4 py-2.5 text-sm text-yellow-400">
-            <WifiOff className="h-4 w-4 shrink-0" />
-            <span>JARVIS Backend offline — showing cached data</span>
-          </div>
-        )}
+        {(error || statusError) && <ApiOfflineBanner />}
 
         {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">

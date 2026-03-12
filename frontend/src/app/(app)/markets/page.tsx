@@ -11,7 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { usePrices } from "@/hooks/use-prices";
 import { useSignals } from "@/hooks/use-signals";
 import { useSystemStatus } from "@/hooks/use-jarvis";
-import { inferRegime, type RegimeState } from "@/lib/types";
 import { DEFAULT_ASSETS } from "@/lib/constants";
 import {
   LayoutGrid,
@@ -21,12 +20,12 @@ import {
   Zap,
   Globe,
 } from "lucide-react";
+import { ApiOfflineBanner } from "@/components/ui/api-offline-banner";
 
 export default function MarketsPage() {
   const { prices, wsConnected, binanceConnected } = usePrices(5000);
-  const { status } = useSystemStatus(5000);
-  const regime: RegimeState = status ? inferRegime(status.modus) : "RISK_ON";
-  const { signals } = useSignals(regime, 10000);
+  const { regime, error: statusError } = useSystemStatus(5000);
+  const { signals, error: signalsError } = useSignals(regime, 10000);
 
   // Track previous prices for change calculation
   const prevPricesRef = useRef<Record<string, number>>({});
@@ -70,6 +69,7 @@ export default function MarketsPage() {
     <>
       <AppHeader title="Markets" subtitle="Overview & Heatmap" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
+        {(statusError || signalsError) && <ApiOfflineBanner />}
         {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="bg-card/50 border-border/50">

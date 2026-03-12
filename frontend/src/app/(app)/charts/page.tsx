@@ -22,7 +22,6 @@ import { useChartDrawings } from "@/hooks/use-chart-drawings";
 import { usePrices } from "@/hooks/use-prices";
 import { useSystemStatus } from "@/hooks/use-jarvis";
 import { useSignals } from "@/hooks/use-signals";
-import { inferRegime, type RegimeState } from "@/lib/types";
 import { DEFAULT_ASSETS } from "@/lib/constants";
 import {
   CandlestickChart,
@@ -30,6 +29,7 @@ import {
   TrendingUp,
   TrendingDown,
 } from "lucide-react";
+import { ApiOfflineBanner } from "@/components/ui/api-offline-banner";
 
 const INTERVALS = [
   { value: "1m", label: "1m" },
@@ -171,9 +171,8 @@ function CompactChartHeader({
 
 export default function ChartsPage() {
   const { prices, wsConnected, binanceConnected } = usePrices(5000);
-  const { status } = useSystemStatus(5000);
-  const regime: RegimeState = status ? inferRegime(status.modus) : "RISK_ON";
-  const { signals, refresh: refreshSignals } = useSignals(regime, 10000);
+  const { regime, error: statusError } = useSystemStatus(5000);
+  const { signals, error: signalsError, refresh: refreshSignals } = useSignals(regime, 10000);
 
   // Layout state
   const [layout, setLayout] = useState<Layout>("1x1");
@@ -250,6 +249,7 @@ export default function ChartsPage() {
     <>
       <AppHeader title="Charts" subtitle="Technical Analysis" />
       <div className="p-3 sm:p-4 md:p-6 space-y-3 md:space-y-4">
+        {(statusError || signalsError) && <ApiOfflineBanner />}
         {/* Controls Bar */}
         <Card className="bg-card/50 border-border/50">
           <CardContent className="py-3 px-4">

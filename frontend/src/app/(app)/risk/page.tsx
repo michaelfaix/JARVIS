@@ -12,7 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { usePortfolio } from "@/hooks/use-portfolio";
 import { useSystemStatus } from "@/hooks/use-jarvis";
 import { usePrices } from "@/hooks/use-prices";
-import { inferRegime, REGIME_COLORS, type RegimeState } from "@/lib/types";
+import { REGIME_COLORS } from "@/lib/types";
 import { CorrelationMatrix } from "@/components/risk/correlation-matrix";
 import { PositionCalculator } from "@/components/risk/position-calculator";
 import { RiskScoreGauge } from "@/components/risk/risk-score-gauge";
@@ -28,6 +28,7 @@ import {
   BarChart3,
   Grid3X3,
 } from "lucide-react";
+import { ApiOfflineBanner } from "@/components/ui/api-offline-banner";
 
 // Risk thresholds
 const MAX_SINGLE_EXPOSURE_PCT = 25; // Max 25% in one asset
@@ -57,8 +58,7 @@ export default function RiskPage() {
     exposureByAsset,
     winRate,
   } = usePortfolio();
-  const { status } = useSystemStatus(5000);
-  const regime: RegimeState = status ? inferRegime(status.modus) : "RISK_ON";
+  const { regime, error: statusError } = useSystemStatus(5000);
   const { prices } = usePrices(5000);
 
   useEffect(() => {
@@ -161,6 +161,7 @@ export default function RiskPage() {
     <>
       <AppHeader title="Risk Guardian" subtitle="Portfolio Risk Monitor" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
+        {statusError && <ApiOfflineBanner />}
         {/* Overall Status */}
         <Card className={`border ${levelBg[overallLevel]}`}>
           <CardContent className="pt-5 pb-4 px-6">

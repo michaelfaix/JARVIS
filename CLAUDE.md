@@ -1227,13 +1227,28 @@ npm run test:ci    # CI-Modus mit Coverage
 5. Broker-Integration (Read-Only Portfolio Sync)
 
 ### P2/P3 Qualitäts-Backlog:
-1. Error UI für API-Fehler auf allen Seiten
+1. ~~Error UI für API-Fehler auf allen Seiten~~ ✅
 2. Accessibility (aria-labels, roles, keyboard nav)
-3. CSV Export Sanitization
-4. Code-Deduplizierung (Orders/SLTP, Polling-Pattern)
-5. Performance (useMemo, Constants aus Render-Body)
+3. ~~CSV Export Sanitization~~ ✅
+4. ~~Code-Deduplizierung (Orders/SLTP, Polling-Pattern)~~ ✅
+5. ~~Performance (useMemo, Constants aus Render-Body)~~ ✅
 
 ---
 
-*CLAUDE.md — Version 10.9.0 | März 2026*
+## ✅ ABGESCHLOSSEN: P2/P3 Quality-Backlog Extended
+
+### Erstellt:
+- **ApiOfflineBanner** (`components/ui/api-offline-banner.tsx`): Reusable offline-banner Komponente, ersetzt inline-Duplikate
+- **Error UI auf allen Seiten**: Banner auf Dashboard, Signals, Charts, Chat, Markets, Radar, Portfolio, Risk, Asset Detail — zeigt "JARVIS Backend offline" wenn API-Fehler auftreten
+- **CSV Injection Prevention** (`journal/page.tsx`): `csvEscape()` prefixed gefährliche Zeichen (`=`, `+`, `-`, `@`) mit Tab-Zeichen zur Formel-Injection-Prävention
+- **Code-Deduplizierung**:
+  - `useSystemStatus` Hook gibt jetzt `regime` direkt zurück (via `useMemo`) — eliminiert 8× dupliziertes `inferRegime(status.modus)` Pattern
+  - 8 Seiten vereinfacht: Entfernung von `inferRegime` Import + lokaler `regime`-Berechnung
+  - Unused imports aufgeräumt (`RegimeState`, `WifiOff` etc.)
+- **Tests**: 109 Tests in 13 Suiten (12 neue: ApiOfflineBanner 3 + CSV-Escape 9)
+- Build: 0 Errors, **31 Routes** + Middleware
+
+---
+
+*CLAUDE.md — Version 11.0.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*

@@ -125,7 +125,12 @@ export default function JournalPage() {
   }
 
   function csvEscape(val: string | number): string {
-    return '"' + String(val).replace(/"/g, '""') + '"';
+    let s = String(val);
+    // Prevent CSV formula injection — prefix dangerous leading chars with a tab
+    if (/^[=+\-@\t\r]/.test(s)) {
+      s = "\t" + s;
+    }
+    return '"' + s.replace(/"/g, '""') + '"';
   }
 
   function exportCSV() {
