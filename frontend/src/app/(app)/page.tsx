@@ -94,7 +94,7 @@ export default function DashboardPage() {
   const { state: portfolio, unrealizedPnl, totalValue, winRate, drawdown, openPosition } =
     usePortfolio();
   const { prices, priceHistory, wsConnected, binanceConnected } = usePrices(5000);
-  const sentimentData = useSentiment(prices);
+  const sentimentData = useSentiment(prices, priceHistory);
   const { activeAlerts } = useAlerts();
   const [selectedAsset, setSelectedAsset] = useState(0);
   const [timeframeIdx, setTimeframeIdx] = useState(4); // default: 4H Combined

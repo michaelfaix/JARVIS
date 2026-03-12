@@ -1294,5 +1294,30 @@ npm run test:ci    # CI-Modus mit Coverage
 
 ---
 
-*CLAUDE.md — Version 11.2.0 | März 2026*
+## ✅ ABGESCHLOSSEN: Market Sentiment Fix + Verbesserung
+
+### Root Cause:
+- Momentum/Volatility/BTC Dominance waren statisch weil `snapshotPricesRef` und `prevPricesRef` im alten Code sofort konvergierten (beide wurden aus `prices` gesetzt) → Deltas waren immer ~0
+
+### Fix:
+- **Fear & Greed**: Echte API (`alternative.me/fng/?limit=7`) mit 7-Tage-Verlauf für History-Sparkline
+- **BTC Dominance**: Echte Daten von CoinGecko `/api/v3/global` (zeigt z.B. "57.3% ↑")
+- **Momentum**: Berechnung aus `priceHistory` Ring Buffer (Sprint 1) statt gebrochenen Snapshot-Refs
+- **Volatility**: Coefficient of Variation (stddev/mean) aus `priceHistory` Ring Buffer
+
+### Verbesserungen:
+- **7-Day F&G History**: Mini-Sparkline unter dem Gauge zeigt Verlauf der letzten 7 Tage
+- **MetricTooltip**: Alle 4 Indikatoren (F&G, Momentum, BTC Dom., Volatility) haben Hover-Tooltips
+- **Loading Skeleton**: Alle Indicator-Boxes zeigen Skeleton während API-Call läuft
+- **Dynamische Farben**: Momentum/Volatility/Dominance Farben ändern sich je nach Wert
+- **Fehlerbehandlung**: Synthetic Fallback bei F&G API-Fehler, stille Fallbacks bei CoinGecko
+- Interface `btcDominanceTrend: string` → `btcDominance: { value: number | null, trend }` für echte %
+
+### Tests:
+- 170 Tests in 20 Suiten (32 neue: Sentiment classify 11 + momentumLabel 7 + volatilityLabel 6 + Momentum 4 + Volatility 4)
+- Build: 0 Errors, **31 Routes** + Middleware
+
+---
+
+*CLAUDE.md — Version 11.3.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*
