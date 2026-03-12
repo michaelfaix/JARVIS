@@ -61,14 +61,27 @@ export interface MetricsResponse {
 }
 
 // ---------------------------------------------------------------------------
+// API Latency tracking
+// ---------------------------------------------------------------------------
+
+let _lastLatencyMs: number | null = null;
+
+/** Returns the latency of the most recent API call in milliseconds. */
+export function getLastApiLatency(): number | null {
+  return _lastLatencyMs;
+}
+
+// ---------------------------------------------------------------------------
 // Core fetch
 // ---------------------------------------------------------------------------
 
 async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
+  const start = performance.now();
   const res = await fetch(`${API_BASE}${path}`, {
     headers: { "Content-Type": "application/json" },
     ...options,
   });
+  _lastLatencyMs = Math.round(performance.now() - start);
   if (!res.ok) {
     throw new Error(`API Error ${res.status}: ${res.statusText}`);
   }

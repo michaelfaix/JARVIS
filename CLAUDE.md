@@ -1269,5 +1269,30 @@ npm run test:ci    # CI-Modus mit Coverage
 
 ---
 
-*CLAUDE.md — Version 11.1.0 | März 2026*
+## ✅ ABGESCHLOSSEN: Sprint 1 — Dashboard Enhancements
+
+### 1. Sparklines in Watchlist
+- **`use-prices.ts`**: Ring Buffer (HISTORY_SIZE=20) speichert letzte 20 Preisschnappschüsse pro Asset (alle 3s)
+- **`page.tsx`**: `priceHistory` Prop wird an Watchlist-Komponente weitergereicht
+- **Sparkline SVG** (bereits vorhanden in `watchlist.tsx`) ist jetzt mit echten Daten gefüttert
+- Farbe: grün (steigend), rot (fallend), grau (neutral)
+
+### 2. API-Latenz Messung & Anzeige
+- **`api.ts`**: `fetchApi()` misst jetzt Latenz via `performance.now()`, exportiert `getLastApiLatency()`
+- **`use-jarvis.ts`**: `useSystemStatus` gibt `apiLatencyMs` zurück
+- **Dashboard**: Zeigt "API: 12ms" neben den Timestamps im Refresh-Bar (Activity-Icon)
+
+### 3. Quick-Trade auf Signal Cards
+- **Dashboard**: "Trade" Button auf jedem Top-Signal-Card
+- Öffnet Position mit 5% des verfügbaren Kapitals (min. $10)
+- Shows "Open" Checkmark wenn bereits eine Position im gleichen Asset + Richtung existiert
+- Signal Card: Klick auf den Hauptbereich navigiert weiterhin zu `/signals`
+
+### Tests:
+- 138 Tests in 19 Suiten (11 neue: PriceHistory 4 + APILatency 3 + QuickTrade 4)
+- Build: 0 Errors, **31 Routes** + Middleware
+
+---
+
+*CLAUDE.md — Version 11.2.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*

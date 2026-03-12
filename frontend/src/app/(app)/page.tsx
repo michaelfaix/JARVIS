@@ -41,6 +41,8 @@ import {
   RefreshCw,
   Bell,
   ArrowRight,
+  Activity,
+  Check,
 } from "lucide-react";
 
 const CHART_ASSETS = [
@@ -71,6 +73,7 @@ export default function DashboardPage() {
     loading: statusLoading,
     error: statusError,
     lastUpdated: statusUpdated,
+    apiLatencyMs,
     refresh: refreshStatus,
   } = useSystemStatus(5000);
   const {
@@ -88,9 +91,9 @@ export default function DashboardPage() {
   } = useSignals(regime, 10000);
 
   const backendOffline = !!(statusError || metricsError || signalsError);
-  const { state: portfolio, unrealizedPnl, totalValue, winRate, drawdown } =
+  const { state: portfolio, unrealizedPnl, totalValue, winRate, drawdown, openPosition } =
     usePortfolio();
-  const { prices, wsConnected, binanceConnected } = usePrices(5000);
+  const { prices, priceHistory, wsConnected, binanceConnected } = usePrices(5000);
   const sentimentData = useSentiment(prices);
   const { activeAlerts } = useAlerts();
   const [selectedAsset, setSelectedAsset] = useState(0);
@@ -126,6 +129,24 @@ export default function DashboardPage() {
       })
       .slice(0, 3);
   }, [activeAlerts, prices]);
+
+  // Quick-Trade: accept a signal and open a position
+  const acceptSignal = useCallback(
+    (signal: (typeof signals)[0]) => {
+      const capitalPerTrade = portfolio.availableCapital * 0.05; // 5% per trade
+      if (capitalPerTrade < 10) return; // minimum $10
+      const size = capitalPerTrade / signal.entry;
+      openPosition({
+        asset: signal.asset,
+        direction: signal.direction,
+        entryPrice: signal.entry,
+        size,
+        capitalAllocated: capitalPerTrade,
+        openedAt: new Date().toISOString(),
+      });
+    },
+    [portfolio.availableCapital, openPosition]
+  );
 
   // Refresh all — keyboard shortcut "R"
   const refreshAll = useCallback(() => {
@@ -203,13 +224,19 @@ export default function DashboardPage() {
           <MarketPulse data={sentimentData} />
         </div>
 
-        {/* Updated timestamp + Refresh */}
+        {/* Updated timestamp + API latency + Refresh */}
         <div className="flex items-center justify-end gap-3 text-[10px] text-muted-foreground">
           {statusUpdated && (
             <span>Status: {relativeTime(statusUpdated)}</span>
           )}
           {metricsUpdated && (
             <span>Metrics: {relativeTime(metricsUpdated)}</span>
+          )}
+          {apiLatencyMs !== null && (
+            <span className="flex items-center gap-1">
+              <Activity className="h-2.5 w-2.5" />
+              API: {apiLatencyMs}ms
+            </span>
           )}
           <button
             onClick={refreshAll}
@@ -416,78 +443,104 @@ export default function DashboardPage() {
                   No signals available. Start backend to generate signals.
                 </div>
               ) : (
-                topSignals.map((signal) => (
-                  <button
-                    key={signal.id}
-                    onClick={() => router.push("/signals")}
-                    className="flex items-center gap-3 rounded-lg bg-background/50 p-3 w-full text-left hover:bg-background/70 transition-colors group"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-white text-sm">
-                          {signal.asset}
+                topSignals.map((signal) => {
+                  const alreadyOpen = portfolio.positions.some(
+                    (p) => p.asset === signal.asset && p.direction === signal.direction
+                  );
+                  return (
+                    <div
+                      key={signal.id}
+                      className="flex items-center gap-3 rounded-lg bg-background/50 p-3 group"
+                    >
+                      <button
+                        onClick={() => router.push("/signals")}
+                        className="flex items-center gap-3 flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-white text-sm">
+                              {signal.asset}
+                            </span>
+                            <Badge
+                              className={`text-[10px] ${
+                                signal.direction === "LONG"
+                                  ? "bg-green-500/20 text-green-400 border-green-500/30"
+                                  : "bg-red-500/20 text-red-400 border-red-500/30"
+                              }`}
+                            >
+                              {signal.direction}
+                            </Badge>
+                            {signal.isOod && (
+                              <Badge className="text-[10px] bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+                                OOD
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground mt-1 flex flex-wrap gap-x-2">
+                            <span>
+                              Entry: $
+                              {signal.entry.toLocaleString("en-US", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}
+                            </span>
+                            <span className="text-red-400/70">
+                              SL: $
+                              {signal.stopLoss.toLocaleString("en-US", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}
+                            </span>
+                            <span className="text-green-400/70">
+                              TP: $
+                              {signal.takeProfit.toLocaleString("en-US", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="w-24 shrink-0">
+                          <div className="flex items-center justify-between text-xs mb-1">
+                            <span className="text-muted-foreground">Conf</span>
+                            <span className="font-mono text-white">
+                              {(signal.confidence * 100).toFixed(0)}%
+                            </span>
+                          </div>
+                          <Progress
+                            value={signal.confidence * 100}
+                            className="h-1.5"
+                            indicatorClassName={
+                              signal.confidence > 0.7
+                                ? "bg-green-500"
+                                : signal.confidence > 0.4
+                                ? "bg-yellow-500"
+                                : "bg-red-500"
+                            }
+                          />
+                        </div>
+                      </button>
+                      {alreadyOpen ? (
+                        <span className="flex items-center gap-1 text-[10px] text-green-400/60 shrink-0" title="Position already open">
+                          <Check className="h-3 w-3" />
+                          Open
                         </span>
-                        <Badge
-                          className={`text-[10px] ${
-                            signal.direction === "LONG"
-                              ? "bg-green-500/20 text-green-400 border-green-500/30"
-                              : "bg-red-500/20 text-red-400 border-red-500/30"
-                          }`}
+                      ) : (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            acceptSignal(signal);
+                          }}
+                          className="shrink-0 px-2 py-1 rounded text-[10px] font-medium bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600/40 transition-colors"
+                          title="Quick-Trade: Open position with 5% capital"
                         >
-                          {signal.direction}
-                        </Badge>
-                        {signal.isOod && (
-                          <Badge className="text-[10px] bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
-                            OOD
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="text-[10px] text-muted-foreground mt-1 flex flex-wrap gap-x-2">
-                        <span>
-                          Entry: $
-                          {signal.entry.toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </span>
-                        <span className="text-red-400/70">
-                          SL: $
-                          {signal.stopLoss.toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </span>
-                        <span className="text-green-400/70">
-                          TP: $
-                          {signal.takeProfit.toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </span>
-                      </div>
+                          Trade
+                        </button>
+                      )}
+                      <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-blue-400 transition-colors shrink-0" />
                     </div>
-                    <div className="w-24 shrink-0">
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="text-muted-foreground">Conf</span>
-                        <span className="font-mono text-white">
-                          {(signal.confidence * 100).toFixed(0)}%
-                        </span>
-                      </div>
-                      <Progress
-                        value={signal.confidence * 100}
-                        className="h-1.5"
-                        indicatorClassName={
-                          signal.confidence > 0.7
-                            ? "bg-green-500"
-                            : signal.confidence > 0.4
-                            ? "bg-yellow-500"
-                            : "bg-red-500"
-                        }
-                      />
-                    </div>
-                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-blue-400 transition-colors shrink-0" />
-                  </button>
-                ))
+                  );
+                })
               )}
             </CardContent>
           </Card>
@@ -498,6 +551,7 @@ export default function DashboardPage() {
           <div className="lg:col-span-1 space-y-6">
             <Watchlist
               prices={prices}
+              priceHistory={priceHistory}
               signals={signals.map((s) => ({
                 asset: s.asset,
                 direction: s.direction,

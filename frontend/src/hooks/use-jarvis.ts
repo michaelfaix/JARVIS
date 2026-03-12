@@ -9,6 +9,7 @@ import {
   getHealth,
   getMetrics,
   getSystemStatus,
+  getLastApiLatency,
   type MetricsResponse,
   type SystemStatusResponse,
 } from "@/lib/api";
@@ -24,6 +25,7 @@ interface UseSystemStatusResult {
   loading: boolean;
   error: string | null;
   lastUpdated: number | null;
+  apiLatencyMs: number | null;
   refresh: () => void;
 }
 
@@ -32,6 +34,7 @@ export function useSystemStatus(intervalMs = 5000): UseSystemStatusResult {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const [apiLatencyMs, setApiLatencyMs] = useState<number | null>(null);
 
   const regime = useMemo<RegimeState>(
     () => (status ? inferRegime(status.modus) : "RISK_ON"),
@@ -44,6 +47,7 @@ export function useSystemStatus(intervalMs = 5000): UseSystemStatusResult {
       setStatus(data);
       setError(null);
       setLastUpdated(Date.now());
+      setApiLatencyMs(getLastApiLatency());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Connection failed");
     } finally {
@@ -57,7 +61,7 @@ export function useSystemStatus(intervalMs = 5000): UseSystemStatusResult {
     return () => clearInterval(id);
   }, [refresh, intervalMs]);
 
-  return { status, regime, loading, error, lastUpdated, refresh };
+  return { status, regime, loading, error, lastUpdated, apiLatencyMs, refresh };
 }
 
 // ---------------------------------------------------------------------------

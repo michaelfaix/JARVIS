@@ -73,6 +73,8 @@ function syntheticPrices(
   return prices;
 }
 
+const HISTORY_SIZE = 20; // ring buffer size for sparklines
+
 export function usePrices(intervalMs: number = 5000) {
   const [prices, setPrices] = useState<Record<string, number>>(() => {
     const initial: Record<string, number> = {};
@@ -81,6 +83,7 @@ export function usePrices(intervalMs: number = 5000) {
     }
     return initial;
   });
+  const [priceHistory, setPriceHistory] = useState<Record<string, number[]>>({});
   const [binanceConnected, setBinanceConnected] = useState(false);
   const [wsConnected, setWsConnected] = useState(false);
   const prevRef = useRef(prices);
@@ -95,6 +98,23 @@ export function usePrices(intervalMs: number = 5000) {
       prevRef.current = { ...prevRef.current, ...synthetic };
       setPrices((p) => ({ ...p, ...synthetic }));
     }, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // --- Price history ring buffer: snapshot every 3s ---
+  useEffect(() => {
+    const id = setInterval(() => {
+      setPriceHistory((prev) => {
+        const next = { ...prev };
+        for (const [symbol, price] of Object.entries(prevRef.current)) {
+          const arr = next[symbol] ? [...next[symbol]] : [];
+          arr.push(price);
+          if (arr.length > HISTORY_SIZE) arr.shift();
+          next[symbol] = arr;
+        }
+        return next;
+      });
+    }, 3000);
     return () => clearInterval(id);
   }, []);
 
@@ -232,5 +252,5 @@ export function usePrices(intervalMs: number = 5000) {
       document.removeEventListener("visibilitychange", handleVisibility);
   }, [connectWs, fetchRest]);
 
-  return { prices, binanceConnected, wsConnected };
+  return { prices, priceHistory, binanceConnected, wsConnected };
 }
