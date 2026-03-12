@@ -109,11 +109,11 @@ export function OrderDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="order-dialog-title">
       <Card className="w-full max-w-lg mx-4 bg-card border-border/50 shadow-2xl max-h-[90vh] overflow-y-auto">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <CardTitle id="order-dialog-title" className="text-sm font-medium flex items-center gap-2">
               {signal.direction === "LONG" ? (
                 <TrendingUp className="h-4 w-4 text-green-400" />
               ) : (

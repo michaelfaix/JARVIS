@@ -105,12 +105,18 @@ export default function JournalPage() {
     return `${days}d ${hours % 24}h`;
   }
 
+  function csvEscape(val: string | number): string {
+    return '"' + String(val).replace(/"/g, '""') + '"';
+  }
+
   function exportCSV() {
     const header = "Asset,Direction,Entry Price,Exit Price,Size,Capital,P&L,Return %,Opened,Closed\n";
     const rows = filtered
       .map(
         (t) =>
-          `${t.asset},${t.direction},${t.entryPrice},${t.exitPrice},${t.size},${t.capitalAllocated},${t.pnl.toFixed(2)},${t.pnlPercent.toFixed(2)},${t.openedAt},${t.closedAt}`
+          [t.asset, t.direction, t.entryPrice, t.exitPrice, t.size, t.capitalAllocated, t.pnl.toFixed(2), t.pnlPercent.toFixed(2), t.openedAt, t.closedAt]
+            .map(csvEscape)
+            .join(",")
       )
       .join("\n");
     const blob = new Blob([header + rows], { type: "text/csv" });

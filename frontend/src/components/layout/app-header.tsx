@@ -97,6 +97,8 @@ export function AppHeader({ title, subtitle }: AppHeaderProps) {
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setOpen((p) => !p)}
+            aria-expanded={open}
+            aria-label="Notifications"
             className="relative flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-white hover:bg-muted transition-colors"
           >
             <Bell className="h-4 w-4" />
@@ -118,6 +120,7 @@ export function AppHeader({ title, subtitle }: AppHeaderProps) {
                   {unreadCount > 0 && (
                     <button
                       onClick={markAllRead}
+                      aria-label="Dismiss"
                       className="text-[10px] text-muted-foreground hover:text-white transition-colors px-1.5 py-0.5 rounded flex items-center gap-1"
                     >
                       <Check className="h-2.5 w-2.5" />
@@ -127,6 +130,7 @@ export function AppHeader({ title, subtitle }: AppHeaderProps) {
                   {notifications.length > 0 && (
                     <button
                       onClick={clearAll}
+                      aria-label="Dismiss"
                       className="text-[10px] text-muted-foreground hover:text-red-400 transition-colors px-1.5 py-0.5 rounded flex items-center gap-1"
                     >
                       <Trash2 className="h-2.5 w-2.5" />

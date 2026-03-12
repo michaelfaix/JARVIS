@@ -68,10 +68,19 @@ export default function SettingsPage() {
     }
   };
 
+  useEffect(() => {
+    const saved = localStorage.getItem("jarvis-theme");
+    if (saved === "light" || saved === "dark") {
+      update({ theme: saved });
+      document.documentElement.classList.toggle("dark", saved === "dark");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleThemeToggle = () => {
     const newTheme = settings.theme === "dark" ? "light" : "dark";
     update({ theme: newTheme });
-    // Update the HTML class
+    localStorage.setItem("jarvis-theme", newTheme);
     if (typeof document !== "undefined") {
       document.documentElement.classList.toggle("dark", newTheme === "dark");
     }

@@ -90,7 +90,7 @@ export function Sidebar({ collapsed, onToggle, connected, mobile, mobileOpen }: 
       <Separator className="opacity-50" />
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 px-2 py-4">
+      <nav role="navigation" aria-label="Main navigation" className="flex-1 space-y-1 px-2 py-4">
         {NAV_ITEMS.map((item) => {
           const isActive = pathname === item.path;
           const Icon = item.icon;
@@ -98,6 +98,7 @@ export function Sidebar({ collapsed, onToggle, connected, mobile, mobileOpen }: 
             <Link
               key={item.path}
               href={item.path}
+              aria-current={isActive ? "page" : undefined}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
                 isActive
@@ -165,6 +166,7 @@ export function Sidebar({ collapsed, onToggle, connected, mobile, mobileOpen }: 
         {/* Collapse toggle */}
         <button
           onClick={onToggle}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
         >
           {collapsed ? (

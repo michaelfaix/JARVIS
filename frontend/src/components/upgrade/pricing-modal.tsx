@@ -84,6 +84,8 @@ export function PricingModal({ open, onClose }: PricingModalProps) {
   return (
     <div
       ref={backdropRef}
+      role="dialog"
+      aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === backdropRef.current) onClose();
@@ -93,6 +95,7 @@ export function PricingModal({ open, onClose }: PricingModalProps) {
         {/* Close button */}
         <button
           onClick={onClose}
+          aria-label="Close"
           className="absolute -top-2 -right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-card border border-border/50 text-muted-foreground hover:text-white transition-colors"
         >
           <X className="h-4 w-4" />

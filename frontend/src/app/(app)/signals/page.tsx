@@ -46,7 +46,7 @@ import {
 } from "lucide-react";
 
 export default function SignalsPage() {
-  const { status } = useSystemStatus(5000);
+  const { status, error: statusError } = useSystemStatus(5000);
   const regime = status ? inferRegime(status.modus) : "RISK_ON";
   const { signals: allSignals, loading, error, refresh } = useSignals(regime, 10000);
   const { state: portfolio, openPosition, closePosition } = usePortfolio();
@@ -190,6 +190,14 @@ export default function SignalsPage() {
     <>
       <AppHeader title="Signals" subtitle="Live Signal Feed" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
+        {/* Backend offline banner */}
+        {(error || statusError) && (
+          <div className="flex items-center gap-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20 px-4 py-2.5 text-sm text-yellow-400">
+            <WifiOff className="h-4 w-4 shrink-0" />
+            <span>JARVIS Backend offline — showing cached data</span>
+          </div>
+        )}
+
         {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Card className="bg-card/50 border-border/50">
@@ -330,13 +338,39 @@ export default function SignalsPage() {
                 <TableBody>
                   {signals.length === 0 && !loading ? (
                     <TableRow>
-                      <TableCell
-                        colSpan={9}
-                        className="text-center text-muted-foreground py-8"
-                      >
-                        {error
-                          ? "Connect backend to see signals"
-                          : "No signals available"}
+                      <TableCell colSpan={9} className="py-12">
+                        <div className="flex flex-col items-center justify-center gap-3 text-muted-foreground">
+                          {error ? (
+                            <>
+                              <WifiOff className="h-8 w-8 text-yellow-500/60" />
+                              <div className="text-sm font-medium text-yellow-400">
+                                Unable to fetch signals
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                Connect the JARVIS backend to generate live signals
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={refresh}
+                                className="mt-1 h-7 text-xs"
+                              >
+                                <RefreshCw className="h-3 w-3 mr-1" />
+                                Retry
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Radio className="h-8 w-8 text-muted-foreground/40" />
+                              <div className="text-sm font-medium">
+                                No signals available
+                              </div>
+                              <div className="text-xs">
+                                Signals will appear here when the model generates predictions
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ) : (

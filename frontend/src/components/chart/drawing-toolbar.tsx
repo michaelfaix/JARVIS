@@ -65,6 +65,8 @@ export function DrawingToolbar({
                 : "text-muted-foreground hover:bg-muted hover:text-foreground"
             }`}
             title={label}
+            aria-label={label}
+            aria-pressed={isActive}
           >
             <Icon className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">{label}</span>
@@ -81,6 +83,7 @@ export function DrawingToolbar({
         disabled={drawingCount === 0}
         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-30 disabled:pointer-events-none"
         title="Undo last drawing"
+        aria-label="Undo last drawing"
       >
         <Undo2 className="h-3.5 w-3.5" />
         <span className="hidden sm:inline">Undo</span>
@@ -92,6 +95,7 @@ export function DrawingToolbar({
         disabled={drawingCount === 0}
         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium text-muted-foreground hover:bg-red-500/10 hover:text-red-400 transition-colors disabled:opacity-30 disabled:pointer-events-none"
         title="Clear all drawings"
+        aria-label="Clear all drawings"
       >
         <Trash2 className="h-3.5 w-3.5" />
         <span className="hidden sm:inline">Clear</span>

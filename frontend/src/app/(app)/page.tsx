@@ -33,6 +33,7 @@ import {
   ShieldAlert,
   Radio,
   Zap,
+  WifiOff,
 } from "lucide-react";
 
 const CHART_ASSETS = [
@@ -44,10 +45,12 @@ const CHART_ASSETS = [
 ] as const;
 
 export default function DashboardPage() {
-  const { status } = useSystemStatus(5000);
-  const { metrics } = useMetrics(5000);
+  const { status, error: statusError } = useSystemStatus(5000);
+  const { metrics, error: metricsError } = useMetrics(5000);
   const regime: RegimeState = status ? inferRegime(status.modus) : "RISK_ON";
-  const { signals } = useSignals(regime, 10000);
+  const { signals, error: signalsError } = useSignals(regime, 10000);
+
+  const backendOffline = !!(statusError || metricsError || signalsError);
   const { state: portfolio, unrealizedPnl, totalValue, winRate, drawdown } =
     usePortfolio();
   const { prices, wsConnected, binanceConnected } = usePrices(5000);
@@ -76,6 +79,14 @@ export default function DashboardPage() {
     <>
       <AppHeader title="Dashboard" subtitle="Market Overview" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
+        {/* Backend offline banner */}
+        {backendOffline && (
+          <div className="flex items-center gap-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20 px-4 py-2.5 text-sm text-yellow-400">
+            <WifiOff className="h-4 w-4 shrink-0" />
+            <span>JARVIS Backend offline — showing cached data</span>
+          </div>
+        )}
+
         {/* Top Row: Regime + System Mode + Quality + Sentiment */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           <RegimeDisplay
