@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Position, ClosedTrade, PortfolioState } from "@/lib/types";
 import { loadJSON, saveJSON } from "@/lib/storage";
 import { DEFAULT_CAPITAL } from "@/lib/constants";
+import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 
 const KEY = "jarvis-portfolio";
 
@@ -20,14 +22,99 @@ function defaultState(): PortfolioState {
 
 export function usePortfolio() {
   const [state, setState] = useState<PortfolioState>(defaultState);
+  const { user } = useAuth();
+  const supabase = createClient();
+  const syncTimer = useRef<ReturnType<typeof setTimeout>>();
 
+  // Persist to localStorage immediately, debounce Supabase writes
+  const persist = useCallback(
+    (next: PortfolioState, immediate?: boolean) => {
+      saveJSON(KEY, next);
+      if (!user) return;
+
+      const doSync = () => {
+        supabase
+          .from("portfolios")
+          .upsert({
+            user_id: user.id,
+            total_capital: next.totalCapital,
+            available_capital: next.availableCapital,
+            realized_pnl: next.realizedPnl,
+            peak_value: next.peakValue,
+            positions: JSON.parse(JSON.stringify(next.positions)),
+            updated_at: new Date().toISOString(),
+          })
+          .then(() => {}); // fire-and-forget
+      };
+
+      if (immediate) {
+        doSync();
+      } else {
+        clearTimeout(syncTimer.current);
+        syncTimer.current = setTimeout(doSync, 10_000);
+      }
+    },
+    [user, supabase]
+  );
+
+  // Load on mount: try Supabase first, then localStorage
   useEffect(() => {
-    const loaded = loadJSON(KEY, defaultState());
-    // Migration: add new fields if missing from old localStorage
-    if (!loaded.closedTrades) loaded.closedTrades = [];
-    if (!loaded.peakValue) loaded.peakValue = loaded.totalCapital;
-    setState(loaded);
-  }, []);
+    if (!user) {
+      const loaded = loadJSON(KEY, defaultState());
+      if (!loaded.closedTrades) loaded.closedTrades = [];
+      if (!loaded.peakValue) loaded.peakValue = loaded.totalCapital;
+      setState(loaded);
+      return;
+    }
+
+    (async () => {
+      const { data: portfolio } = await supabase
+        .from("portfolios")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+
+      const { data: trades } = await supabase
+        .from("trades")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("closed_at", { ascending: false })
+        .limit(100);
+
+      if (portfolio) {
+        const loaded: PortfolioState = {
+          totalCapital: Number(portfolio.total_capital),
+          availableCapital: Number(portfolio.available_capital),
+          realizedPnl: Number(portfolio.realized_pnl),
+          peakValue: Number(portfolio.peak_value),
+          positions: (portfolio.positions as Position[]) ?? [],
+          closedTrades: (trades ?? []).map((t) => ({
+            id: t.id,
+            asset: t.asset,
+            direction: t.direction as "LONG" | "SHORT",
+            entryPrice: Number(t.entry_price),
+            exitPrice: Number(t.exit_price),
+            size: Number(t.size),
+            capitalAllocated: Number(t.capital_allocated),
+            openedAt: t.opened_at,
+            closedAt: t.closed_at,
+            pnl: Number(t.pnl),
+            pnlPercent: Number(t.pnl_percent),
+          })),
+        };
+        setState(loaded);
+        saveJSON(KEY, loaded);
+      } else {
+        // Migrate localStorage data to Supabase on first login
+        const local = loadJSON(KEY, defaultState());
+        if (!local.closedTrades) local.closedTrades = [];
+        if (!local.peakValue) local.peakValue = local.totalCapital;
+        setState(local);
+        persist(local, true);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const openPosition = useCallback(
     (pos: Omit<Position, "id" | "pnl" | "pnlPercent" | "currentPrice">) => {
@@ -45,49 +132,73 @@ export function usePortfolio() {
           availableCapital: prev.availableCapital - pos.capitalAllocated,
           positions: [...prev.positions, newPos],
         };
-        saveJSON(KEY, next);
+        persist(next, true);
         return next;
       });
     },
-    []
+    [persist]
   );
 
-  const closePosition = useCallback((posId: string) => {
-    setState((prev) => {
-      const pos = prev.positions.find((p) => p.id === posId);
-      if (!pos) return prev;
-      const pnl =
-        pos.direction === "LONG"
-          ? (pos.currentPrice - pos.entryPrice) * pos.size
-          : (pos.entryPrice - pos.currentPrice) * pos.size;
-      const pnlPercent =
-        pos.capitalAllocated > 0 ? (pnl / pos.capitalAllocated) * 100 : 0;
+  const closePosition = useCallback(
+    (posId: string) => {
+      setState((prev) => {
+        const pos = prev.positions.find((p) => p.id === posId);
+        if (!pos) return prev;
+        const pnl =
+          pos.direction === "LONG"
+            ? (pos.currentPrice - pos.entryPrice) * pos.size
+            : (pos.entryPrice - pos.currentPrice) * pos.size;
+        const pnlPercent =
+          pos.capitalAllocated > 0 ? (pnl / pos.capitalAllocated) * 100 : 0;
 
-      const closedTrade: ClosedTrade = {
-        id: pos.id,
-        asset: pos.asset,
-        direction: pos.direction,
-        entryPrice: pos.entryPrice,
-        exitPrice: pos.currentPrice,
-        size: pos.size,
-        capitalAllocated: pos.capitalAllocated,
-        openedAt: pos.openedAt,
-        closedAt: new Date().toISOString(),
-        pnl,
-        pnlPercent,
-      };
+        const closedTrade: ClosedTrade = {
+          id: pos.id,
+          asset: pos.asset,
+          direction: pos.direction,
+          entryPrice: pos.entryPrice,
+          exitPrice: pos.currentPrice,
+          size: pos.size,
+          capitalAllocated: pos.capitalAllocated,
+          openedAt: pos.openedAt,
+          closedAt: new Date().toISOString(),
+          pnl,
+          pnlPercent,
+        };
 
-      const next: PortfolioState = {
-        ...prev,
-        availableCapital: prev.availableCapital + pos.capitalAllocated + pnl,
-        positions: prev.positions.filter((p) => p.id !== posId),
-        realizedPnl: prev.realizedPnl + pnl,
-        closedTrades: [closedTrade, ...prev.closedTrades],
-      };
-      saveJSON(KEY, next);
-      return next;
-    });
-  }, []);
+        // Write closed trade to Supabase
+        if (user) {
+          supabase
+            .from("trades")
+            .insert({
+              id: closedTrade.id,
+              user_id: user.id,
+              asset: closedTrade.asset,
+              direction: closedTrade.direction,
+              entry_price: closedTrade.entryPrice,
+              exit_price: closedTrade.exitPrice,
+              size: closedTrade.size,
+              capital_allocated: closedTrade.capitalAllocated,
+              opened_at: closedTrade.openedAt,
+              closed_at: closedTrade.closedAt,
+              pnl: closedTrade.pnl,
+              pnl_percent: closedTrade.pnlPercent,
+            })
+            .then(() => {});
+        }
+
+        const next: PortfolioState = {
+          ...prev,
+          availableCapital: prev.availableCapital + pos.capitalAllocated + pnl,
+          positions: prev.positions.filter((p) => p.id !== posId),
+          realizedPnl: prev.realizedPnl + pnl,
+          closedTrades: [closedTrade, ...prev.closedTrades],
+        };
+        persist(next, true);
+        return next;
+      });
+    },
+    [persist, user, supabase]
+  );
 
   const updatePrices = useCallback(
     (prices: Record<string, number>) => {
@@ -113,23 +224,26 @@ export function usePortfolio() {
           positions.reduce((s, p) => s + p.capitalAllocated + p.pnl, 0);
         const peakValue = Math.max(prev.peakValue, currentValue);
         const next = { ...prev, positions, peakValue };
-        saveJSON(KEY, next);
+        persist(next); // debounced — price updates are frequent
         return next;
       });
     },
-    []
+    [persist]
   );
 
-  const resetPortfolio = useCallback((capital?: number) => {
-    const next = defaultState();
-    if (capital) {
-      next.totalCapital = capital;
-      next.availableCapital = capital;
-      next.peakValue = capital;
-    }
-    setState(next);
-    saveJSON(KEY, next);
-  }, []);
+  const resetPortfolio = useCallback(
+    (capital?: number) => {
+      const next = defaultState();
+      if (capital) {
+        next.totalCapital = capital;
+        next.availableCapital = capital;
+        next.peakValue = capital;
+      }
+      setState(next);
+      persist(next, true);
+    },
+    [persist]
+  );
 
   // Computed values
   const unrealizedPnl = state.positions.reduce((sum, p) => sum + p.pnl, 0);
@@ -144,7 +258,8 @@ export function usePortfolio() {
     state.closedTrades.length > 0
       ? (wins.length / state.closedTrades.length) * 100
       : 0;
-  const avgWin = wins.length > 0 ? wins.reduce((s, t) => s + t.pnl, 0) / wins.length : 0;
+  const avgWin =
+    wins.length > 0 ? wins.reduce((s, t) => s + t.pnl, 0) / wins.length : 0;
   const avgLoss =
     losses.length > 0
       ? losses.reduce((s, t) => s + t.pnl, 0) / losses.length
@@ -176,7 +291,6 @@ export function usePortfolio() {
     resetPortfolio,
     unrealizedPnl,
     totalValue,
-    // Stats
     winRate,
     avgWin,
     avgLoss,

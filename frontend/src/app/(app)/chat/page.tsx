@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useSystemStatus } from "@/hooks/use-jarvis";
 import { usePortfolio } from "@/hooks/use-portfolio";
+import { useProfile } from "@/hooks/use-profile";
+import { UpgradeGate } from "@/components/ui/upgrade-gate";
 import { inferRegime } from "@/lib/types";
 import { Send, Bot, User, Loader2, Sparkles, Trash2 } from "lucide-react";
 
@@ -30,6 +32,16 @@ const QUICK_PROMPTS = [
 ];
 
 export default function ChatPage() {
+  const { tier } = useProfile();
+
+  return (
+    <UpgradeGate currentTier={tier} requiredTier="pro" feature="AI Chat Assistant">
+      <ChatContent />
+    </UpgradeGate>
+  );
+}
+
+function ChatContent() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);

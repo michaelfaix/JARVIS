@@ -19,6 +19,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { STRATEGIES } from "@/lib/constants";
+import { useProfile } from "@/hooks/use-profile";
+import { UpgradeGate } from "@/components/ui/upgrade-gate";
 import {
   FlaskConical,
   Play,
@@ -202,6 +204,16 @@ function runBacktest(
 // ---------------------------------------------------------------------------
 
 export default function StrategyLabPage() {
+  const { tier } = useProfile();
+
+  return (
+    <UpgradeGate currentTier={tier} requiredTier="pro" feature="Strategy Lab & Backtesting">
+      <StrategyLabContent />
+    </UpgradeGate>
+  );
+}
+
+function StrategyLabContent() {
   const [selectedStrategy, setSelectedStrategy] = useState("combined");
   const [result, setResult] = useState<BacktestResult | null>(null);
   const [running, setRunning] = useState(false);

@@ -430,20 +430,57 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 
 ---
 
+## ✅ ABGESCHLOSSEN: Supabase DB-Persistenz + Tier System + Feature-Gating
+
+### Erstellt:
+- **Supabase DB Schema** (`supabase/schema.sql`): Vollständiges Datenbankschema mit RLS
+  - `profiles` Tabelle: User-Profil mit `tier` (free/pro/enterprise), Display-Name
+  - `portfolios` Tabelle: Portfolio-State (Capital, Positions als JSONB, Peak Value)
+  - `trades` Tabelle: Geschlossene Trades mit allen Details (Entry/Exit/P&L)
+  - `user_settings` Tabelle: App-Settings als JSONB
+  - **Row Level Security**: Jeder User kann nur eigene Daten lesen/schreiben
+  - **Auto-Trigger**: Profile + Portfolio + Settings werden automatisch bei Signup erstellt
+  - **Index**: `trades_user_id_idx` für schnelle Trade-Abfragen
+- **Portfolio-Persistenz** (`use-portfolio.ts`): Supabase-Sync mit localStorage-Cache
+  - Lädt von Supabase beim Mount, fällt auf localStorage zurück
+  - Open/Close Trade → sofortiger Supabase-Write
+  - Preis-Updates → localStorage sofort, Supabase debounced (10s)
+  - Closed Trades → in `trades` Tabelle geschrieben
+  - Migration: Bestehende localStorage-Daten werden bei erstem Login zu Supabase migriert
+- **Settings-Persistenz** (`use-settings.ts`): Supabase-Sync mit localStorage-Cache
+  - Lädt Settings von Supabase, migriert localStorage-Daten bei erstem Login
+  - Jede Setting-Änderung → Supabase + localStorage parallel
+- **User Profile Hook** (`use-profile.ts`): Profil + Tier aus Supabase
+  - `isPro`, `isEnterprise` Convenience-Flags
+  - Fallback auf `free` Tier wenn kein Profil vorhanden
+- **Feature-Gating** (`upgrade-gate.tsx`): Tier-basierte Feature-Sperre
+  - Zeigt Upgrade-Prompt mit Link zur Pricing-Seite
+  - **AI Chat**: Nur für Pro+ User zugänglich
+  - **Strategy Lab + Backtesting**: Nur für Pro+ User zugänglich
+- Build: 0 Errors, 13 Routes + Middleware | Backend: 8897 Tests grün
+
+### Setup-Anleitung (Supabase DB):
+1. Supabase Dashboard → SQL Editor
+2. `supabase/schema.sql` Inhalt einfügen und ausführen
+3. Fertig — Auth-Trigger erstellt automatisch Profile bei Signup
+
+---
+
 ## 🔜 NÄCHSTER SCHRITT
 
 ### Sofort (ohne Code):
 1. Domain: **jarvis-trader.app** registrieren (~€15)
-2. **Supabase** Projekt erstellen + Keys in `.env.local` eintragen
+2. **Supabase SQL Schema** ausführen (`supabase/schema.sql` → SQL Editor)
 3. **Railway** Account: railway.app (kostenlos)
 4. **Anthropic API Credits** aufladen für AI Chat
 
 ### Nächste Code-Features:
-1. Portfolio-Persistenz in Supabase DB (statt nur localStorage)
-2. User Profile + Settings in Supabase
-3. Deployment auf Railway
+1. Deployment auf Railway (Frontend + Backend)
+2. OOD-Warnungen auf Signals-Seite (Pro-Feature)
+3. Asset-Limitierung für Free-Tier (3 Assets)
+4. Trade Journal / Export
 
 ---
 
-*CLAUDE.md — Version 7.9.0 | März 2026*
+*CLAUDE.md — Version 8.0.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*
