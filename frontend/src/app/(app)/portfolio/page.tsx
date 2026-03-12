@@ -33,6 +33,7 @@ import {
   Trophy,
   BarChart3,
   X,
+  Download,
 } from "lucide-react";
 
 export default function PortfolioPage() {
@@ -437,9 +438,36 @@ export default function PortfolioPage() {
         {state.closedTrades.length > 0 && (
           <Card className="bg-card/50 border-border/50">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Trade History ({state.closedTrades.length})
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Trade Journal ({state.closedTrades.length})
+                </CardTitle>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs gap-1"
+                  onClick={() => {
+                    const header = "Asset,Direction,Entry Price,Exit Price,Size,Capital,P&L,Return %,Opened,Closed\n";
+                    const rows = state.closedTrades
+                      .map(
+                        (t) =>
+                          `${t.asset},${t.direction},${t.entryPrice},${t.exitPrice},${t.size},${t.capitalAllocated},${t.pnl.toFixed(2)},${t.pnlPercent.toFixed(2)},${t.openedAt},${t.closedAt}`
+                      )
+                      .join("\n");
+                    const blob = new Blob([header + rows], { type: "text/csv" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `jarvis-trades-${new Date().toISOString().slice(0, 10)}.csv`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    toast("success", "Trade journal exported as CSV");
+                  }}
+                >
+                  <Download className="h-3 w-3" />
+                  Export CSV
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <Table>

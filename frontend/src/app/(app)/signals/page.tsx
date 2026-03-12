@@ -22,8 +22,9 @@ import { useSignals } from "@/hooks/use-signals";
 import { useSystemStatus } from "@/hooks/use-jarvis";
 import { usePortfolio } from "@/hooks/use-portfolio";
 import { usePrices } from "@/hooks/use-prices";
+import { useProfile } from "@/hooks/use-profile";
 import { inferRegime } from "@/lib/types";
-import { DEFAULT_ASSETS } from "@/lib/constants";
+import { DEFAULT_ASSETS, FREE_ASSETS, TIER_LIMITS } from "@/lib/constants";
 import { useToast } from "@/components/ui/toast";
 import {
   AlertTriangle,
@@ -33,6 +34,8 @@ import {
   X,
   Wifi,
   WifiOff,
+  Clock,
+  Lock,
 } from "lucide-react";
 
 const TRADE_CAPITAL_PERCENT = 0.1; // 10% of available capital per trade
@@ -40,10 +43,21 @@ const TRADE_CAPITAL_PERCENT = 0.1; // 10% of available capital per trade
 export default function SignalsPage() {
   const { status } = useSystemStatus(5000);
   const regime = status ? inferRegime(status.modus) : "RISK_ON";
-  const { signals, loading, error, refresh } = useSignals(regime, 10000);
+  const { signals: allSignals, loading, error, refresh } = useSignals(regime, 10000);
   const { state: portfolio, openPosition, closePosition } = usePortfolio();
   const { prices, binanceConnected } = usePrices(5000);
   const { toast } = useToast();
+  const { tier, isPro } = useProfile();
+  const limits = TIER_LIMITS[tier];
+
+  // Filter signals by tier
+  const signals = useMemo(
+    () =>
+      isPro
+        ? allSignals
+        : allSignals.filter((s) => FREE_ASSETS.includes(s.asset)),
+    [allSignals, isPro]
+  );
 
   // Set of assets that have open positions
   const openAssets = useMemo(
@@ -174,6 +188,18 @@ export default function SignalsPage() {
                 Signal Feed
                 {loading && (
                   <RefreshCw className="h-3 w-3 animate-spin text-blue-400" />
+                )}
+                {!isPro && (
+                  <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-[10px] gap-1">
+                    <Clock className="h-2.5 w-2.5" />
+                    {limits.signalDelayMinutes}min delay
+                  </Badge>
+                )}
+                {!isPro && allSignals.length > signals.length && (
+                  <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-[10px] gap-1">
+                    <Lock className="h-2.5 w-2.5" />
+                    {signals.length}/{allSignals.length} assets
+                  </Badge>
                 )}
               </CardTitle>
               <div className="flex items-center gap-2">
@@ -312,8 +338,17 @@ export default function SignalsPage() {
                           </span>
                         </TableCell>
                         <TableCell>
-                          {signal.isOod && (
-                            <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                          {isPro ? (
+                            signal.isOod ? (
+                              <div className="flex items-center gap-1">
+                                <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                                <span className="text-[10px] text-yellow-400">OOD</span>
+                              </div>
+                            ) : (
+                              <span className="text-[10px] text-green-400">OK</span>
+                            )
+                          ) : (
+                            <Lock className="h-3 w-3 text-muted-foreground" />
                           )}
                         </TableCell>
                         <TableCell className="text-center">

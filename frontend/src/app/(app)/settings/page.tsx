@@ -16,12 +16,15 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useSettings } from "@/hooks/use-settings";
 import { usePortfolio } from "@/hooks/use-portfolio";
-import { STRATEGIES, DEFAULT_ASSETS } from "@/lib/constants";
-import { Settings, RotateCcw, Save } from "lucide-react";
+import { useProfile } from "@/hooks/use-profile";
+import { STRATEGIES, DEFAULT_ASSETS, TIER_LIMITS, FREE_ASSETS } from "@/lib/constants";
+import { Settings, RotateCcw, Save, Lock, Crown } from "lucide-react";
 
 export default function SettingsPage() {
   const { settings, update, reset } = useSettings();
   const { resetPortfolio } = usePortfolio();
+  const { tier, isPro } = useProfile();
+  const limits = TIER_LIMITS[tier];
   const [capitalInput, setCapitalInput] = useState("");
 
   useEffect(() => {
@@ -31,8 +34,9 @@ export default function SettingsPage() {
   const handleCapitalSave = () => {
     const value = parseFloat(capitalInput);
     if (!isNaN(value) && value > 0) {
-      update({ paperCapital: value });
-      resetPortfolio(value);
+      const capped = Math.min(value, limits.maxCapital);
+      update({ paperCapital: capped });
+      resetPortfolio(capped);
     }
   };
 
@@ -49,6 +53,37 @@ export default function SettingsPage() {
     <>
       <AppHeader title="Settings" subtitle="Configuration" />
       <div className="p-6 space-y-6 max-w-3xl">
+        {/* Subscription Info */}
+        <Card className="bg-card/50 border-border/50">
+          <CardContent className="pt-4 pb-3 px-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                  isPro ? "bg-blue-600/20" : "bg-muted"
+                }`}>
+                  <Crown className={`h-5 w-5 ${isPro ? "text-blue-400" : "text-muted-foreground"}`} />
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-white capitalize">{tier} Plan</div>
+                  <div className="text-xs text-muted-foreground">
+                    {isPro
+                      ? "All features unlocked"
+                      : `${limits.maxAssets} assets, $${limits.maxCapital.toLocaleString()} capital, ${limits.signalDelayMinutes}min signal delay`}
+                  </div>
+                </div>
+              </div>
+              {!isPro && (
+                <a
+                  href="/landing#pricing"
+                  className="rounded-lg bg-blue-600 px-4 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition-colors"
+                >
+                  Upgrade
+                </a>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Paper Trading */}
         <Card className="bg-card/50 border-border/50">
           <CardHeader className="pb-3">
@@ -68,6 +103,7 @@ export default function SettingsPage() {
                   onChange={(e) => setCapitalInput(e.target.value)}
                   className="max-w-[200px] font-mono"
                   min={1000}
+                  max={limits.maxCapital === Infinity ? undefined : limits.maxCapital}
                   step={1000}
                 />
                 <Button
@@ -83,6 +119,11 @@ export default function SettingsPage() {
               <p className="text-xs text-muted-foreground">
                 Resets portfolio to the new capital amount. All open positions
                 will be closed.
+                {!isPro && (
+                  <span className="text-yellow-400">
+                    {" "}Max ${limits.maxCapital.toLocaleString()} on {tier} plan.
+                  </span>
+                )}
               </p>
             </div>
 
@@ -121,16 +162,20 @@ export default function SettingsPage() {
                   const isTracked = settings.trackedAssets.includes(
                     asset.symbol
                   );
+                  const isLocked = !isPro && !FREE_ASSETS.includes(asset.symbol);
                   return (
                     <Badge
                       key={asset.symbol}
-                      variant={isTracked ? "default" : "outline"}
-                      className={`cursor-pointer transition-colors ${
-                        isTracked
-                          ? "bg-blue-600 hover:bg-blue-700"
-                          : "hover:bg-muted"
+                      variant={isTracked && !isLocked ? "default" : "outline"}
+                      className={`transition-colors ${
+                        isLocked
+                          ? "opacity-50 cursor-not-allowed"
+                          : isTracked
+                          ? "bg-blue-600 hover:bg-blue-700 cursor-pointer"
+                          : "hover:bg-muted cursor-pointer"
                       }`}
                       onClick={() => {
+                        if (isLocked) return;
                         const next = isTracked
                           ? settings.trackedAssets.filter(
                               (s) => s !== asset.symbol
@@ -139,6 +184,7 @@ export default function SettingsPage() {
                         update({ trackedAssets: next });
                       }}
                     >
+                      {isLocked && <Lock className="h-2.5 w-2.5 mr-1" />}
                       {asset.symbol}
                     </Badge>
                   );
@@ -146,6 +192,11 @@ export default function SettingsPage() {
               </div>
               <p className="text-xs text-muted-foreground">
                 Click to toggle. These assets appear on Signals and Radar pages.
+                {!isPro && (
+                  <span className="text-yellow-400">
+                    {" "}Free plan: {limits.maxAssets} assets only.
+                  </span>
+                )}
               </p>
             </div>
           </CardContent>

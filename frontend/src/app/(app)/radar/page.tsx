@@ -18,7 +18,8 @@ import {
   type Opportunity,
   type RegimeState,
 } from "@/lib/types";
-import { DEFAULT_ASSETS } from "@/lib/constants";
+import { DEFAULT_ASSETS, FREE_ASSETS } from "@/lib/constants";
+import { useProfile } from "@/hooks/use-profile";
 import { Radar, TrendingUp, TrendingDown, Zap } from "lucide-react";
 
 // Derive opportunities from signals
@@ -49,7 +50,12 @@ function deriveOpportunities(
 export default function RadarPage() {
   const { status } = useSystemStatus(5000);
   const regime: RegimeState = status ? inferRegime(status.modus) : "RISK_ON";
-  const { signals, loading } = useSignals(regime, 10000);
+  const { signals: allSignals, loading } = useSignals(regime, 10000);
+  const { isPro } = useProfile();
+
+  const signals = isPro
+    ? allSignals
+    : allSignals.filter((s) => FREE_ASSETS.includes(s.asset));
 
   const opportunities = deriveOpportunities(signals, regime);
   const topOpps = opportunities.slice(0, 6);

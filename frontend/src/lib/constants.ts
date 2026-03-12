@@ -22,3 +22,30 @@ export const STRATEGIES = [
 ] as const;
 
 export type StrategyId = (typeof STRATEGIES)[number]["id"];
+
+// Tier limits
+export const TIER_LIMITS = {
+  free: {
+    maxAssets: 3,
+    maxCapital: 10_000,
+    signalDelayMinutes: 15,
+    showOod: false,
+    maxStrategies: 1,
+  },
+  pro: {
+    maxAssets: Infinity,
+    maxCapital: 500_000,
+    signalDelayMinutes: 0,
+    showOod: true,
+    maxStrategies: 8,
+  },
+  enterprise: {
+    maxAssets: Infinity,
+    maxCapital: Infinity,
+    signalDelayMinutes: 0,
+    showOod: true,
+    maxStrategies: Infinity,
+  },
+} as const;
+
+export const FREE_ASSETS: string[] = DEFAULT_ASSETS.slice(0, 3).map((a) => a.symbol); // BTC, ETH, SOL

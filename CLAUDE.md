@@ -466,21 +466,44 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 
 ---
 
+## ✅ ABGESCHLOSSEN: Free-Tier Limits + OOD Warnings + Trade Journal Export
+
+### Erstellt:
+- **Tier-Limit Konstanten** (`constants.ts`): `TIER_LIMITS` + `FREE_ASSETS` für zentrales Feature-Gating
+  - Free: 3 Assets (BTC/ETH/SOL), $10k Capital, 15min Signal-Delay, kein OOD
+  - Pro: Alle Assets, $500k Capital, Echtzeit, OOD-Warnungen
+  - Enterprise: Unbegrenzt
+- **Signals-Seite** — Tier-basiertes Filtering:
+  - Free-Tier: Nur 3 Assets sichtbar + "15min delay" Badge + "3/8 assets" Badge
+  - OOD-Spalte: Pro zeigt OK/OOD Status detailliert, Free zeigt Lock-Icon
+  - Asset-Zähler zeigt Free-Usern wie viele Assets mit Upgrade verfügbar wären
+- **Radar-Seite** — Free-Tier Asset-Filter: Nur 3 Assets im Opportunity Scanner
+- **Settings-Seite** — Vollständige Tier-Integration:
+  - Subscription-Info Card oben (Plan-Name, Limits, Upgrade-Button)
+  - Capital-Input mit Max-Limit pro Tier ($10k Free / $500k Pro)
+  - Asset-Toggle: Gesperrte Assets ausgegraut mit Lock-Icon + Hinweis
+- **Trade Journal Export** (`portfolio/page.tsx`):
+  - CSV-Export Button in Trade History (Download als `jarvis-trades-YYYY-MM-DD.csv`)
+  - Alle Felder: Asset, Direction, Entry, Exit, Size, Capital, P&L, Return%, Dates
+  - "Trade History" → "Trade Journal" umbenannt
+- Build: 0 Errors, 13 Routes + Middleware | Backend: 8897 Tests grün
+
+---
+
 ## 🔜 NÄCHSTER SCHRITT
 
 ### Sofort (ohne Code):
 1. Domain: **jarvis-trader.app** registrieren (~€15)
-2. **Supabase SQL Schema** ausführen (`supabase/schema.sql` → SQL Editor)
-3. **Railway** Account: railway.app (kostenlos)
-4. **Anthropic API Credits** aufladen für AI Chat
+2. **Railway** Account: railway.app (kostenlos)
+3. **Anthropic API Credits** aufladen für AI Chat
 
 ### Nächste Code-Features:
 1. Deployment auf Railway (Frontend + Backend)
-2. OOD-Warnungen auf Signals-Seite (Pro-Feature)
-3. Asset-Limitierung für Free-Tier (3 Assets)
-4. Trade Journal / Export
+2. Binance WebSocket Live-Stream für Charts (statt REST Polling)
+3. Notification System (Preis-Alerts, Signal-Alerts)
+4. PWA + Mobile (Capacitor)
 
 ---
 
-*CLAUDE.md — Version 8.0.0 | März 2026*
+*CLAUDE.md — Version 8.1.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*
