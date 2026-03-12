@@ -6,7 +6,8 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Footer } from "@/components/layout/footer";
 import { ToastProvider } from "@/components/ui/toast";
@@ -16,6 +17,8 @@ import { LocaleProvider } from "@/hooks/use-locale";
 import { useBackendHealth } from "@/hooks/use-jarvis";
 import { useSidebar } from "@/hooks/use-sidebar";
 import { WelcomeFlow } from "@/components/onboarding/welcome-flow";
+import { ShortcutsHelp } from "@/components/ui/shortcuts-help";
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { cn } from "@/lib/utils";
 
 export default function AppLayout({
@@ -23,11 +26,57 @@ export default function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
   const { connected } = useBackendHealth();
   const { collapsed, toggle } = useSidebar();
   const [isMobile, setIsMobile] = useState(false); // <768px
   const [isTablet, setIsTablet] = useState(false); // 768-1023px
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+
+  // "G then X" navigation pattern — track last "g" press timestamp
+  const gPressedAt = useRef<number>(0);
+
+  const gotoIfG = useCallback(
+    (path: string) => {
+      if (Date.now() - gPressedAt.current < 1000) {
+        gPressedAt.current = 0;
+        router.push(path);
+      }
+    },
+    [router],
+  );
+
+  const shortcuts = useMemo(
+    () => [
+      {
+        key: "g",
+        description: "Start navigation sequence",
+        action: () => {
+          gPressedAt.current = Date.now();
+        },
+      },
+      { key: "d", description: "Dashboard (after G)", action: () => gotoIfG("/") },
+      { key: "c", description: "Charts (after G)", action: () => gotoIfG("/charts") },
+      { key: "s", description: "Signals (after G)", action: () => gotoIfG("/signals") },
+      { key: "p", description: "Portfolio (after G)", action: () => gotoIfG("/portfolio") },
+      { key: "r", description: "Risk (after G)", action: () => gotoIfG("/risk") },
+      {
+        key: "?",
+        shift: true,
+        description: "Toggle keyboard shortcuts help",
+        action: () => setShowShortcuts((prev) => !prev),
+      },
+      {
+        key: "Escape",
+        description: "Close shortcuts help",
+        action: () => setShowShortcuts(false),
+      },
+    ],
+    [gotoIfG],
+  );
+
+  useKeyboardShortcuts(shortcuts);
 
   // Detect viewport breakpoints
   useEffect(() => {
@@ -112,6 +161,10 @@ export default function AppLayout({
         </div>
       </div>
       <WelcomeFlow />
+      <ShortcutsHelp
+        open={showShortcuts}
+        onClose={() => setShowShortcuts(false)}
+      />
     </ToastProvider>
     </NotificationProvider>
     </LocaleProvider>

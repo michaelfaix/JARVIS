@@ -4,7 +4,7 @@
 
 "use client";
 
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { AppHeader } from "@/components/layout/app-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePortfolio } from "@/hooks/use-portfolio";
+import { useTradeNotes, TAG_SUGGESTIONS } from "@/hooks/use-trade-notes";
+import { TradeNoteEditor } from "@/components/journal/trade-note-editor";
 import {
   BookOpen,
   TrendingUp,
@@ -29,17 +31,23 @@ import {
   Clock,
   Target,
   DollarSign,
+  StickyNote,
+  Star,
 } from "lucide-react";
 
 type FilterAsset = "ALL" | string;
 type FilterDirection = "ALL" | "LONG" | "SHORT";
 type FilterResult = "ALL" | "WIN" | "LOSS";
+type FilterTag = "ALL" | string;
 
 export default function JournalPage() {
   const { state, winRate, avgWin, avgLoss, drawdown } = usePortfolio();
+  const { notes } = useTradeNotes();
   const [filterAsset, setFilterAsset] = useState<FilterAsset>("ALL");
   const [filterDirection, setFilterDirection] = useState<FilterDirection>("ALL");
   const [filterResult, setFilterResult] = useState<FilterResult>("ALL");
+  const [filterTag, setFilterTag] = useState<FilterTag>("ALL");
+  const [editingTradeId, setEditingTradeId] = useState<string | null>(null);
 
   const allTrades = state.closedTrades;
 
@@ -49,6 +57,12 @@ export default function JournalPage() {
     [allTrades]
   );
 
+  // Count noted trades
+  const notedTradesCount = useMemo(
+    () => allTrades.filter((t) => notes[t.id]).length,
+    [allTrades, notes]
+  );
+
   // Filtered trades
   const filtered = useMemo(() => {
     return allTrades.filter((t) => {
@@ -56,9 +70,13 @@ export default function JournalPage() {
       if (filterDirection !== "ALL" && t.direction !== filterDirection) return false;
       if (filterResult === "WIN" && t.pnl <= 0) return false;
       if (filterResult === "LOSS" && t.pnl > 0) return false;
+      if (filterTag !== "ALL") {
+        const tradeNote = notes[t.id];
+        if (!tradeNote || !tradeNote.tags.includes(filterTag)) return false;
+      }
       return true;
     });
-  }, [allTrades, filterAsset, filterDirection, filterResult]);
+  }, [allTrades, filterAsset, filterDirection, filterResult, filterTag, notes]);
 
   // Stats for filtered set
   const stats = useMemo(() => {
@@ -215,6 +233,14 @@ export default function JournalPage() {
                   </div>
                 </CardContent>
               </Card>
+              <Card className="bg-card/50 border-border/50">
+                <CardContent className="pt-3 pb-2 px-3">
+                  <div className="text-[10px] text-muted-foreground mb-0.5">Noted Trades</div>
+                  <div className="text-lg font-bold font-mono text-blue-400">
+                    {notedTradesCount}/{allTrades.length}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
             <Tabs defaultValue="trades">
@@ -267,6 +293,17 @@ export default function JournalPage() {
                           <option value="ALL">All Results</option>
                           <option value="WIN">Wins Only</option>
                           <option value="LOSS">Losses Only</option>
+                        </select>
+                        {/* Tag filter */}
+                        <select
+                          value={filterTag}
+                          onChange={(e) => setFilterTag(e.target.value)}
+                          className="h-7 rounded-md border border-border/50 bg-background px-2 text-xs text-white"
+                        >
+                          <option value="ALL">All Tags</option>
+                          {TAG_SUGGESTIONS.map((tag) => (
+                            <option key={tag} value={tag}>{tag}</option>
+                          ))}
                         </select>
                         <Button
                           variant="outline"
@@ -325,72 +362,130 @@ export default function JournalPage() {
                           <TableHead className="text-right">Return</TableHead>
                           <TableHead>Duration</TableHead>
                           <TableHead>Closed</TableHead>
+                          <TableHead className="text-center">Rating</TableHead>
+                          <TableHead>Note</TableHead>
+                          <TableHead className="w-8"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {filtered.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                            <TableCell colSpan={13} className="text-center text-muted-foreground py-8">
                               No trades match filters
                             </TableCell>
                           </TableRow>
                         ) : (
                           filtered.map((trade, idx) => {
                             const duration = new Date(trade.closedAt).getTime() - new Date(trade.openedAt).getTime();
+                            const tradeNote = notes[trade.id];
+                            const isEditing = editingTradeId === trade.id;
                             return (
-                              <TableRow key={trade.id + trade.closedAt}>
-                                <TableCell className="text-xs text-muted-foreground font-mono">
-                                  {idx + 1}
-                                </TableCell>
-                                <TableCell className="font-medium text-white">
-                                  {trade.asset}
-                                </TableCell>
-                                <TableCell>
-                                  <Badge
-                                    className={
-                                      trade.direction === "LONG"
-                                        ? "bg-green-500/20 text-green-400 border-green-500/30"
-                                        : "bg-red-500/20 text-red-400 border-red-500/30"
-                                    }
+                              <React.Fragment key={trade.id + trade.closedAt}>
+                                <TableRow className={isEditing ? "border-b-0" : ""}>
+                                  <TableCell className="text-xs text-muted-foreground font-mono">
+                                    {idx + 1}
+                                  </TableCell>
+                                  <TableCell className="font-medium text-white">
+                                    {trade.asset}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge
+                                      className={
+                                        trade.direction === "LONG"
+                                          ? "bg-green-500/20 text-green-400 border-green-500/30"
+                                          : "bg-red-500/20 text-red-400 border-red-500/30"
+                                      }
+                                    >
+                                      {trade.direction}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-right font-mono text-muted-foreground text-xs">
+                                    ${trade.entryPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </TableCell>
+                                  <TableCell className="text-right font-mono text-white text-xs">
+                                    ${trade.exitPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </TableCell>
+                                  <TableCell className="text-right font-mono text-muted-foreground text-xs">
+                                    {trade.size.toFixed(4)}
+                                  </TableCell>
+                                  <TableCell
+                                    className={`text-right font-mono ${
+                                      trade.pnl >= 0 ? "text-green-400" : "text-red-400"
+                                    }`}
                                   >
-                                    {trade.direction}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell className="text-right font-mono text-muted-foreground text-xs">
-                                  ${trade.entryPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </TableCell>
-                                <TableCell className="text-right font-mono text-white text-xs">
-                                  ${trade.exitPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </TableCell>
-                                <TableCell className="text-right font-mono text-muted-foreground text-xs">
-                                  {trade.size.toFixed(4)}
-                                </TableCell>
-                                <TableCell
-                                  className={`text-right font-mono ${
-                                    trade.pnl >= 0 ? "text-green-400" : "text-red-400"
-                                  }`}
-                                >
-                                  {trade.pnl >= 0 ? "+" : ""}${Math.abs(trade.pnl).toFixed(2)}
-                                </TableCell>
-                                <TableCell
-                                  className={`text-right font-mono text-xs ${
-                                    trade.pnlPercent >= 0 ? "text-green-400" : "text-red-400"
-                                  }`}
-                                >
-                                  {trade.pnlPercent >= 0 ? "+" : ""}{trade.pnlPercent.toFixed(2)}%
-                                </TableCell>
-                                <TableCell className="text-xs text-muted-foreground font-mono">
-                                  {formatDuration(duration)}
-                                </TableCell>
-                                <TableCell className="text-xs text-muted-foreground">
-                                  {new Date(trade.closedAt).toLocaleDateString("en-US", {
-                                    month: "short",
-                                    day: "numeric",
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}
-                                </TableCell>
-                              </TableRow>
+                                    {trade.pnl >= 0 ? "+" : ""}${Math.abs(trade.pnl).toFixed(2)}
+                                  </TableCell>
+                                  <TableCell
+                                    className={`text-right font-mono text-xs ${
+                                      trade.pnlPercent >= 0 ? "text-green-400" : "text-red-400"
+                                    }`}
+                                  >
+                                    {trade.pnlPercent >= 0 ? "+" : ""}{trade.pnlPercent.toFixed(2)}%
+                                  </TableCell>
+                                  <TableCell className="text-xs text-muted-foreground font-mono">
+                                    {formatDuration(duration)}
+                                  </TableCell>
+                                  <TableCell className="text-xs text-muted-foreground">
+                                    {new Date(trade.closedAt).toLocaleDateString("en-US", {
+                                      month: "short",
+                                      day: "numeric",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    {tradeNote && tradeNote.rating > 0 ? (
+                                      <div className="flex items-center justify-center gap-0.5">
+                                        {[1, 2, 3, 4, 5].map((s) => (
+                                          <Star
+                                            key={s}
+                                            className={`h-3 w-3 ${
+                                              s <= tradeNote.rating
+                                                ? "fill-yellow-400 text-yellow-400"
+                                                : "text-muted-foreground/30"
+                                            }`}
+                                          />
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <span className="text-muted-foreground/30 text-xs">--</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-xs text-muted-foreground max-w-[150px] truncate">
+                                    {tradeNote?.note ? (
+                                      <span className="text-white/60" title={tradeNote.note}>
+                                        {tradeNote.note.length > 30
+                                          ? tradeNote.note.slice(0, 30) + "..."
+                                          : tradeNote.note}
+                                      </span>
+                                    ) : null}
+                                  </TableCell>
+                                  <TableCell>
+                                    <button
+                                      onClick={() =>
+                                        setEditingTradeId(isEditing ? null : trade.id)
+                                      }
+                                      className="relative p-1 rounded hover:bg-muted/30 transition-colors"
+                                      title={tradeNote ? "Edit note" : "Add note"}
+                                    >
+                                      <StickyNote className={`h-3.5 w-3.5 ${isEditing ? "text-blue-400" : "text-muted-foreground"}`} />
+                                      {tradeNote && (
+                                        <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-blue-400" />
+                                      )}
+                                    </button>
+                                  </TableCell>
+                                </TableRow>
+                                {isEditing && (
+                                  <TableRow>
+                                    <TableCell colSpan={13} className="p-2">
+                                      <TradeNoteEditor
+                                        tradeId={trade.id}
+                                        onClose={() => setEditingTradeId(null)}
+                                      />
+                                    </TableCell>
+                                  </TableRow>
+                                )}
+                              </React.Fragment>
                             );
                           })
                         )}

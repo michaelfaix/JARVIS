@@ -43,7 +43,9 @@ import {
   X,
   Download,
   Zap,
+  FileText,
 } from "lucide-react";
+import { PerformanceReport } from "@/components/portfolio/performance-report";
 
 export default function PortfolioPage() {
   const {
@@ -71,6 +73,7 @@ export default function PortfolioPage() {
     pushNotification
   );
 
+  const [showReport, setShowReport] = React.useState(false);
   const prevUnlockedRef = React.useRef<Set<string>>(new Set());
 
   const achievements = useAchievements(
@@ -150,7 +153,51 @@ export default function PortfolioPage() {
   return (
     <>
       <AppHeader title="Portfolio" subtitle="Paper Trading Account" />
+
+      {/* Performance Report Modal */}
+      {showReport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="relative max-h-[90vh] overflow-y-auto rounded-xl">
+            <div className="sticky top-0 z-10 flex items-center justify-end gap-2 p-2">
+              <span className="text-[10px] text-muted-foreground/60 mr-auto pl-2">
+                Screenshot this report to share
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs text-muted-foreground hover:text-white"
+                onClick={() => setShowReport(false)}
+              >
+                <X className="h-3.5 w-3.5 mr-1" />
+                Close
+              </Button>
+            </div>
+            <PerformanceReport
+              closedTrades={state.closedTrades}
+              totalCapital={state.totalCapital}
+              totalValue={totalValue}
+              winRate={winRate}
+            />
+          </div>
+        </div>
+      )}
+
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
+        {/* Top Actions */}
+        {state.closedTrades.length > 0 && (
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs gap-1.5"
+              onClick={() => setShowReport(true)}
+            >
+              <FileText className="h-3.5 w-3.5" />
+              Performance Report
+            </Button>
+          </div>
+        )}
+
         {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Card className="bg-card/50 border-border/50">
