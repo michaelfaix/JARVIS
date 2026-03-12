@@ -1250,5 +1250,24 @@ npm run test:ci    # CI-Modus mit Coverage
 
 ---
 
-*CLAUDE.md — Version 11.0.0 | März 2026*
+## ✅ ABGESCHLOSSEN: Dashboard Deep-Dive
+
+### Erstellt:
+- **Skeleton Loading** (`components/ui/skeleton.tsx`): Reusable pulse-animated Skeleton-Komponente, ersetzt "Loading..." in allen Dashboard-Cards
+- **MetricTooltip** (`components/ui/metric-tooltip.tsx`): Hover-Tooltips mit Glossar für 25+ Trading-Metriken (ECE, OOD, Meta-U, Calibration, Quality Score, Market Regime, Drawdown, Win Rate, Fear & Greed, etc.)
+- **Regime Explanations**: Dashboard zeigt jetzt Begründung unter dem Regime-Status ("Market conditions are favorable...", "Elevated caution...", etc.)
+- **Skeleton Loading States**: RegimeDisplay, SystemModeCard, QualityScoreCard zeigen animierte Skeletons statt "Loading..." während Backend-Daten geladen werden
+- **Signal Cards verbessert**: Top 3 Signals zeigen jetzt Entry, SL, TP direkt im Dashboard + Klick navigiert zu `/signals`
+- **Approaching Alerts**: Dashboard zeigt Alerts die innerhalb 5% des Trigger-Preises sind ("BTC approaching $72,000 ↑")
+- **Keyboard Shortcut**: `R` = alle Widgets refreshen (Status, Metrics, Signals)
+- **Last Updated Timestamps**: "Status: 30s ago | Metrics: 5s ago" mit Refresh-Button
+- **useMetrics** erweitert: `refresh()` Funktion + `lastUpdated` Timestamp hinzugefügt
+- **useSystemStatus** erweitert: `lastUpdated` Timestamp hinzugefügt
+- **Timeframe Slider**: "Open in Charts →" Link unter dem Slider navigiert zur Charts-Seite
+- **Tests**: 127 Tests in 16 Suiten (18 neue: MetricTooltip 6 + Skeleton 3 + Dashboard-Logic 9)
+- Build: 0 Errors, **31 Routes** + Middleware
+
+---
+
+*CLAUDE.md — Version 11.1.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*

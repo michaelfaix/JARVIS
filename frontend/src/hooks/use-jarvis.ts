@@ -23,6 +23,7 @@ interface UseSystemStatusResult {
   regime: RegimeState;
   loading: boolean;
   error: string | null;
+  lastUpdated: number | null;
   refresh: () => void;
 }
 
@@ -30,6 +31,7 @@ export function useSystemStatus(intervalMs = 5000): UseSystemStatusResult {
   const [status, setStatus] = useState<SystemStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
 
   const regime = useMemo<RegimeState>(
     () => (status ? inferRegime(status.modus) : "RISK_ON"),
@@ -41,6 +43,7 @@ export function useSystemStatus(intervalMs = 5000): UseSystemStatusResult {
       const data = await getSystemStatus();
       setStatus(data);
       setError(null);
+      setLastUpdated(Date.now());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Connection failed");
     } finally {
@@ -54,7 +57,7 @@ export function useSystemStatus(intervalMs = 5000): UseSystemStatusResult {
     return () => clearInterval(id);
   }, [refresh, intervalMs]);
 
-  return { status, regime, loading, error, refresh };
+  return { status, regime, loading, error, lastUpdated, refresh };
 }
 
 // ---------------------------------------------------------------------------
@@ -65,31 +68,36 @@ interface UseMetricsResult {
   metrics: MetricsResponse | null;
   loading: boolean;
   error: string | null;
+  lastUpdated: number | null;
+  refresh: () => void;
 }
 
 export function useMetrics(intervalMs = 5000): UseMetricsResult {
   const [metrics, setMetrics] = useState<MetricsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+
+  const refresh = useCallback(async () => {
+    try {
+      const data = await getMetrics();
+      setMetrics(data);
+      setError(null);
+      setLastUpdated(Date.now());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Connection failed");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    async function poll() {
-      try {
-        const data = await getMetrics();
-        setMetrics(data);
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Connection failed");
-      } finally {
-        setLoading(false);
-      }
-    }
-    poll();
-    const id = setInterval(poll, intervalMs);
+    refresh();
+    const id = setInterval(refresh, intervalMs);
     return () => clearInterval(id);
-  }, [intervalMs]);
+  }, [refresh, intervalMs]);
 
-  return { metrics, loading, error };
+  return { metrics, loading, error, lastUpdated, refresh };
 }
 
 // ---------------------------------------------------------------------------

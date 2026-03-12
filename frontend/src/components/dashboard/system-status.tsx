@@ -6,6 +6,8 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { MetricTooltip } from "@/components/ui/metric-tooltip";
 import { MODUS_COLORS } from "@/lib/types";
 import type { MetricsResponse } from "@/lib/api";
 
@@ -18,6 +20,7 @@ interface SystemModeCardProps {
   vorhersagenAktiv: boolean;
   konfidenzMultiplikator: number;
   entscheidungsCount: number;
+  loading?: boolean;
 }
 
 export function SystemModeCard({
@@ -25,6 +28,7 @@ export function SystemModeCard({
   vorhersagenAktiv,
   konfidenzMultiplikator,
   entscheidungsCount,
+  loading,
 }: SystemModeCardProps) {
   const color = MODUS_COLORS[modus] || "#6b7280";
   const modusLabel = modus.replace(/_/g, " ");
@@ -33,41 +37,61 @@ export function SystemModeCard({
     <Card className="bg-card/50 border-border/50">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-medium text-muted-foreground">
-          System Mode
+          <MetricTooltip term="System Mode">System Mode</MetricTooltip>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="flex items-center gap-2">
-          <div
-            className="w-3 h-3 rounded-full"
-            style={{ backgroundColor: color }}
-          />
-          <span className="text-lg font-bold" style={{ color }}>
-            {modusLabel}
-          </span>
-        </div>
+        {loading ? (
+          <Skeleton className="h-7 w-32" />
+        ) : (
+          <div className="flex items-center gap-2">
+            <div
+              className="w-3 h-3 rounded-full"
+              style={{ backgroundColor: color }}
+            />
+            <span className="text-lg font-bold" style={{ color }}>
+              {modusLabel}
+            </span>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Predictions</span>
-            <Badge
-              variant={vorhersagenAktiv ? "default" : "destructive"}
-              className="text-[10px]"
-            >
-              {vorhersagenAktiv ? "ACTIVE" : "DISABLED"}
-            </Badge>
+            <MetricTooltip term="Predictions">
+              <span className="text-muted-foreground">Predictions</span>
+            </MetricTooltip>
+            {loading ? (
+              <Skeleton className="h-5 w-16" />
+            ) : (
+              <Badge
+                variant={vorhersagenAktiv ? "default" : "destructive"}
+                className="text-[10px]"
+              >
+                {vorhersagenAktiv ? "ACTIVE" : "DISABLED"}
+              </Badge>
+            )}
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Confidence</span>
-            <span className="font-mono text-white">
-              {(konfidenzMultiplikator * 100).toFixed(0)}%
-            </span>
+            <MetricTooltip term="Confidence">
+              <span className="text-muted-foreground">Confidence</span>
+            </MetricTooltip>
+            {loading ? (
+              <Skeleton className="h-5 w-10" />
+            ) : (
+              <span className="font-mono text-white">
+                {(konfidenzMultiplikator * 100).toFixed(0)}%
+              </span>
+            )}
           </div>
           <div className="col-span-2 flex justify-between">
             <span className="text-muted-foreground">Decisions</span>
-            <span className="font-mono text-white">
-              {entscheidungsCount.toLocaleString()}
-            </span>
+            {loading ? (
+              <Skeleton className="h-5 w-12" />
+            ) : (
+              <span className="font-mono text-white">
+                {entscheidungsCount.toLocaleString()}
+              </span>
+            )}
           </div>
         </div>
       </CardContent>
@@ -81,19 +105,30 @@ export function SystemModeCard({
 
 interface QualityScoreCardProps {
   metrics: MetricsResponse | null;
+  loading?: boolean;
 }
 
-export function QualityScoreCard({ metrics }: QualityScoreCardProps) {
-  if (!metrics) {
+export function QualityScoreCard({ metrics, loading }: QualityScoreCardProps) {
+  if (!metrics || loading) {
     return (
       <Card className="bg-card/50 border-border/50">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium text-muted-foreground">
-            Quality Score
+            <MetricTooltip term="Quality Score">Decision Quality</MetricTooltip>
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="text-muted-foreground text-sm">Loading...</div>
+        <CardContent className="space-y-3">
+          <Skeleton className="h-9 w-24" />
+          <Skeleton className="h-2 w-full" />
+          <div className="space-y-1.5">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="flex items-center gap-2">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-1.5 flex-1" />
+                <Skeleton className="h-3 w-8" />
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
     );
@@ -115,7 +150,7 @@ export function QualityScoreCard({ metrics }: QualityScoreCardProps) {
     <Card className="bg-card/50 border-border/50">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-medium text-muted-foreground">
-          Decision Quality
+          <MetricTooltip term="Quality Score">Decision Quality</MetricTooltip>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -145,7 +180,9 @@ export function QualityScoreCard({ metrics }: QualityScoreCardProps) {
         <div className="space-y-1.5">
           {components.map((c) => (
             <div key={c.label} className="flex items-center gap-2 text-xs">
-              <span className="text-muted-foreground w-24">{c.label}</span>
+              <MetricTooltip term={c.label}>
+                <span className="text-muted-foreground w-24">{c.label}</span>
+              </MetricTooltip>
               <div className="flex-1 h-1.5 bg-background/50 rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full bg-blue-500/70"
