@@ -7,7 +7,7 @@
 
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { loadJSON, saveJSON } from "@/lib/storage";
 import {
   generateOfflineResponse,
@@ -34,6 +34,7 @@ export interface CoPilotMessage {
 }
 
 export interface CoPilotState {
+  mounted: boolean;
   messages: CoPilotMessage[];
   isTyping: boolean;
   riskProfile: RiskProfile;
@@ -80,18 +81,21 @@ const LOCALE_KEY = "jarvis-copilot-locale";
 // ---------------------------------------------------------------------------
 
 export function useCoPilot(input: CoPilotInput) {
-  const [messages, setMessages] = useState<CoPilotMessage[]>(
-    () => loadJSON<CoPilotMessage[]>(HISTORY_KEY, [])
-  );
+  const [mounted, setMounted] = useState(false);
+  const [messages, setMessages] = useState<CoPilotMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
-  const [riskProfile, setRiskProfileState] = useState<RiskProfile>(
-    () => loadJSON<RiskProfile>(PROFILE_KEY, "moderate")
-  );
-  const [locale, setLocaleState] = useState<Locale>(
-    () => loadJSON<Locale>(LOCALE_KEY, "de")
-  );
+  const [riskProfile, setRiskProfileState] = useState<RiskProfile>("moderate");
+  const [locale, setLocaleState] = useState<Locale>("de");
 
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Hydrate from localStorage after mount to avoid SSR mismatch
+  useEffect(() => {
+    setMessages(loadJSON<CoPilotMessage[]>(HISTORY_KEY, []));
+    setRiskProfileState(loadJSON<RiskProfile>(PROFILE_KEY, "moderate"));
+    setLocaleState(loadJSON<Locale>(LOCALE_KEY, "de"));
+    setMounted(true);
+  }, []);
 
   // --- Pattern recognition (memoized on candles) ---
   const candlesKey = input.candles.length > 0 ? `${input.candles[0]?.time}-${input.candles.length}` : "";
@@ -222,6 +226,7 @@ export function useCoPilot(input: CoPilotInput) {
   }, []);
 
   const state: CoPilotState = {
+    mounted,
     messages,
     isTyping,
     riskProfile,

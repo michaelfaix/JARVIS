@@ -175,11 +175,12 @@ export function CoPilotPanel({
           <button
             onClick={() => setLocale(locale === "de" ? "en" : "de")}
             className="px-1.5 py-0.5 rounded text-[10px] font-bold border border-white/10 text-white/60 hover:text-white hover:border-white/20 transition-colors"
+            suppressHydrationWarning
           >
             {locale === "de" ? "DE" : "EN"}
           </button>
           {/* Clear */}
-          {state.messages.length > 0 && (
+          {state.mounted && state.messages.length > 0 && (
             <button
               onClick={clearHistory}
               className="p-1 text-white/40 hover:text-red-400 transition-colors"
@@ -209,16 +210,17 @@ export function CoPilotPanel({
                     ? `bg-white/10 ${rp.color} border border-white/10`
                     : "text-white/40 hover:text-white/70 border border-transparent"
                 }`}
+                suppressHydrationWarning
               >
                 <rp.icon className="h-2.5 w-2.5" />
-                {rp.label[locale]}
+                <span suppressHydrationWarning>{rp.label[locale]}</span>
               </button>
             ))}
           </div>
           {/* Confidence + R:R */}
           <div className="flex items-center gap-3 text-[10px]">
             <div className="flex items-center gap-1.5">
-              <span className="text-white/40">{locale === "de" ? "Konfidenz" : "Confidence"}:</span>
+              <span className="text-white/40" suppressHydrationWarning>{locale === "de" ? "Konfidenz" : "Confidence"}:</span>
               <div className="w-16 h-1.5 rounded-full bg-white/10 overflow-hidden">
                 <div className={`h-full rounded-full ${confColor}`} style={{ width: `${confPct}%` }} />
               </div>
@@ -240,7 +242,7 @@ export function CoPilotPanel({
               </div>
               <div>
                 <h3 className="text-sm font-bold text-white mb-1">JARVIS Co-Pilot</h3>
-                <p className="text-[11px] text-white/50 max-w-[250px]">
+                <p className="text-[11px] text-white/50 max-w-[250px]" suppressHydrationWarning>
                   {locale === "de"
                     ? "Dein AI Trading-Assistent. Frag mich zu Maerkten, Strategien oder Risiko."
                     : "Your AI trading assistant. Ask about markets, strategies, or risk."}
@@ -253,9 +255,10 @@ export function CoPilotPanel({
                     key={qa.icon}
                     onClick={() => sendMessage(qa.prompt[locale])}
                     className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-[10px] text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                    suppressHydrationWarning
                   >
                     <span>{qa.icon}</span>
-                    <span>{qa.label[locale]}</span>
+                    <span suppressHydrationWarning>{qa.label[locale]}</span>
                   </button>
                 ))}
               </div>
@@ -316,7 +319,7 @@ export function CoPilotPanel({
         </div>
 
         {/* Quick Actions Row (when messages exist) */}
-        {state.messages.length > 0 && (
+        {state.mounted && state.messages.length > 0 && (
           <div className="px-4 py-1.5 border-t border-white/5 shrink-0">
             <div className="flex gap-1 overflow-x-auto no-scrollbar">
               {QUICK_ACTIONS.slice(0, 4).map((qa) => (
@@ -324,9 +327,10 @@ export function CoPilotPanel({
                   key={qa.icon}
                   onClick={() => sendMessage(qa.prompt[locale])}
                   className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-white/5 text-[9px] text-white/40 hover:text-white/70 transition-colors whitespace-nowrap shrink-0"
+                  suppressHydrationWarning
                 >
                   <span>{qa.icon}</span>
-                  <span>{qa.label[locale]}</span>
+                  <span suppressHydrationWarning>{qa.label[locale]}</span>
                 </button>
               ))}
             </div>
@@ -351,7 +355,7 @@ export function CoPilotPanel({
               <Send className="h-3.5 w-3.5" />
             </button>
           </div>
-          <div className="mt-1.5 text-[9px] text-white/20 text-center">
+          <div className="mt-1.5 text-[9px] text-white/20 text-center" suppressHydrationWarning>
             JARVIS Offline Mode — {locale === "de" ? "Regelbasierte Analyse" : "Rule-based analysis"}
           </div>
         </div>
