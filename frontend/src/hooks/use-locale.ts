@@ -34,10 +34,8 @@ function getInitialLocale(): Locale {
     // localStorage not available
   }
   // Auto-detect browser language
-  if (typeof navigator !== "undefined" && navigator.language.startsWith("de")) {
-    return "de";
-  }
-  return "en";
+  // Default to German (primary market)
+  return "de";
 }
 
 export function LocaleProvider({ children }: { children: ReactNode }) {

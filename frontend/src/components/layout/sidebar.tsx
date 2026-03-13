@@ -82,7 +82,7 @@ export function Sidebar({ collapsed, onToggle, connected, mobile, mobileOpen }: 
               "flex items-center justify-center h-6 w-6 rounded text-muted-foreground hover:text-hud-cyan hover:bg-hud-cyan/10 transition-colors shrink-0",
               !isExpanded && "mx-auto"
             )}
-            title={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
+            title={isExpanded ? "Sidebar einklappen" : "Sidebar ausklappen"}
           >
             {isExpanded ? (
               <PanelLeftClose className="h-3.5 w-3.5" />
