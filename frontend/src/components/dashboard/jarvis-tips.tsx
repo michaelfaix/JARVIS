@@ -228,6 +228,7 @@ export function JarvisTips(props: JarvisTipsProps) {
               <button
                 onClick={() => setExpandedTip(isExpanded ? null : tip.id)}
                 className="w-full flex items-start gap-2 text-left"
+                suppressHydrationWarning
               >
                 <tip.icon className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${s.text}`} />
                 <span className="text-[11px] text-white/90 flex-1 leading-relaxed">

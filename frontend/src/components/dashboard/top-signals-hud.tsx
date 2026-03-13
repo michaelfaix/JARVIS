@@ -119,13 +119,10 @@ export function TopSignalsHud({
                   }`}
                   suppressHydrationWarning
                 >
-                  {alreadyOpen ? (
-                    <span className="flex items-center justify-center gap-1">
-                      <Check className="h-3 w-3" /> OPEN
-                    </span>
-                  ) : (
-                    <span>TRADE</span>
-                  )}
+                  <span className="flex items-center justify-center gap-1" suppressHydrationWarning>
+                    {alreadyOpen && <Check className="h-3 w-3" />}
+                    {alreadyOpen ? "OPEN" : "TRADE"}
+                  </span>
                 </button>
               </div>
             );

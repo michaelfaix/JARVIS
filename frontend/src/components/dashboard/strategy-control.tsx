@@ -494,6 +494,7 @@ export function StrategyControl({
               <button
                 onClick={() => setShowRules((p) => !p)}
                 className="text-[10px] text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1"
+                suppressHydrationWarning
               >
                 {showRules ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                 {showRules ? "Hide" : "Show"} Rule Builder
@@ -522,6 +523,7 @@ export function StrategyControl({
             onClick={handleBacktest}
             disabled={backtesting || (state.selectedStrategy === "custom" && !customRulesValid)}
             className="w-full flex items-center justify-center gap-2 rounded-lg bg-hud-cyan/15 text-hud-cyan border border-blue-500/30 py-2 text-xs font-medium hover:bg-blue-600/40 transition-colors disabled:opacity-50"
+            suppressHydrationWarning
           >
             {backtesting ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />

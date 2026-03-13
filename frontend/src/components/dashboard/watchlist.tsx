@@ -98,6 +98,7 @@ export function Watchlist({ prices, signals = [], priceHistory }: WatchlistProps
           <button
             onClick={() => setEditing((p) => !p)}
             className="text-[8px] font-mono text-muted-foreground hover:text-hud-cyan transition-colors px-1.5 py-0.5 rounded border border-hud-border/50"
+            suppressHydrationWarning
           >
             {editing ? "Done" : "Edit"}
           </button>

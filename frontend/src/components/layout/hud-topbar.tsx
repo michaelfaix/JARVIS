@@ -148,6 +148,7 @@ export function HudTopbar({
                 ? "bg-hud-cyan/20 text-hud-cyan"
                 : "text-muted-foreground hover:text-hud-cyan"
             )}
+            suppressHydrationWarning
           >
             EN
           </button>
@@ -160,6 +161,7 @@ export function HudTopbar({
                 ? "bg-hud-cyan/20 text-hud-cyan"
                 : "text-muted-foreground hover:text-hud-cyan"
             )}
+            suppressHydrationWarning
           >
             DE
           </button>
@@ -170,13 +172,18 @@ export function HudTopbar({
           <button
             onClick={() => setBellOpen((p) => !p)}
             className="relative flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:text-hud-cyan transition-colors"
+            suppressHydrationWarning
           >
             <Bell className="h-3.5 w-3.5" />
-            {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-hud-red px-0.5 text-[8px] font-bold text-white">
-                {unreadCount > 9 ? "9+" : unreadCount}
-              </span>
-            )}
+            <span
+              className={cn(
+                "absolute -top-0.5 -right-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-hud-red px-0.5 text-[8px] font-bold text-white",
+                unreadCount === 0 && "hidden"
+              )}
+              suppressHydrationWarning
+            >
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
           </button>
           {bellOpen && (
             <div className="absolute right-0 top-8 z-50 w-72 rounded border border-hud-border bg-hud-panel/95 backdrop-blur-md shadow-xl">
@@ -189,6 +196,7 @@ export function HudTopbar({
                     <button
                       onClick={markAllRead}
                       className="text-[9px] text-muted-foreground hover:text-hud-cyan transition-colors px-1 py-0.5 rounded flex items-center gap-0.5"
+                      suppressHydrationWarning
                     >
                       <Check className="h-2.5 w-2.5" />
                       {t("common_read_all")}
@@ -198,6 +206,7 @@ export function HudTopbar({
                     <button
                       onClick={clearAll}
                       className="text-[9px] text-muted-foreground hover:text-hud-red transition-colors px-1 py-0.5 rounded flex items-center gap-0.5"
+                      suppressHydrationWarning
                     >
                       <Trash2 className="h-2.5 w-2.5" />
                       {t("common_clear")}

@@ -182,6 +182,7 @@ export function MarketPulse({ data }: MarketPulseProps) {
                   ? "bg-hud-cyan/15 text-hud-cyan"
                   : "text-muted-foreground hover:text-hud-cyan"
               }`}
+              suppressHydrationWarning
             >
               {tab.label}
             </button>

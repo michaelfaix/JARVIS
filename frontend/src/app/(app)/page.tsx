@@ -375,6 +375,7 @@ export default function DashboardPage() {
                             ? "bg-hud-cyan/15 text-hud-cyan border border-hud-cyan/30"
                             : "text-muted-foreground hover:text-hud-cyan hover:bg-hud-cyan/5"
                         }`}
+                        suppressHydrationWarning
                       >
                         {a.symbol}
                       </button>
@@ -385,6 +386,7 @@ export default function DashboardPage() {
                         isCurrentFavorite ? "text-hud-amber" : "text-muted-foreground hover:text-hud-amber"
                       }`}
                       title={isCurrentFavorite ? "Current favorite" : "Set as favorite"}
+                      suppressHydrationWarning
                     >
                       <Star className={`h-3 w-3 ${isCurrentFavorite ? "fill-hud-amber" : ""}`} />
                     </button>
@@ -393,9 +395,9 @@ export default function DashboardPage() {
                     <Badge variant="outline" className="text-[8px] font-mono border-hud-border text-muted-foreground">
                       {TIMEFRAMES[timeframeIdx].label} / {TIMEFRAMES[timeframeIdx].strategyLabel}
                     </Badge>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1" suppressHydrationWarning>
                       <Zap className={`h-2.5 w-2.5 ${wsConnected ? "text-hud-green" : binanceConnected ? "text-hud-cyan" : "text-hud-amber"}`} />
-                      <span className="text-[8px] font-mono text-muted-foreground">
+                      <span className="text-[8px] font-mono text-muted-foreground" suppressHydrationWarning>
                         {wsConnected ? "WS" : binanceConnected ? "REST" : "Sim"}
                       </span>
                     </div>
