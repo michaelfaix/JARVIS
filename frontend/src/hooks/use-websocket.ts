@@ -133,6 +133,7 @@ export function useWebSocket(
     setStatus("disconnected");
   }, [cleanup, maxRetries]);
 
+  // Connect on mount / symbol change
   useEffect(() => {
     mountedRef.current = true;
     if (symbol) {
@@ -143,6 +144,30 @@ export function useWebSocket(
       cleanup();
     };
   }, [symbol, connect, cleanup]);
+
+  // Heartbeat ping every 30s to keep connection alive
+  useEffect(() => {
+    if (status !== "connected") return;
+    const id = setInterval(() => {
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: "ping" }));
+      }
+    }, 30000);
+    return () => clearInterval(id);
+  }, [status]);
+
+  // Reconnect when tab becomes visible
+  useEffect(() => {
+    if (!symbol) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible" && status === "disconnected" && mountedRef.current) {
+        retriesRef.current = 0;
+        connect();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [symbol, status, connect]);
 
   return { status, lastMessage, send, disconnect };
 }

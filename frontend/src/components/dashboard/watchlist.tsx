@@ -11,7 +11,7 @@ import { DEFAULT_ASSETS } from "@/lib/constants";
 import { TrendingUp, TrendingDown, Minus, Plus, X } from "lucide-react";
 
 const STORAGE_KEY = "jarvis-watchlist";
-const DEFAULT_WATCHLIST = ["BTC", "ETH", "SOL"];
+const DEFAULT_WATCHLIST = ["BTC", "ETH", "SOL", "AAPL", "NVDA"];
 
 interface WatchlistProps {
   prices: Record<string, number>;
