@@ -6,8 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { AppHeader } from "@/components/layout/app-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { HudPanel } from "@/components/ui/hud-panel";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -23,11 +22,11 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { useLocale } from "@/hooks/use-locale";
 import { PricingModal } from "@/components/upgrade/pricing-modal";
 import { STRATEGIES, DEFAULT_ASSETS, TIER_LIMITS, FREE_ASSETS } from "@/lib/constants";
-import { Settings, RotateCcw, Save, Lock, Crown, CreditCard } from "lucide-react";
+import { RotateCcw, Save, Lock, Crown, CreditCard } from "lucide-react";
 
 const TIER_COLORS: Record<string, string> = {
   free: "bg-zinc-600/20 text-zinc-400 border-zinc-500/30",
-  pro: "bg-blue-600/20 text-blue-400 border-blue-500/30",
+  pro: "bg-hud-cyan/20 text-hud-cyan border-hud-cyan/30",
   enterprise: "bg-purple-600/20 text-purple-400 border-purple-500/30",
 };
 
@@ -88,26 +87,25 @@ export default function SettingsPage() {
 
   return (
     <>
-      <AppHeader title={t('settings_title')} subtitle={t('settings_configuration')} />
-      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6 max-w-3xl">
+      <div className="p-2 sm:p-3 md:p-4 space-y-3 max-w-3xl">
         {/* Subscription Info */}
-        <Card className="bg-card/50 border-border/50">
-          <CardContent className="pt-4 pb-3 px-4">
+        <HudPanel title="Subscription">
+          <div className="p-2.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${
-                  isPro ? "bg-blue-600/20" : "bg-muted"
+                  isPro ? "bg-hud-cyan/20" : "bg-hud-bg/60"
                 }`}>
-                  <Crown className={`h-5 w-5 ${isPro ? "text-blue-400" : "text-muted-foreground"}`} />
+                  <Crown className={`h-5 w-5 ${isPro ? "text-hud-cyan" : "text-muted-foreground"}`} />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-white capitalize">{tier} Plan</span>
+                    <span className="text-sm font-semibold text-white capitalize font-mono">{tier} Plan</span>
                     <Badge className={`text-[10px] ${TIER_COLORS[tier]}`}>
                       {tier.toUpperCase()}
                     </Badge>
                   </div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-[10px] text-muted-foreground font-mono">
                     {isPro
                       ? t('settings_all_features_unlocked')
                       : `${limits.maxAssets} assets, $${limits.maxCapital.toLocaleString()} capital, ${limits.signalDelayMinutes}min signal delay`}
@@ -119,7 +117,7 @@ export default function SettingsPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="gap-1.5 text-xs"
+                    className="gap-1.5 text-xs border-hud-border text-hud-cyan hover:bg-hud-cyan/10"
                     onClick={manageSubscription}
                     disabled={subLoading}
                   >
@@ -129,7 +127,7 @@ export default function SettingsPage() {
                 ) : (
                   <Button
                     size="sm"
-                    className="gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+                    className="gap-1.5 text-xs bg-hud-cyan/20 hover:bg-hud-cyan/30 text-hud-cyan border border-hud-cyan/30"
                     onClick={() => setPricingOpen(true)}
                   >
                     <Crown className="h-3 w-3" />
@@ -138,27 +136,21 @@ export default function SettingsPage() {
                 )}
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </HudPanel>
 
         {/* Paper Trading */}
-        <Card className="bg-card/50 border-border/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              {t('settings_paper_trading')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
+        <HudPanel title={t('settings_paper_trading')}>
+          <div className="p-2.5 space-y-6">
             {/* Capital */}
             <div className="space-y-2">
-              <Label>{t('settings_starting_capital')}</Label>
+              <Label className="text-[10px] font-mono text-muted-foreground">{t('settings_starting_capital')}</Label>
               <div className="flex gap-2">
                 <Input
                   type="number"
                   value={capitalInput}
                   onChange={(e) => setCapitalInput(e.target.value)}
-                  className="max-w-[200px] font-mono"
+                  className="max-w-[200px] font-mono border-hud-border bg-hud-bg"
                   min={1000}
                   max={limits.maxCapital === Infinity ? undefined : limits.maxCapital}
                   step={1000}
@@ -167,27 +159,27 @@ export default function SettingsPage() {
                   variant="outline"
                   size="sm"
                   onClick={handleCapitalSave}
-                  className="gap-1"
+                  className="gap-1 border-hud-border text-hud-cyan hover:bg-hud-cyan/10"
                 >
                   <Save className="h-3 w-3" />
                   {t('settings_apply')}
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[10px] text-muted-foreground font-mono">
                 {t('settings_capital_hint')}
                 {!isPro && (
-                  <span className="text-yellow-400">
+                  <span className="text-hud-amber">
                     {" "}Max ${limits.maxCapital.toLocaleString()} on {tier} plan.
                   </span>
                 )}
               </p>
             </div>
 
-            <Separator className="opacity-30" />
+            <Separator className="opacity-30 border-hud-border" />
 
             {/* Strategy */}
             <div className="space-y-2">
-              <Label>{t('settings_active_strategy')}</Label>
+              <Label className="text-[10px] font-mono text-muted-foreground">{t('settings_active_strategy')}</Label>
               <Select
                 value={settings.strategy}
                 onChange={(e) =>
@@ -195,7 +187,7 @@ export default function SettingsPage() {
                     strategy: e.target.value as typeof settings.strategy,
                   })
                 }
-                className="max-w-[200px]"
+                className="max-w-[200px] border-hud-border bg-hud-bg font-mono"
               >
                 {STRATEGIES.map((s) => (
                   <option key={s.id} value={s.id}>
@@ -203,16 +195,16 @@ export default function SettingsPage() {
                   </option>
                 ))}
               </Select>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[10px] text-muted-foreground font-mono">
                 {t('settings_strategy_hint')}
               </p>
             </div>
 
-            <Separator className="opacity-30" />
+            <Separator className="opacity-30 border-hud-border" />
 
             {/* Tracked Assets */}
             <div className="space-y-2">
-              <Label>{t('settings_tracked_assets')}</Label>
+              <Label className="text-[10px] font-mono text-muted-foreground">{t('settings_tracked_assets')}</Label>
               <div className="flex flex-wrap gap-2">
                 {DEFAULT_ASSETS.map((asset) => {
                   const isTracked = settings.trackedAssets.includes(
@@ -223,12 +215,12 @@ export default function SettingsPage() {
                     <Badge
                       key={asset.symbol}
                       variant={isTracked && !isLocked ? "default" : "outline"}
-                      className={`transition-colors ${
+                      className={`transition-colors font-mono ${
                         isLocked
-                          ? "opacity-50 cursor-not-allowed"
+                          ? "opacity-50 cursor-not-allowed border-hud-border/30"
                           : isTracked
-                          ? "bg-blue-600 hover:bg-blue-700 cursor-pointer"
-                          : "hover:bg-muted cursor-pointer"
+                          ? "bg-hud-cyan/20 hover:bg-hud-cyan/30 text-hud-cyan border-hud-cyan/30 cursor-pointer"
+                          : "hover:bg-hud-bg/60 cursor-pointer border-hud-border/30"
                       }`}
                       onClick={() => {
                         if (isLocked) return;
@@ -246,30 +238,25 @@ export default function SettingsPage() {
                   );
                 })}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[10px] text-muted-foreground font-mono">
                 {t('settings_tracked_assets_hint')}
                 {!isPro && (
-                  <span className="text-yellow-400">
+                  <span className="text-hud-amber">
                     {" "}Free plan: {limits.maxAssets} assets only.
                   </span>
                 )}
               </p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </HudPanel>
 
         {/* Appearance */}
-        <Card className="bg-card/50 border-border/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              {t('settings_appearance')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <HudPanel title={t('settings_appearance')}>
+          <div className="p-2.5 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <Label>{t('settings_dark_mode')}</Label>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <Label className="text-[10px] font-mono text-muted-foreground">{t('settings_dark_mode')}</Label>
+                <p className="text-[10px] text-muted-foreground mt-0.5 font-mono">
                   {t('settings_dark_mode_hint')}
                 </p>
               </div>
@@ -279,12 +266,12 @@ export default function SettingsPage() {
               />
             </div>
 
-            <Separator className="opacity-30" />
+            <Separator className="opacity-30 border-hud-border" />
 
             <div className="flex items-center justify-between">
               <div>
-                <Label>{t('settings_poll_interval')}</Label>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <Label className="text-[10px] font-mono text-muted-foreground">{t('settings_poll_interval')}</Label>
+                <p className="text-[10px] text-muted-foreground mt-0.5 font-mono">
                   {t('settings_poll_interval_hint')}
                 </p>
               </div>
@@ -293,7 +280,7 @@ export default function SettingsPage() {
                 onChange={(e) =>
                   update({ pollIntervalMs: parseInt(e.target.value) })
                 }
-                className="w-32"
+                className="w-32 border-hud-border bg-hud-bg font-mono"
               >
                 <option value="5000">5 sec</option>
                 <option value="10000">10 sec</option>
@@ -301,24 +288,19 @@ export default function SettingsPage() {
                 <option value="60000">1 min</option>
               </Select>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </HudPanel>
 
         {/* Language */}
-        <Card className="bg-card/50 border-border/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              {t('settings_language')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <HudPanel title={t('settings_language')}>
+          <div className="p-2.5">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setLocale('en')}
-                className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors border ${
+                className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors border font-mono ${
                   locale === 'en'
-                    ? 'border-blue-500 bg-blue-600/20 text-blue-400'
-                    : 'border-border/50 text-muted-foreground hover:bg-muted hover:text-foreground'
+                    ? 'border-hud-cyan bg-hud-cyan/20 text-hud-cyan'
+                    : 'border-hud-border/50 text-muted-foreground hover:bg-hud-bg/60 hover:text-foreground'
                 }`}
               >
                 <span className="text-base">&#x1F1EC;&#x1F1E7;</span>
@@ -326,38 +308,33 @@ export default function SettingsPage() {
               </button>
               <button
                 onClick={() => setLocale('de')}
-                className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors border ${
+                className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors border font-mono ${
                   locale === 'de'
-                    ? 'border-blue-500 bg-blue-600/20 text-blue-400'
-                    : 'border-border/50 text-muted-foreground hover:bg-muted hover:text-foreground'
+                    ? 'border-hud-cyan bg-hud-cyan/20 text-hud-cyan'
+                    : 'border-hud-border/50 text-muted-foreground hover:bg-hud-bg/60 hover:text-foreground'
                 }`}
               >
                 <span className="text-base">&#x1F1E9;&#x1F1EA;</span>
                 Deutsch
               </button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </HudPanel>
 
         {/* Danger Zone */}
-        <Card className="bg-card/50 border-red-500/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-red-400">
-              {t('settings_danger_zone')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <HudPanel title={t('settings_danger_zone')} className="border-hud-red/20">
+          <div className="p-2.5 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-white">{t('settings_reset_all')}</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-white font-mono">{t('settings_reset_all')}</p>
+                <p className="text-[10px] text-muted-foreground font-mono">
                   {t('settings_reset_all_hint')}
                 </p>
               </div>
               <Button
                 variant="outline"
                 size="sm"
-                className="text-red-400 border-red-500/30 hover:bg-red-500/10 gap-1"
+                className="text-hud-red border-hud-red/30 hover:bg-hud-red/10 gap-1"
                 onClick={() => {
                   reset();
                   resetPortfolio();
@@ -367,8 +344,8 @@ export default function SettingsPage() {
                 {t('settings_reset')}
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </HudPanel>
       </div>
 
       {/* Pricing Modal */}

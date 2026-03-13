@@ -5,8 +5,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { AppHeader } from "@/components/layout/app-header";
-import { Card, CardContent } from "@/components/ui/card";
+import { HudPanel } from "@/components/ui/hud-panel";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -92,21 +91,21 @@ function generateLeaderboard(
 }
 
 const RANK_ICONS = [
-  <Trophy key="1" className="h-4 w-4 text-yellow-400" />,
+  <Trophy key="1" className="h-4 w-4 text-hud-amber" />,
   <Medal key="2" className="h-4 w-4 text-gray-300" />,
   <Medal key="3" className="h-4 w-4 text-amber-600" />,
 ];
 
 const TIER_BADGE: Record<string, string> = {
   enterprise: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-  pro: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  free: "bg-muted text-muted-foreground border-border/50",
+  pro: "bg-hud-cyan/20 text-hud-cyan border-hud-cyan/30",
+  free: "bg-hud-bg/60 text-muted-foreground border-hud-border/30",
 };
 
 export default function LeaderboardPage() {
   const { state: portfolio, winRate, drawdown, totalValue } = usePortfolio();
   const { profile, tier } = useProfile();
-  const { followCount, isFollowing, followTrader, unfollowTrader, canFollow } = useSocialTrading();
+  const { isFollowing, followTrader, unfollowTrader, canFollow } = useSocialTrading();
 
   const totalReturn =
     portfolio.totalCapital > 0
@@ -133,139 +132,136 @@ export default function LeaderboardPage() {
   const currentUserEntry = leaderboard.find((e) => e.isCurrentUser);
 
   return (
-    <>
-      <AppHeader title="Leaderboard" subtitle={`Community Rankings · ${followCount} Following`} />
-      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
-        {/* Top 3 Podium */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {leaderboard.slice(0, 3).map((entry, i) => (
-            <Card
-              key={entry.name}
-              className={`bg-card/50 border-border/50 ${
-                i === 0 ? "md:order-2 ring-1 ring-yellow-500/30" : i === 1 ? "md:order-1" : "md:order-3"
-              } ${entry.isCurrentUser ? "ring-1 ring-blue-500/50" : ""}`}
-            >
-              <CardContent className="pt-5 pb-4 px-4 text-center">
-                <div className="mb-2">{RANK_ICONS[i]}</div>
-                <div className="text-xs text-muted-foreground mb-1">
-                  #{entry.rank}
-                </div>
-                <div className="font-bold text-white text-sm flex items-center justify-center gap-1.5">
-                  {entry.isCurrentUser && <User className="h-3 w-3 text-blue-400" />}
-                  {entry.name}
-                </div>
-                <Badge className={`mt-1 text-[9px] ${TIER_BADGE[entry.tier]}`}>
-                  {entry.tier}
-                </Badge>
-                <div
-                  className={`text-2xl font-bold font-mono mt-2 ${
-                    entry.totalReturn >= 0 ? "text-green-400" : "text-red-400"
-                  }`}
-                >
-                  {entry.totalReturn >= 0 ? "+" : ""}
-                  {entry.totalReturn.toFixed(1)}%
-                </div>
-                <div className="text-[10px] text-muted-foreground mt-1">
-                  {entry.trades} trades · {entry.winRate}% win
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+    <div className="p-2 sm:p-3 md:p-4 space-y-3">
+      {/* Top 3 Podium */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {leaderboard.slice(0, 3).map((entry, i) => (
+          <HudPanel
+            key={entry.name}
+            className={`${
+              i === 0 ? "md:order-2 ring-1 ring-hud-amber/30" : i === 1 ? "md:order-1" : "md:order-3"
+            } ${entry.isCurrentUser ? "ring-1 ring-hud-cyan/50" : ""}`}
+          >
+            <div className="pt-4 pb-3 px-3 text-center">
+              <div className="mb-2">{RANK_ICONS[i]}</div>
+              <div className="text-[10px] text-muted-foreground font-mono mb-1">
+                #{entry.rank}
+              </div>
+              <div className="font-bold text-white text-sm flex items-center justify-center gap-1.5 font-mono">
+                {entry.isCurrentUser && <User className="h-3 w-3 text-hud-cyan" />}
+                {entry.name}
+              </div>
+              <Badge className={`mt-1 text-[9px] ${TIER_BADGE[entry.tier]}`}>
+                {entry.tier}
+              </Badge>
+              <div
+                className={`text-2xl font-bold font-mono mt-2 ${
+                  entry.totalReturn >= 0 ? "text-hud-green" : "text-hud-red"
+                }`}
+              >
+                {entry.totalReturn >= 0 ? "+" : ""}
+                {entry.totalReturn.toFixed(1)}%
+              </div>
+              <div className="text-[10px] text-muted-foreground mt-1 font-mono">
+                {entry.trades} trades · {entry.winRate}% win
+              </div>
+            </div>
+          </HudPanel>
+        ))}
+      </div>
 
-        {/* Your Position */}
-        {currentUserEntry && (
-          <Card className="bg-blue-600/5 border-blue-500/20">
-            <CardContent className="pt-4 pb-3 px-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600/20">
-                    <Crown className="h-5 w-5 text-blue-400" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-bold text-white">
-                      Your Position: #{currentUserEntry.rank}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      of {leaderboard.length} traders
-                    </div>
-                  </div>
+      {/* Your Position */}
+      {currentUserEntry && (
+        <HudPanel title="Your Position" className="bg-hud-cyan/5 border-hud-cyan/20">
+          <div className="p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-hud-cyan/20">
+                  <Crown className="h-5 w-5 text-hud-cyan" />
                 </div>
-                <div className="text-right">
-                  <div
-                    className={`text-xl font-bold font-mono ${
-                      currentUserEntry.totalReturn >= 0
-                        ? "text-green-400"
-                        : "text-red-400"
-                    }`}
-                  >
-                    {currentUserEntry.totalReturn >= 0 ? "+" : ""}
-                    {currentUserEntry.totalReturn.toFixed(1)}%
+                <div>
+                  <div className="text-sm font-bold text-white font-mono">
+                    Rank #{currentUserEntry.rank}
                   </div>
-                  <div className="text-[10px] text-muted-foreground">
-                    Total Return
+                  <div className="text-[10px] text-muted-foreground font-mono">
+                    of {leaderboard.length} traders
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        )}
+              <div className="text-right">
+                <div
+                  className={`text-xl font-bold font-mono ${
+                    currentUserEntry.totalReturn >= 0
+                      ? "text-hud-green"
+                      : "text-hud-red"
+                  }`}
+                >
+                  {currentUserEntry.totalReturn >= 0 ? "+" : ""}
+                  {currentUserEntry.totalReturn.toFixed(1)}%
+                </div>
+                <div className="text-[10px] text-muted-foreground font-mono">
+                  Total Return
+                </div>
+              </div>
+            </div>
+          </div>
+        </HudPanel>
+      )}
 
-        {/* Full Ranking Table */}
-        <Tabs defaultValue="return">
-          <TabsList>
-            <TabsTrigger value="return" className="gap-1">
-              <TrendingUp className="h-3 w-3" /> Return
-            </TabsTrigger>
-            <TabsTrigger value="winrate" className="gap-1">
-              <Target className="h-3 w-3" /> Win Rate
-            </TabsTrigger>
-            <TabsTrigger value="risk" className="gap-1">
-              <BarChart3 className="h-3 w-3" /> Risk-Adjusted
-            </TabsTrigger>
-          </TabsList>
+      {/* Full Ranking Table */}
+      <Tabs defaultValue="return">
+        <TabsList>
+          <TabsTrigger value="return" className="gap-1 data-[state=active]:text-hud-cyan">
+            <TrendingUp className="h-3 w-3" /> Return
+          </TabsTrigger>
+          <TabsTrigger value="winrate" className="gap-1 data-[state=active]:text-hud-cyan">
+            <Target className="h-3 w-3" /> Win Rate
+          </TabsTrigger>
+          <TabsTrigger value="risk" className="gap-1 data-[state=active]:text-hud-cyan">
+            <BarChart3 className="h-3 w-3" /> Risk-Adjusted
+          </TabsTrigger>
+        </TabsList>
 
-          <TabsContent value="return">
-            <RankingTable
-              entries={[...leaderboard].sort(
-                (a, b) => b.totalReturn - a.totalReturn
-              )}
-              sortKey="totalReturn"
-              isFollowing={isFollowing}
-              followTrader={followTrader}
-              unfollowTrader={unfollowTrader}
-              canFollow={canFollow}
-            />
-          </TabsContent>
-          <TabsContent value="winrate">
-            <RankingTable
-              entries={[...leaderboard].sort((a, b) => b.winRate - a.winRate)}
-              sortKey="winRate"
-              isFollowing={isFollowing}
-              followTrader={followTrader}
-              unfollowTrader={unfollowTrader}
-              canFollow={canFollow}
-            />
-          </TabsContent>
-          <TabsContent value="risk">
-            <RankingTable
-              entries={[...leaderboard].sort((a, b) => {
-                const aScore =
-                  a.drawdown > 0 ? a.totalReturn / a.drawdown : a.totalReturn;
-                const bScore =
-                  b.drawdown > 0 ? b.totalReturn / b.drawdown : b.totalReturn;
-                return bScore - aScore;
-              })}
-              sortKey="riskAdjusted"
-              isFollowing={isFollowing}
-              followTrader={followTrader}
-              unfollowTrader={unfollowTrader}
-              canFollow={canFollow}
-            />
-          </TabsContent>
-        </Tabs>
-      </div>
-    </>
+        <TabsContent value="return">
+          <RankingTable
+            entries={[...leaderboard].sort(
+              (a, b) => b.totalReturn - a.totalReturn
+            )}
+            sortKey="totalReturn"
+            isFollowing={isFollowing}
+            followTrader={followTrader}
+            unfollowTrader={unfollowTrader}
+            canFollow={canFollow}
+          />
+        </TabsContent>
+        <TabsContent value="winrate">
+          <RankingTable
+            entries={[...leaderboard].sort((a, b) => b.winRate - a.winRate)}
+            sortKey="winRate"
+            isFollowing={isFollowing}
+            followTrader={followTrader}
+            unfollowTrader={unfollowTrader}
+            canFollow={canFollow}
+          />
+        </TabsContent>
+        <TabsContent value="risk">
+          <RankingTable
+            entries={[...leaderboard].sort((a, b) => {
+              const aScore =
+                a.drawdown > 0 ? a.totalReturn / a.drawdown : a.totalReturn;
+              const bScore =
+                b.drawdown > 0 ? b.totalReturn / b.drawdown : b.totalReturn;
+              return bScore - aScore;
+            })}
+            sortKey="riskAdjusted"
+            isFollowing={isFollowing}
+            followTrader={followTrader}
+            unfollowTrader={unfollowTrader}
+            canFollow={canFollow}
+          />
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }
 
@@ -285,23 +281,22 @@ function RankingTable({
   canFollow: boolean;
 }) {
   return (
-    <Card className="bg-card/50 border-border/50 mt-4">
-      <CardContent className="pt-0 px-0">
-        <div className="overflow-x-auto">
+    <HudPanel title="Rankings" className="mt-4">
+      <div className="overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead className="w-12">#</TableHead>
-              <TableHead>Trader</TableHead>
-              <TableHead>Tier</TableHead>
-              <TableHead className="text-right">Return</TableHead>
-              <TableHead className="text-right">Win Rate</TableHead>
-              <TableHead className="text-right">Trades</TableHead>
-              <TableHead className="text-right">Max DD</TableHead>
+            <TableRow className="border-hud-border">
+              <TableHead className="w-12 font-mono text-[10px]">#</TableHead>
+              <TableHead className="font-mono text-[10px]">Trader</TableHead>
+              <TableHead className="font-mono text-[10px]">Tier</TableHead>
+              <TableHead className="text-right font-mono text-[10px]">Return</TableHead>
+              <TableHead className="text-right font-mono text-[10px]">Win Rate</TableHead>
+              <TableHead className="text-right font-mono text-[10px]">Trades</TableHead>
+              <TableHead className="text-right font-mono text-[10px]">Max DD</TableHead>
               {sortKey === "riskAdjusted" && (
-                <TableHead className="text-right">Score</TableHead>
+                <TableHead className="text-right font-mono text-[10px]">Score</TableHead>
               )}
-              <TableHead className="text-center w-20">Actions</TableHead>
+              <TableHead className="text-center w-20 font-mono text-[10px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -310,11 +305,11 @@ function RankingTable({
               return (
               <TableRow
                 key={entry.name}
-                className={
+                className={`border-hud-border/30 ${
                   entry.isCurrentUser
-                    ? "bg-blue-500/5 border-blue-500/20"
+                    ? "bg-hud-cyan/5 border-hud-cyan/20"
                     : ""
-                }
+                }`}
               >
                 <TableCell className="font-mono text-muted-foreground">
                   {i < 3 ? RANK_ICONS[i] : i + 1}
@@ -322,11 +317,11 @@ function RankingTable({
                 <TableCell>
                   <div className="flex items-center gap-1.5">
                     {entry.isCurrentUser && (
-                      <User className="h-3 w-3 text-blue-400" />
+                      <User className="h-3 w-3 text-hud-cyan" />
                     )}
                     <span
-                      className={`font-medium ${
-                        entry.isCurrentUser ? "text-blue-400" : "text-white"
+                      className={`font-medium font-mono ${
+                        entry.isCurrentUser ? "text-hud-cyan" : "text-white"
                       }`}
                     >
                       {entry.name}
@@ -342,7 +337,7 @@ function RankingTable({
                 </TableCell>
                 <TableCell
                   className={`text-right font-mono ${
-                    entry.totalReturn >= 0 ? "text-green-400" : "text-red-400"
+                    entry.totalReturn >= 0 ? "text-hud-green" : "text-hud-red"
                   }`}
                 >
                   {entry.totalReturn >= 0 ? "+" : ""}
@@ -357,10 +352,10 @@ function RankingTable({
                 <TableCell
                   className={`text-right font-mono ${
                     entry.drawdown > 10
-                      ? "text-red-400"
+                      ? "text-hud-red"
                       : entry.drawdown > 5
-                      ? "text-yellow-400"
-                      : "text-green-400"
+                      ? "text-hud-amber"
+                      : "text-hud-green"
                   }`}
                 >
                   {entry.drawdown.toFixed(1)}%
@@ -386,8 +381,8 @@ function RankingTable({
                         <Heart
                           className={`h-3.5 w-3.5 ${
                             following
-                              ? "fill-red-500 text-red-500"
-                              : "text-muted-foreground hover:text-red-400"
+                              ? "fill-hud-red text-hud-red"
+                              : "text-muted-foreground hover:text-hud-red"
                           }`}
                         />
                       </Button>
@@ -400,7 +395,7 @@ function RankingTable({
                           if (!following) followTrader(entry.name);
                         }}
                       >
-                        <Copy className="h-3.5 w-3.5 text-muted-foreground hover:text-blue-400" />
+                        <Copy className="h-3.5 w-3.5 text-muted-foreground hover:text-hud-cyan" />
                       </Button>
                     </div>
                   )}
@@ -410,8 +405,7 @@ function RankingTable({
             })}
           </TableBody>
         </Table>
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+    </HudPanel>
   );
 }

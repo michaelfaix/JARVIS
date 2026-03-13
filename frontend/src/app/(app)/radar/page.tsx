@@ -4,8 +4,7 @@
 
 "use client";
 
-import { AppHeader } from "@/components/layout/app-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { HudPanel } from "@/components/ui/hud-panel";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
@@ -20,7 +19,7 @@ import {
 } from "@/lib/types";
 import { DEFAULT_ASSETS, FREE_ASSETS } from "@/lib/constants";
 import { useProfile } from "@/hooks/use-profile";
-import { Radar, TrendingUp, TrendingDown, Zap } from "lucide-react";
+import { Radar, TrendingUp, TrendingDown } from "lucide-react";
 import { ApiOfflineBanner } from "@/components/ui/api-offline-banner";
 
 // Derive opportunities from signals
@@ -64,160 +63,143 @@ export default function RadarPage() {
   const shorts = opportunities.filter((o) => o.direction === "SHORT");
 
   return (
-    <>
-      <AppHeader title="Opportunity Radar" subtitle="Regime + Momentum Scanner" />
-      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
-        {(statusError || signalsError) && <ApiOfflineBanner />}
-        {/* Summary */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-border/50">
-            <CardContent className="pt-4 pb-3 px-4">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                <Radar className="h-3 w-3" /> Opportunities
-              </div>
-              <div className="text-2xl font-bold font-mono text-white">
-                {opportunities.length}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border/50">
-            <CardContent className="pt-4 pb-3 px-4">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                <TrendingUp className="h-3 w-3" /> Long Bias
-              </div>
-              <div className="text-2xl font-bold font-mono text-green-400">
-                {longs.length}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border/50">
-            <CardContent className="pt-4 pb-3 px-4">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                <TrendingDown className="h-3 w-3" /> Short Bias
-              </div>
-              <div className="text-2xl font-bold font-mono text-red-400">
-                {shorts.length}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border/50">
-            <CardContent className="pt-4 pb-3 px-4">
-              <div className="text-xs text-muted-foreground mb-1">
-                Active Regime
-              </div>
-              <div
-                className="text-xl font-bold"
-                style={{ color: REGIME_COLORS[regime] }}
-              >
-                {REGIME_LABELS[regime]}
-              </div>
-            </CardContent>
-          </Card>
+    <div className="p-2 sm:p-3 md:p-4 space-y-3">
+      {(statusError || signalsError) && <ApiOfflineBanner />}
+      {/* Summary */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="bg-hud-bg/60 border border-hud-border/30 rounded p-2.5">
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground mb-1">
+            <Radar className="h-3 w-3" /> OPPORTUNITIES
+          </div>
+          <div className="text-2xl font-bold font-mono text-white">
+            {opportunities.length}
+          </div>
         </div>
+        <div className="bg-hud-bg/60 border border-hud-border/30 rounded p-2.5">
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground mb-1">
+            <TrendingUp className="h-3 w-3" /> LONG BIAS
+          </div>
+          <div className="text-2xl font-bold font-mono text-hud-green">
+            {longs.length}
+          </div>
+        </div>
+        <div className="bg-hud-bg/60 border border-hud-border/30 rounded p-2.5">
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground mb-1">
+            <TrendingDown className="h-3 w-3" /> SHORT BIAS
+          </div>
+          <div className="text-2xl font-bold font-mono text-hud-red">
+            {shorts.length}
+          </div>
+        </div>
+        <div className="bg-hud-bg/60 border border-hud-border/30 rounded p-2.5">
+          <div className="text-[10px] text-muted-foreground mb-1">
+            ACTIVE REGIME
+          </div>
+          <div
+            className="text-xl font-bold font-mono"
+            style={{ color: REGIME_COLORS[regime] }}
+          >
+            {REGIME_LABELS[regime]}
+          </div>
+        </div>
+      </div>
 
-        {/* Tabs: All / Long / Short */}
-        <Tabs defaultValue="all">
-          <TabsList>
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="long">Long Only</TabsTrigger>
-            <TabsTrigger value="short">Short Only</TabsTrigger>
-            <TabsTrigger value="top">Top Picks</TabsTrigger>
-          </TabsList>
+      {/* Tabs: All / Long / Short */}
+      <Tabs defaultValue="all">
+        <TabsList className="bg-hud-bg/60 border border-hud-border/30">
+          <TabsTrigger value="all" className="data-[state=active]:text-hud-cyan data-[state=active]:border-hud-cyan">All</TabsTrigger>
+          <TabsTrigger value="long" className="data-[state=active]:text-hud-cyan data-[state=active]:border-hud-cyan">Long Only</TabsTrigger>
+          <TabsTrigger value="short" className="data-[state=active]:text-hud-cyan data-[state=active]:border-hud-cyan">Short Only</TabsTrigger>
+          <TabsTrigger value="top" className="data-[state=active]:text-hud-cyan data-[state=active]:border-hud-cyan">Top Picks</TabsTrigger>
+        </TabsList>
 
-          <TabsContent value="all">
-            <OpportunityGrid
-              opportunities={opportunities}
-              loading={loading}
-            />
-          </TabsContent>
-          <TabsContent value="long">
-            <OpportunityGrid
-              opportunities={longs}
-              loading={loading}
-            />
-          </TabsContent>
-          <TabsContent value="short">
-            <OpportunityGrid
-              opportunities={shorts}
-              loading={loading}
-            />
-          </TabsContent>
-          <TabsContent value="top">
-            <OpportunityGrid
-              opportunities={topOpps}
-              loading={loading}
-            />
-          </TabsContent>
-        </Tabs>
+        <TabsContent value="all">
+          <OpportunityGrid
+            opportunities={opportunities}
+            loading={loading}
+          />
+        </TabsContent>
+        <TabsContent value="long">
+          <OpportunityGrid
+            opportunities={longs}
+            loading={loading}
+          />
+        </TabsContent>
+        <TabsContent value="short">
+          <OpportunityGrid
+            opportunities={shorts}
+            loading={loading}
+          />
+        </TabsContent>
+        <TabsContent value="top">
+          <OpportunityGrid
+            opportunities={topOpps}
+            loading={loading}
+          />
+        </TabsContent>
+      </Tabs>
 
-        {/* Momentum Scanner */}
-        <Card className="bg-card/50 border-border/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Zap className="h-4 w-4" />
-              Momentum Scanner
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {opportunities.map((opp) => (
-                <div
-                  key={opp.asset}
-                  className="flex items-center gap-4 py-2 border-b border-border/30 last:border-0"
+      {/* Momentum Scanner */}
+      <HudPanel title="MOMENTUM SCANNER" scanLine>
+        <div className="p-2 sm:p-3 md:p-4">
+          <div className="space-y-3">
+            {opportunities.map((opp) => (
+              <div
+                key={opp.asset}
+                className="flex items-center gap-4 py-2 border-b border-hud-border/30 last:border-0"
+              >
+                <div className="w-16 font-medium text-white text-sm font-mono">
+                  {opp.asset}
+                </div>
+                <Badge
+                  className={`text-[10px] w-14 justify-center ${
+                    opp.direction === "LONG"
+                      ? "bg-hud-green/20 text-hud-green border-hud-green/30"
+                      : "bg-hud-red/20 text-hud-red border-hud-red/30"
+                  }`}
                 >
-                  <div className="w-16 font-medium text-white text-sm">
-                    {opp.asset}
-                  </div>
-                  <Badge
-                    className={`text-[10px] w-14 justify-center ${
-                      opp.direction === "LONG"
-                        ? "bg-green-500/20 text-green-400 border-green-500/30"
-                        : "bg-red-500/20 text-red-400 border-red-500/30"
-                    }`}
-                  >
-                    {opp.direction}
-                  </Badge>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 h-2 bg-background/50 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all ${
-                            opp.momentum >= 0 ? "bg-green-500" : "bg-red-500"
-                          }`}
-                          style={{
-                            width: `${Math.abs(opp.momentum) * 100}%`,
-                            marginLeft:
-                              opp.momentum < 0
-                                ? `${(1 - Math.abs(opp.momentum)) * 50}%`
-                                : "50%",
-                          }}
-                        />
-                      </div>
-                      <span className="text-xs font-mono text-muted-foreground w-12 text-right">
-                        {opp.momentum >= 0 ? "+" : ""}
-                        {(opp.momentum * 100).toFixed(1)}%
-                      </span>
+                  {opp.direction}
+                </Badge>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-2 bg-hud-bg/60 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          opp.momentum >= 0 ? "bg-hud-green" : "bg-hud-red"
+                        }`}
+                        style={{
+                          width: `${Math.abs(opp.momentum) * 100}%`,
+                          marginLeft:
+                            opp.momentum < 0
+                              ? `${(1 - Math.abs(opp.momentum)) * 50}%`
+                              : "50%",
+                        }}
+                      />
                     </div>
-                  </div>
-                  <div className="text-right w-20">
-                    <span className="text-xs font-mono text-white">
-                      Score: {(opp.score * 100).toFixed(0)}
+                    <span className="text-xs font-mono text-muted-foreground w-12 text-right">
+                      {opp.momentum >= 0 ? "+" : ""}
+                      {(opp.momentum * 100).toFixed(1)}%
                     </span>
                   </div>
                 </div>
-              ))}
-              {opportunities.length === 0 && (
-                <div className="text-center text-muted-foreground py-6 text-sm">
-                  {loading
-                    ? "Scanning markets..."
-                    : "Connect backend to scan opportunities"}
+                <div className="text-right w-20">
+                  <span className="text-xs font-mono text-hud-cyan">
+                    Score: {(opp.score * 100).toFixed(0)}
+                  </span>
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </>
+              </div>
+            ))}
+            {opportunities.length === 0 && (
+              <div className="text-center text-muted-foreground py-6 text-sm">
+                {loading
+                  ? "Scanning markets..."
+                  : "Connect backend to scan opportunities"}
+              </div>
+            )}
+          </div>
+        </div>
+      </HudPanel>
+    </div>
   );
 }
 
@@ -234,11 +216,11 @@ function OpportunityGrid({
 }) {
   if (loading && opportunities.length === 0) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Card
+          <div
             key={i}
-            className="bg-card/50 border-border/50 animate-pulse h-40"
+            className="bg-hud-bg/60 border border-hud-border/30 rounded animate-pulse h-40"
           />
         ))}
       </div>
@@ -254,26 +236,26 @@ function OpportunityGrid({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
       {opportunities.map((opp) => (
-        <Card key={opp.asset} className="bg-card/50 border-border/50">
-          <CardContent className="pt-4 pb-3 px-4 space-y-3">
+        <HudPanel key={opp.asset}>
+          <div className="p-2.5 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-white text-lg">
+                <span className="font-bold text-white text-lg font-mono">
                   {opp.asset}
                 </span>
                 <Badge
                   className={
                     opp.direction === "LONG"
-                      ? "bg-green-500/20 text-green-400 border-green-500/30"
-                      : "bg-red-500/20 text-red-400 border-red-500/30"
+                      ? "bg-hud-green/20 text-hud-green border-hud-green/30"
+                      : "bg-hud-red/20 text-hud-red border-hud-red/30"
                   }
                 >
                   {opp.direction}
                 </Badge>
               </div>
-              <span className="text-2xl font-bold font-mono text-white">
+              <span className="text-2xl font-bold font-mono text-hud-cyan">
                 {(opp.score * 100).toFixed(0)}
               </span>
             </div>
@@ -287,7 +269,7 @@ function OpportunityGrid({
 
             <div className="space-y-2">
               <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Confidence</span>
+                <span className="text-[10px] text-muted-foreground">CONFIDENCE</span>
                 <span className="font-mono text-white">
                   {(opp.confidence * 100).toFixed(0)}%
                 </span>
@@ -297,14 +279,14 @@ function OpportunityGrid({
                 className="h-1.5"
                 indicatorClassName={
                   opp.confidence > 0.7
-                    ? "bg-green-500"
+                    ? "bg-hud-green"
                     : opp.confidence > 0.4
-                    ? "bg-yellow-500"
-                    : "bg-red-500"
+                    ? "bg-hud-amber"
+                    : "bg-hud-red"
                 }
               />
               <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Quality</span>
+                <span className="text-[10px] text-muted-foreground">QUALITY</span>
                 <span className="font-mono text-white">
                   {(opp.qualityScore * 100).toFixed(0)}%
                 </span>
@@ -312,11 +294,11 @@ function OpportunityGrid({
               <Progress
                 value={opp.qualityScore * 100}
                 className="h-1.5"
-                indicatorClassName="bg-blue-500"
+                indicatorClassName="bg-hud-cyan"
               />
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </HudPanel>
       ))}
     </div>
   );

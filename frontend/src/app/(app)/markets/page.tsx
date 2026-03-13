@@ -5,15 +5,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AppHeader } from "@/components/layout/app-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { HudPanel } from "@/components/ui/hud-panel";
 import { Badge } from "@/components/ui/badge";
 import { usePrices } from "@/hooks/use-prices";
 import { useSignals } from "@/hooks/use-signals";
 import { useSystemStatus } from "@/hooks/use-jarvis";
 import { DEFAULT_ASSETS } from "@/lib/constants";
 import {
-  LayoutGrid,
   TrendingUp,
   TrendingDown,
   Minus,
@@ -67,71 +65,58 @@ export default function MarketsPage() {
 
   return (
     <>
-      <AppHeader title="Markets" subtitle="Overview & Heatmap" />
-      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="p-2 sm:p-3 md:p-4 space-y-3">
         {(statusError || signalsError) && <ApiOfflineBanner />}
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-border/50">
-            <CardContent className="pt-4 pb-3 px-4">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                <Globe className="h-3 w-3" /> Assets Tracked
-              </div>
-              <div className="text-2xl font-bold font-mono text-white">
-                {DEFAULT_ASSETS.length}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border/50">
-            <CardContent className="pt-4 pb-3 px-4">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                <TrendingUp className="h-3 w-3 text-green-400" /> Gainers
-              </div>
-              <div className="text-2xl font-bold font-mono text-green-400">
-                {gainers}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border/50">
-            <CardContent className="pt-4 pb-3 px-4">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                <TrendingDown className="h-3 w-3 text-red-400" /> Losers
-              </div>
-              <div className="text-2xl font-bold font-mono text-red-400">
-                {losers}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border/50">
-            <CardContent className="pt-4 pb-3 px-4">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                <Zap className="h-3 w-3" /> Feed
-              </div>
-              <div className="text-sm font-mono text-white">
-                {wsConnected ? (
-                  <span className="text-green-400">WS Live</span>
-                ) : binanceConnected ? (
-                  <span className="text-green-400">REST</span>
-                ) : (
-                  <span className="text-yellow-400">Synthetic</span>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="bg-hud-bg/60 border border-hud-border/30 rounded p-2.5">
+            <div className="flex items-center gap-2 text-[10px] text-hud-cyan/70 font-mono mb-1">
+              <Globe className="h-3 w-3" /> ASSETS TRACKED
+            </div>
+            <div className="text-2xl font-bold font-mono text-hud-cyan">
+              {DEFAULT_ASSETS.length}
+            </div>
+          </div>
+          <div className="bg-hud-bg/60 border border-hud-border/30 rounded p-2.5">
+            <div className="flex items-center gap-2 text-[10px] text-hud-cyan/70 font-mono mb-1">
+              <TrendingUp className="h-3 w-3 text-hud-green" /> GAINERS
+            </div>
+            <div className="text-2xl font-bold font-mono text-hud-green">
+              {gainers}
+            </div>
+          </div>
+          <div className="bg-hud-bg/60 border border-hud-border/30 rounded p-2.5">
+            <div className="flex items-center gap-2 text-[10px] text-hud-cyan/70 font-mono mb-1">
+              <TrendingDown className="h-3 w-3 text-hud-red" /> LOSERS
+            </div>
+            <div className="text-2xl font-bold font-mono text-hud-red">
+              {losers}
+            </div>
+          </div>
+          <div className="bg-hud-bg/60 border border-hud-border/30 rounded p-2.5">
+            <div className="flex items-center gap-2 text-[10px] text-hud-cyan/70 font-mono mb-1">
+              <Zap className="h-3 w-3" /> FEED
+            </div>
+            <div className="text-sm font-mono">
+              {wsConnected ? (
+                <span className="text-hud-green">WS Live</span>
+              ) : binanceConnected ? (
+                <span className="text-hud-green">REST</span>
+              ) : (
+                <span className="text-hud-amber">Synthetic</span>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Heatmap */}
-        <Card className="bg-card/50 border-border/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <LayoutGrid className="h-4 w-4" />
-              Market Heatmap
-              <span className="text-[10px] text-muted-foreground ml-auto">
+        <HudPanel title="MARKET HEATMAP" scanLine>
+          <div className="p-2.5">
+            <div className="flex items-center justify-end mb-2">
+              <span className="text-[9px] text-hud-cyan/40 font-mono">
                 Size = market cap weight · Color = price change
               </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {DEFAULT_ASSETS.map((asset) => {
                 const price = prices[asset.symbol] ?? asset.price;
@@ -159,22 +144,22 @@ export default function MarketsPage() {
                 return (
                   <div
                     key={asset.symbol}
-                    className={`rounded-lg border p-4 transition-colors ${
+                    className={`rounded border p-3 transition-colors ${
                       isLarge ? "md:col-span-1 row-span-1" : ""
                     }`}
                     style={{ backgroundColor: bgColor, borderColor }}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-white text-lg">
+                        <span className="font-bold font-mono text-hud-cyan text-lg">
                           {asset.symbol}
                         </span>
                         {signal && (
                           <Badge
                             className={`text-[8px] px-1 py-0 ${
                               signal.direction === "LONG"
-                                ? "bg-green-500/20 text-green-400 border-green-500/30"
-                                : "bg-red-500/20 text-red-400 border-red-500/30"
+                                ? "bg-hud-green/15 text-hud-green border-hud-green/30"
+                                : "bg-hud-red/15 text-hud-red border-hud-red/30"
                             }`}
                           >
                             {signal.direction}
@@ -182,17 +167,17 @@ export default function MarketsPage() {
                         )}
                       </div>
                       {change > 0 ? (
-                        <TrendingUp className="h-4 w-4 text-green-400" />
+                        <TrendingUp className="h-4 w-4 text-hud-green" />
                       ) : change < 0 ? (
-                        <TrendingDown className="h-4 w-4 text-red-400" />
+                        <TrendingDown className="h-4 w-4 text-hud-red" />
                       ) : (
-                        <Minus className="h-4 w-4 text-muted-foreground" />
+                        <Minus className="h-4 w-4 text-hud-cyan/40" />
                       )}
                     </div>
-                    <div className="text-xs text-muted-foreground mb-1">
+                    <div className="text-[10px] text-hud-cyan/50 font-mono mb-1">
                       {asset.name}
                     </div>
-                    <div className="text-lg font-mono font-bold text-white">
+                    <div className="text-lg font-mono font-bold text-hud-cyan">
                       $
                       {price.toLocaleString("en-US", {
                         minimumFractionDigits: 2,
@@ -202,17 +187,17 @@ export default function MarketsPage() {
                     <div
                       className={`text-sm font-mono font-medium ${
                         change > 0
-                          ? "text-green-400"
+                          ? "text-hud-green"
                           : change < 0
-                          ? "text-red-400"
-                          : "text-muted-foreground"
+                          ? "text-hud-red"
+                          : "text-hud-cyan/40"
                       }`}
                     >
                       {change >= 0 ? "+" : ""}
                       {change.toFixed(3)}%
                     </div>
                     {signal && (
-                      <div className="mt-2 text-[10px] text-muted-foreground">
+                      <div className="mt-2 text-[10px] text-hud-cyan/50 font-mono">
                         Conf: {(signal.confidence * 100).toFixed(0)}% ·
                         Quality: {(signal.qualityScore * 100).toFixed(0)}
                       </div>
@@ -221,17 +206,12 @@ export default function MarketsPage() {
                 );
               })}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </HudPanel>
 
         {/* Asset Table */}
-        <Card className="bg-card/50 border-border/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              All Assets
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <HudPanel title="ALL ASSETS">
+          <div className="p-2.5">
             <div className="space-y-1">
               {DEFAULT_ASSETS.map((asset) => {
                 const price = prices[asset.symbol] ?? asset.price;
@@ -241,29 +221,29 @@ export default function MarketsPage() {
                 return (
                   <div
                     key={asset.symbol}
-                    className="flex items-center gap-4 rounded-lg bg-background/50 px-4 py-3"
+                    className="flex items-center gap-4 rounded bg-hud-bg/60 border border-hud-border/20 px-4 py-3"
                   >
                     <div className="w-16">
-                      <span className="font-bold text-white">
+                      <span className="font-bold font-mono text-hud-cyan">
                         {asset.symbol}
                       </span>
                     </div>
-                    <div className="flex-1 text-xs text-muted-foreground">
+                    <div className="flex-1 text-[10px] text-hud-cyan/50 font-mono">
                       {asset.name}
                     </div>
                     {signal && (
                       <Badge
                         className={`text-[9px] ${
                           signal.direction === "LONG"
-                            ? "bg-green-500/20 text-green-400 border-green-500/30"
-                            : "bg-red-500/20 text-red-400 border-red-500/30"
+                            ? "bg-hud-green/15 text-hud-green border-hud-green/30"
+                            : "bg-hud-red/15 text-hud-red border-hud-red/30"
                         }`}
                       >
                         {signal.direction} {(signal.confidence * 100).toFixed(0)}%
                       </Badge>
                     )}
                     <div className="text-right w-28">
-                      <div className="text-sm font-mono text-white">
+                      <div className="text-sm font-mono text-hud-cyan">
                         $
                         {price.toLocaleString("en-US", {
                           minimumFractionDigits: 2,
@@ -274,10 +254,10 @@ export default function MarketsPage() {
                     <div
                       className={`text-right w-20 text-sm font-mono ${
                         change > 0
-                          ? "text-green-400"
+                          ? "text-hud-green"
                           : change < 0
-                          ? "text-red-400"
-                          : "text-muted-foreground"
+                          ? "text-hud-red"
+                          : "text-hud-cyan/40"
                       }`}
                     >
                       {change >= 0 ? "+" : ""}
@@ -287,8 +267,8 @@ export default function MarketsPage() {
                 );
               })}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </HudPanel>
       </div>
     </>
   );

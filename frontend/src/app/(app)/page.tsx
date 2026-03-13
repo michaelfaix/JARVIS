@@ -14,8 +14,6 @@ import {
   SystemModeCard,
 } from "@/components/dashboard/system-status";
 import { StatCard } from "@/components/dashboard/stat-card";
-import { AppHeader } from "@/components/layout/app-header";
-import { HudTopbar } from "@/components/layout/hud-topbar";
 import { HudPanel } from "@/components/ui/hud-panel";
 import { useMetrics, useSystemStatus } from "@/hooks/use-jarvis";
 import { useSignals } from "@/hooks/use-signals";
@@ -282,23 +280,8 @@ export default function DashboardPage() {
     return () => clearInterval(id);
   }, []);
 
-  const sentimentValue = sentimentData ? sentimentData[sentimentData.activeTab].sentiment.value : 50;
-
   return (
     <>
-      {/* HUD Topbar: desktop only */}
-      <HudTopbar
-        wsConnected={wsConnected}
-        regime={regime}
-        sentimentValue={sentimentValue}
-        apiLatencyMs={apiLatencyMs}
-      />
-
-      {/* Mobile AppHeader */}
-      <div className="md:hidden">
-        <AppHeader title="Dashboard" subtitle="Market Overview" />
-      </div>
-
       <div className="p-2 sm:p-3 md:p-4 space-y-3">
         {/* P&L Ticker */}
         <PnlTicker positions={portfolio.positions} prices={prices} />

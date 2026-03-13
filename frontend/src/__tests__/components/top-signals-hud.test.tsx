@@ -79,7 +79,7 @@ describe("TopSignalsHud", () => {
     const signals = [makeSignal({ asset: "BTC", direction: "LONG" })];
     const portfolio = {
       ...mockPortfolio,
-      positions: [{ id: "p1", asset: "BTC", direction: "LONG" as const, entryPrice: 65000, size: 1, capitalAllocated: 65000, openedAt: new Date().toISOString(), pnl: 0, pnlPercent: 0 }],
+      positions: [{ id: "p1", asset: "BTC", direction: "LONG" as const, entryPrice: 65000, currentPrice: 65000, size: 1, capitalAllocated: 65000, openedAt: new Date().toISOString(), pnl: 0, pnlPercent: 0 }],
     };
     render(
       <TopSignalsHud signals={signals} portfolio={portfolio} acceptSignal={jest.fn()} loading={false} />

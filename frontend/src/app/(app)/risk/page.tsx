@@ -5,8 +5,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { AppHeader } from "@/components/layout/app-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { HudPanel } from "@/components/ui/hud-panel";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { usePortfolio } from "@/hooks/use-portfolio";
@@ -26,7 +25,6 @@ import {
   Target,
   Layers,
   BarChart3,
-  Grid3X3,
 } from "lucide-react";
 import { ApiOfflineBanner } from "@/components/ui/api-offline-banner";
 
@@ -136,14 +134,14 @@ export default function RiskPage() {
     dangerCount > 0 ? "danger" : warningCount > 0 ? "warning" : "safe";
 
   const levelColors = {
-    safe: "text-green-400",
-    warning: "text-yellow-400",
-    danger: "text-red-400",
+    safe: "text-hud-green",
+    warning: "text-hud-amber",
+    danger: "text-hud-red",
   };
   const levelBg = {
-    safe: "bg-green-500/10 border-green-500/20",
-    warning: "bg-yellow-500/10 border-yellow-500/20",
-    danger: "bg-red-500/10 border-red-500/20",
+    safe: "bg-hud-green/10 border-hud-green/20",
+    warning: "bg-hud-amber/10 border-hud-amber/20",
+    danger: "bg-hud-red/10 border-hud-red/20",
   };
   const levelLabels = {
     safe: "All Clear",
@@ -159,19 +157,18 @@ export default function RiskPage() {
 
   return (
     <>
-      <AppHeader title="Risk Guardian" subtitle="Portfolio Risk Monitor" />
-      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="p-2 sm:p-3 md:p-4 space-y-3">
         {statusError && <ApiOfflineBanner />}
         {/* Overall Status */}
-        <Card className={`border ${levelBg[overallLevel]}`}>
-          <CardContent className="pt-5 pb-4 px-6">
+        <HudPanel>
+          <div className={`p-3 rounded border ${levelBg[overallLevel]}`}>
             <div className="flex items-center gap-4">
               <LevelIcon className={`h-10 w-10 ${levelColors[overallLevel]}`} />
               <div>
-                <div className={`text-2xl font-bold ${levelColors[overallLevel]}`}>
+                <div className={`text-2xl font-bold font-mono ${levelColors[overallLevel]}`}>
                   {levelLabels[overallLevel]}
                 </div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-[10px] text-hud-cyan/60 font-mono">
                   {dangerCount === 0 && warningCount === 0
                     ? "All risk checks passed. Portfolio is within safe parameters."
                     : `${dangerCount} critical, ${warningCount} warning${warningCount !== 1 ? "s" : ""}`}
@@ -180,7 +177,7 @@ export default function RiskPage() {
               <div className="ml-auto flex items-center gap-3">
                 <Badge
                   variant="outline"
-                  className="text-xs"
+                  className="text-[10px] font-mono"
                   style={{
                     borderColor: REGIME_COLORS[regime],
                     color: REGIME_COLORS[regime],
@@ -190,8 +187,8 @@ export default function RiskPage() {
                 </Badge>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </HudPanel>
 
         {/* Risk Score Gauge */}
         <RiskScoreGauge
@@ -207,23 +204,23 @@ export default function RiskPage() {
         />
 
         {/* Risk Checks Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {checks.map((check) => {
             const Icon = check.icon;
             const pct = Math.min((check.value / check.limit) * 100, 100);
             return (
-              <Card key={check.label} className="bg-card/50 border-border/50">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <HudPanel key={check.label}>
+                <div className="p-2.5 space-y-2">
+                  <div className="flex items-center gap-2">
                     <Icon className={`h-4 w-4 ${levelColors[check.level]}`} />
-                    <span className="text-muted-foreground">{check.label}</span>
+                    <span className="text-[10px] text-hud-cyan/70 font-mono uppercase">{check.label}</span>
                     <Badge
                       className={`ml-auto text-[10px] ${
                         check.level === "safe"
-                          ? "bg-green-500/20 text-green-400 border-green-500/30"
+                          ? "bg-hud-green/15 text-hud-green border-hud-green/30"
                           : check.level === "warning"
-                          ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
-                          : "bg-red-500/20 text-red-400 border-red-500/30"
+                          ? "bg-hud-amber/15 text-hud-amber border-hud-amber/30"
+                          : "bg-hud-red/15 text-hud-red border-hud-red/30"
                       }`}
                     >
                       {check.level === "safe"
@@ -232,41 +229,34 @@ export default function RiskPage() {
                         ? "WARN"
                         : "FAIL"}
                     </Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
+                  </div>
                   <Progress
                     value={pct}
                     className="h-2"
                     indicatorClassName={
                       check.level === "safe"
-                        ? "bg-green-500"
+                        ? "bg-hud-green"
                         : check.level === "warning"
-                        ? "bg-yellow-500"
-                        : "bg-red-500"
+                        ? "bg-hud-amber"
+                        : "bg-hud-red"
                     }
                   />
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-[10px] text-hud-cyan/50 font-mono">
                     {check.description}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </HudPanel>
             );
           })}
         </div>
 
         {/* Exposure Breakdown + Stats */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           {/* Asset Exposure */}
-          <Card className="bg-card/50 border-border/50">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Asset Exposure Breakdown
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
+          <HudPanel title="ASSET EXPOSURE">
+            <div className="p-2.5 space-y-3">
               {Object.keys(exposureByAsset).length === 0 ? (
-                <div className="text-sm text-muted-foreground py-4 text-center">
+                <div className="text-[10px] text-hud-cyan/50 font-mono py-4 text-center">
                   No open positions
                 </div>
               ) : (
@@ -278,10 +268,10 @@ export default function RiskPage() {
                     return (
                       <div key={asset}>
                         <div className="flex justify-between text-sm mb-1">
-                          <span className="text-white font-medium">{asset}</span>
+                          <span className="text-hud-cyan font-medium font-mono">{asset}</span>
                           <span
                             className={`font-mono ${
-                              overLimit ? "text-red-400" : "text-muted-foreground"
+                              overLimit ? "text-hud-red" : "text-hud-cyan/60"
                             }`}
                           >
                             {pct.toFixed(1)}%
@@ -290,10 +280,10 @@ export default function RiskPage() {
                             )}
                           </span>
                         </div>
-                        <div className="h-2 w-full rounded-full bg-background/50 overflow-hidden">
+                        <div className="h-2 w-full rounded-full bg-hud-bg/60 overflow-hidden">
                           <div
                             className={`h-full rounded-full ${
-                              overLimit ? "bg-red-500" : "bg-blue-500"
+                              overLimit ? "bg-hud-red" : "bg-hud-cyan"
                             }`}
                             style={{ width: `${Math.min(pct, 100)}%` }}
                           />
@@ -302,65 +292,60 @@ export default function RiskPage() {
                     );
                   })
               )}
-              <div className="flex justify-between text-xs text-muted-foreground pt-2">
+              <div className="flex justify-between text-[10px] text-hud-cyan/50 font-mono pt-2">
                 <span>Cash Reserve</span>
-                <span className="font-mono">{availablePct.toFixed(1)}%</span>
+                <span>{availablePct.toFixed(1)}%</span>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </HudPanel>
 
           {/* Trading Performance */}
-          <Card className="bg-card/50 border-border/50">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Trading Performance
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-lg bg-background/50 p-3 text-center">
-                  <div className="text-xs text-muted-foreground mb-1">
-                    Win Rate
+          <HudPanel title="TRADING PERFORMANCE">
+            <div className="p-2.5">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-hud-bg/60 border border-hud-border/30 rounded p-2.5 text-center">
+                  <div className="text-[10px] text-hud-cyan/60 font-mono mb-1">
+                    WIN RATE
                   </div>
                   <div
                     className={`text-xl font-bold font-mono ${
-                      winRate >= 50 ? "text-green-400" : winRate > 0 ? "text-red-400" : "text-white"
+                      winRate >= 50 ? "text-hud-green" : winRate > 0 ? "text-hud-red" : "text-hud-cyan"
                     }`}
                   >
                     {winRate.toFixed(1)}%
                   </div>
                 </div>
-                <div className="rounded-lg bg-background/50 p-3 text-center">
-                  <div className="text-xs text-muted-foreground mb-1">
-                    Total Trades
+                <div className="bg-hud-bg/60 border border-hud-border/30 rounded p-2.5 text-center">
+                  <div className="text-[10px] text-hud-cyan/60 font-mono mb-1">
+                    TOTAL TRADES
                   </div>
-                  <div className="text-xl font-bold font-mono text-white">
+                  <div className="text-xl font-bold font-mono text-hud-cyan">
                     {state.closedTrades.length}
                   </div>
                 </div>
-                <div className="rounded-lg bg-background/50 p-3 text-center">
-                  <div className="text-xs text-muted-foreground mb-1">
-                    Drawdown
+                <div className="bg-hud-bg/60 border border-hud-border/30 rounded p-2.5 text-center">
+                  <div className="text-[10px] text-hud-cyan/60 font-mono mb-1">
+                    DRAWDOWN
                   </div>
                   <div
                     className={`text-xl font-bold font-mono ${
                       drawdown > MAX_DRAWDOWN_PCT
-                        ? "text-red-400"
+                        ? "text-hud-red"
                         : drawdown > 0
-                        ? "text-yellow-400"
-                        : "text-green-400"
+                        ? "text-hud-amber"
+                        : "text-hud-green"
                     }`}
                   >
                     {drawdown.toFixed(2)}%
                   </div>
                 </div>
-                <div className="rounded-lg bg-background/50 p-3 text-center">
-                  <div className="text-xs text-muted-foreground mb-1">
-                    Realized P&L
+                <div className="bg-hud-bg/60 border border-hud-border/30 rounded p-2.5 text-center">
+                  <div className="text-[10px] text-hud-cyan/60 font-mono mb-1">
+                    REALIZED P&L
                   </div>
                   <div
                     className={`text-xl font-bold font-mono ${
-                      state.realizedPnl >= 0 ? "text-green-400" : "text-red-400"
+                      state.realizedPnl >= 0 ? "text-hud-green" : "text-hud-red"
                     }`}
                   >
                     {state.realizedPnl >= 0 ? "+" : ""}$
@@ -368,8 +353,8 @@ export default function RiskPage() {
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </HudPanel>
         </div>
 
         {/* Position Size Calculator */}
@@ -380,23 +365,19 @@ export default function RiskPage() {
         />
 
         {/* Correlation Matrix */}
-        <Card className="bg-card/50 border-border/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Grid3X3 className="h-4 w-4" />
-              Asset Correlation Matrix
-              <span className="text-[10px] text-muted-foreground ml-auto">
+        <HudPanel title="ASSET CORRELATION MATRIX">
+          <div className="p-2.5">
+            <div className="flex items-center justify-end mb-2">
+              <span className="text-[9px] text-hud-cyan/40 font-mono">
                 Red = concentrated risk · Green = diversification benefit
               </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </div>
             <CorrelationMatrix
               assets={DEFAULT_ASSETS.map((a) => a.symbol)}
               prices={prices}
             />
-          </CardContent>
-        </Card>
+          </div>
+        </HudPanel>
       </div>
     </>
   );

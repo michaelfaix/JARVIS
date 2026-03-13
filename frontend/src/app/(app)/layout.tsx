@@ -16,8 +16,12 @@ import { ToastProvider } from "@/components/ui/toast";
 import { NotificationProvider } from "@/hooks/use-notifications";
 import { NotificationToastContainer } from "@/components/ui/notification-toast";
 import { LocaleProvider } from "@/hooks/use-locale";
-import { useBackendHealth } from "@/hooks/use-jarvis";
+import { useBackendHealth, useSystemStatus } from "@/hooks/use-jarvis";
 import { useSidebar } from "@/hooks/use-sidebar";
+import { usePrices } from "@/hooks/use-prices";
+import { useSentiment } from "@/hooks/use-sentiment";
+import { HudTopbar } from "@/components/layout/hud-topbar";
+import { AppHeader } from "@/components/layout/app-header";
 import { WelcomeFlow } from "@/components/onboarding/welcome-flow";
 import { ShortcutsHelp } from "@/components/ui/shortcuts-help";
 import { CommandPalette } from "@/components/ui/command-palette";
@@ -32,6 +36,10 @@ export default function AppLayout({
   const router = useRouter();
   const { connected } = useBackendHealth();
   const { collapsed, toggle } = useSidebar();
+  const { regime, apiLatencyMs } = useSystemStatus(5000);
+  const { wsConnected } = usePrices(5000);
+  const sentimentData = useSentiment({}, {});
+  const sentimentValue = sentimentData ? sentimentData[sentimentData.activeTab].sentiment.value : 50;
   const [isMobile, setIsMobile] = useState(false); // <768px
   const [isTablet, setIsTablet] = useState(false); // 768-1023px
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -147,6 +155,19 @@ export default function AppLayout({
             isMobile ? "ml-0" : "ml-[44px]"
           )}
         >
+          {/* HUD Topbar: desktop only */}
+          <HudTopbar
+            wsConnected={wsConnected}
+            regime={regime}
+            sentimentValue={sentimentValue}
+            apiLatencyMs={apiLatencyMs}
+          />
+
+          {/* Mobile AppHeader */}
+          <div className="md:hidden">
+            <AppHeader title="JARVIS" subtitle="Trading Intelligence" />
+          </div>
+
           {/* Mobile hamburger button */}
           {isMobile && (
             <button

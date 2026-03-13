@@ -90,8 +90,8 @@ describe("CoPilotEmbed", () => {
     const state = {
       ...defaultState,
       messages: [
-        { id: "1", role: "user" as const, content: "Hi", timestamp: new Date().toISOString() },
-        { id: "2", role: "assistant" as const, content: "Strategy recommendation for today", timestamp: new Date().toISOString() },
+        { id: "1", role: "user" as const, content: "Hi", timestamp: Date.now() },
+        { id: "2", role: "assistant" as const, content: "Strategy recommendation for today", timestamp: Date.now() },
       ],
     };
     const { container } = render(<CoPilotEmbed state={state} sendMessage={jest.fn()} onExpand={jest.fn()} />);

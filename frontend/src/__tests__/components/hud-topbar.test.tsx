@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { HudTopbar } from "@/components/layout/hud-topbar";
 
 // Mock dependencies

@@ -8,8 +8,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AppHeader } from "@/components/layout/app-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { HudPanel } from "@/components/ui/hud-panel";
 import { Badge } from "@/components/ui/badge";
 import { AssetChart } from "@/components/chart/asset-chart";
 import {
@@ -24,7 +23,6 @@ import { useSystemStatus } from "@/hooks/use-jarvis";
 import { useSignals } from "@/hooks/use-signals";
 import { DEFAULT_ASSETS } from "@/lib/constants";
 import {
-  CandlestickChart,
   Zap,
   TrendingUp,
   TrendingDown,
@@ -90,14 +88,14 @@ function Icon1x1({ active }: { active: boolean }) {
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
       <rect
         x="1" y="1" width="14" height="14" rx="2"
-        className={active ? "fill-blue-500/30 stroke-blue-400" : "fill-transparent stroke-muted-foreground"}
+        className={active ? "fill-hud-cyan/30 stroke-hud-cyan" : "fill-transparent stroke-hud-cyan/40"}
         strokeWidth="1.5"
       />
     </svg>
   );
 }
 function Icon1x2({ active }: { active: boolean }) {
-  const cls = active ? "fill-blue-500/30 stroke-blue-400" : "fill-transparent stroke-muted-foreground";
+  const cls = active ? "fill-hud-cyan/30 stroke-hud-cyan" : "fill-transparent stroke-hud-cyan/40";
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
       <rect x="1" y="1" width="6" height="14" rx="1.5" className={cls} strokeWidth="1.5" />
@@ -106,7 +104,7 @@ function Icon1x2({ active }: { active: boolean }) {
   );
 }
 function Icon2x2({ active }: { active: boolean }) {
-  const cls = active ? "fill-blue-500/30 stroke-blue-400" : "fill-transparent stroke-muted-foreground";
+  const cls = active ? "fill-hud-cyan/30 stroke-hud-cyan" : "fill-transparent stroke-hud-cyan/40";
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
       <rect x="1" y="1" width="6" height="6" rx="1.5" className={cls} strokeWidth="1.5" />
@@ -140,25 +138,25 @@ function CompactChartHeader({
           <button
             key={a.symbol}
             onClick={() => onAssetChange(i)}
-            className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+            className={`px-2 py-0.5 rounded text-[10px] font-medium font-mono transition-colors ${
               config.asset === i
-                ? "bg-blue-600/20 text-blue-400"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                ? "bg-hud-cyan/20 text-hud-cyan"
+                : "text-hud-cyan/40 hover:bg-hud-bg/80 hover:text-hud-cyan/70"
             }`}
           >
             {a.symbol}
           </button>
         ))}
       </div>
-      <div className="flex items-center gap-0.5 rounded-md border border-border/50 p-0.5">
+      <div className="flex items-center gap-0.5 rounded border border-hud-border/30 p-0.5">
         {INTERVALS.map((tf) => (
           <button
             key={tf.value}
             onClick={() => onIntervalChange(tf.value)}
-            className={`px-1.5 py-0.5 rounded text-[9px] font-medium transition-colors ${
+            className={`px-1.5 py-0.5 rounded text-[9px] font-medium font-mono transition-colors ${
               config.interval === tf.value
-                ? "bg-blue-600/20 text-blue-400"
-                : "text-muted-foreground hover:text-white"
+                ? "bg-hud-cyan/20 text-hud-cyan"
+                : "text-hud-cyan/40 hover:text-hud-cyan"
             }`}
           >
             {tf.label}
@@ -247,12 +245,11 @@ export default function ChartsPage() {
 
   return (
     <>
-      <AppHeader title="Charts" subtitle="Technical Analysis" />
-      <div className="p-3 sm:p-4 md:p-6 space-y-3 md:space-y-4">
+      <div className="p-2 sm:p-3 md:p-4 space-y-3">
         {(statusError || signalsError) && <ApiOfflineBanner />}
         {/* Controls Bar */}
-        <Card className="bg-card/50 border-border/50">
-          <CardContent className="py-3 px-4">
+        <HudPanel title="CHART CONTROLS">
+          <div className="p-2.5">
             <div className="flex items-center justify-between flex-wrap gap-3">
               {/* Asset selector — only for single layout */}
               {isSingle ? (
@@ -264,10 +261,10 @@ export default function ChartsPage() {
                         updateChartConfig(0, { asset: i });
                         setWsPrice(null);
                       }}
-                      className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                      className={`px-3 py-1.5 rounded text-xs font-medium font-mono transition-colors ${
                         selectedAsset === i
-                          ? "bg-blue-600/20 text-blue-400"
-                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                          ? "bg-hud-cyan/20 text-hud-cyan"
+                          : "text-hud-cyan/40 hover:bg-hud-bg/80 hover:text-hud-cyan/70"
                       }`}
                     >
                       {a.symbol}
@@ -275,7 +272,7 @@ export default function ChartsPage() {
                   ))}
                 </div>
               ) : (
-                <div className="text-xs text-muted-foreground">
+                <div className="text-[10px] text-hud-cyan/50 font-mono">
                   Multi-chart: use per-chart controls below
                 </div>
               )}
@@ -284,7 +281,7 @@ export default function ChartsPage() {
               <div className="flex items-center gap-3">
                 {/* Interval selector — only for single layout */}
                 {isSingle && (
-                  <div className="flex items-center gap-0.5 rounded-lg border border-border/50 p-0.5">
+                  <div className="flex items-center gap-0.5 rounded border border-hud-border/30 p-0.5">
                     {INTERVALS.map((tf) => (
                       <button
                         key={tf.value}
@@ -292,10 +289,10 @@ export default function ChartsPage() {
                           updateChartConfig(0, { interval: tf.value });
                           setWsPrice(null);
                         }}
-                        className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
+                        className={`px-2.5 py-1 rounded text-[11px] font-medium font-mono transition-colors ${
                           chartInterval === tf.value
-                            ? "bg-blue-600/20 text-blue-400"
-                            : "text-muted-foreground hover:text-white"
+                            ? "bg-hud-cyan/20 text-hud-cyan"
+                            : "text-hud-cyan/40 hover:text-hud-cyan"
                         }`}
                       >
                         {tf.label}
@@ -313,7 +310,7 @@ export default function ChartsPage() {
                 )}
 
                 {/* Layout toggle */}
-                <div className="flex items-center gap-0.5 rounded-lg border border-border/50 p-0.5">
+                <div className="flex items-center gap-0.5 rounded border border-hud-border/30 p-0.5">
                   {(["1x1", "1x2", "2x2"] as Layout[]).map((l) => {
                     const Icon = LAYOUT_ICONS[l];
                     const isActive = layout === l;
@@ -321,10 +318,10 @@ export default function ChartsPage() {
                       <button
                         key={l}
                         onClick={() => handleLayoutChange(l)}
-                        className={`p-1.5 rounded-md transition-colors ${
+                        className={`p-1.5 rounded transition-colors ${
                           isActive
-                            ? "bg-blue-600/20"
-                            : "hover:bg-muted"
+                            ? "bg-hud-cyan/20"
+                            : "hover:bg-hud-bg/80"
                         }`}
                         title={`${l} layout`}
                       >
@@ -339,13 +336,13 @@ export default function ChartsPage() {
                   <Zap
                     className={`h-3 w-3 ${
                       wsConnected
-                        ? "text-green-400"
+                        ? "text-hud-green"
                         : binanceConnected
-                          ? "text-green-400"
-                          : "text-yellow-400"
+                          ? "text-hud-green"
+                          : "text-hud-amber"
                     }`}
                   />
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-[10px] text-hud-cyan/50 font-mono">
                     {wsConnected
                       ? "WS Live"
                       : binanceConnected
@@ -355,19 +352,19 @@ export default function ChartsPage() {
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </HudPanel>
 
         {/* Asset Info Bar — only for single layout */}
         {isSingle && (
           <div className="flex items-center gap-2 sm:gap-4 px-1 flex-wrap">
             <div className="flex items-center gap-2">
-              <span className="text-lg font-bold text-white">
+              <span className="text-lg font-bold font-mono text-hud-cyan">
                 {asset.symbol}
               </span>
-              <span className="text-xs text-muted-foreground">{asset.name}</span>
+              <span className="text-[10px] text-hud-cyan/50 font-mono">{asset.name}</span>
             </div>
-            <span className="text-xl font-mono font-bold text-white">
+            <span className="text-xl font-mono font-bold text-hud-cyan">
               $
               {currentPrice.toLocaleString("en-US", {
                 minimumFractionDigits: 2,
@@ -378,8 +375,8 @@ export default function ChartsPage() {
               <Badge
                 className={`text-[10px] ${
                   signal.direction === "LONG"
-                    ? "bg-green-500/20 text-green-400 border-green-500/30"
-                    : "bg-red-500/20 text-red-400 border-red-500/30"
+                    ? "bg-hud-green/15 text-hud-green border-hud-green/30"
+                    : "bg-hud-red/15 text-hud-red border-hud-red/30"
                 }`}
               >
                 {signal.direction === "LONG" ? (
@@ -390,7 +387,7 @@ export default function ChartsPage() {
                 {signal.direction} {(signal.confidence * 100).toFixed(0)}%
               </Badge>
             )}
-            <Badge variant="outline" className="text-[10px]">
+            <Badge variant="outline" className="text-[10px] border-hud-border/30 text-hud-cyan/60 font-mono">
               {INTERVALS.find((i) => i.value === chartInterval)?.label}
             </Badge>
           </div>
@@ -410,8 +407,8 @@ export default function ChartsPage() {
         {/* Chart Area */}
         {isSingle ? (
           /* Single Chart — key forces full remount on asset/interval change */
-          <Card className="bg-card/50 border-border/50">
-            <CardContent className="pt-4">
+          <HudPanel title={`${asset.symbol} — ${INTERVALS.find((i) => i.value === chartInterval)?.label}`} scanLine>
+            <div className="p-2.5">
               <AssetChart
                 key={`${asset.symbol}-${chartInterval}`}
                 symbol={asset.symbol}
@@ -427,16 +424,16 @@ export default function ChartsPage() {
                 activeTool={activeTool}
                 onDrawingComplete={addDrawing}
               />
-            </CardContent>
-          </Card>
+            </div>
+          </HudPanel>
         ) : (
           /* Multi-Chart Grid */
           <div className="grid grid-cols-2 gap-2">
             {chartConfigs.map((cfg, idx) => {
               const a = DEFAULT_ASSETS[cfg.asset];
               return (
-                <Card key={idx} className="bg-card/50 border-border/50">
-                  <CardContent className="pt-3 pb-2 px-3">
+                <HudPanel key={idx} title={a.symbol}>
+                  <div className="p-2.5">
                     <CompactChartHeader
                       config={cfg}
                       onAssetChange={(assetIdx) =>
@@ -455,8 +452,8 @@ export default function ChartsPage() {
                       height={LAYOUT_HEIGHT[layout]}
                       interval={cfg.interval}
                     />
-                  </CardContent>
-                </Card>
+                  </div>
+                </HudPanel>
               );
             })}
           </div>
@@ -464,34 +461,28 @@ export default function ChartsPage() {
 
         {/* Signal Details — only for single layout */}
         {isSingle && signal && (
-          <Card className="bg-card/50 border-border/50">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <CandlestickChart className="h-4 w-4" />
-                Signal Details — {asset.symbol}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <div className="rounded-lg bg-background/50 p-3 text-center">
-                  <div className="text-[10px] text-muted-foreground mb-1">
-                    Direction
+          <HudPanel title={`SIGNAL DETAILS — ${asset.symbol}`}>
+            <div className="p-2.5">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <div className="bg-hud-bg/60 border border-hud-border/30 rounded p-2.5 text-center">
+                  <div className="text-[10px] text-hud-cyan/60 font-mono mb-1">
+                    DIRECTION
                   </div>
                   <Badge
                     className={
                       signal.direction === "LONG"
-                        ? "bg-green-500/20 text-green-400 border-green-500/30"
-                        : "bg-red-500/20 text-red-400 border-red-500/30"
+                        ? "bg-hud-green/15 text-hud-green border-hud-green/30"
+                        : "bg-hud-red/15 text-hud-red border-hud-red/30"
                     }
                   >
                     {signal.direction}
                   </Badge>
                 </div>
-                <div className="rounded-lg bg-background/50 p-3 text-center">
-                  <div className="text-[10px] text-muted-foreground mb-1">
-                    Entry
+                <div className="bg-hud-bg/60 border border-hud-border/30 rounded p-2.5 text-center">
+                  <div className="text-[10px] text-hud-cyan/60 font-mono mb-1">
+                    ENTRY
                   </div>
-                  <div className="text-sm font-mono text-white">
+                  <div className="text-sm font-mono text-hud-cyan">
                     $
                     {signal.entry.toLocaleString("en-US", {
                       minimumFractionDigits: 2,
@@ -499,11 +490,11 @@ export default function ChartsPage() {
                     })}
                   </div>
                 </div>
-                <div className="rounded-lg bg-background/50 p-3 text-center">
-                  <div className="text-[10px] text-muted-foreground mb-1">
-                    Stop Loss
+                <div className="bg-hud-bg/60 border border-hud-border/30 rounded p-2.5 text-center">
+                  <div className="text-[10px] text-hud-cyan/60 font-mono mb-1">
+                    STOP LOSS
                   </div>
-                  <div className="text-sm font-mono text-red-400">
+                  <div className="text-sm font-mono text-hud-red">
                     $
                     {signal.stopLoss.toLocaleString("en-US", {
                       minimumFractionDigits: 2,
@@ -511,11 +502,11 @@ export default function ChartsPage() {
                     })}
                   </div>
                 </div>
-                <div className="rounded-lg bg-background/50 p-3 text-center">
-                  <div className="text-[10px] text-muted-foreground mb-1">
-                    Take Profit
+                <div className="bg-hud-bg/60 border border-hud-border/30 rounded p-2.5 text-center">
+                  <div className="text-[10px] text-hud-cyan/60 font-mono mb-1">
+                    TAKE PROFIT
                   </div>
-                  <div className="text-sm font-mono text-green-400">
+                  <div className="text-sm font-mono text-hud-green">
                     $
                     {signal.takeProfit.toLocaleString("en-US", {
                       minimumFractionDigits: 2,
@@ -523,25 +514,25 @@ export default function ChartsPage() {
                     })}
                   </div>
                 </div>
-                <div className="rounded-lg bg-background/50 p-3 text-center">
-                  <div className="text-[10px] text-muted-foreground mb-1">
-                    Confidence
+                <div className="bg-hud-bg/60 border border-hud-border/30 rounded p-2.5 text-center">
+                  <div className="text-[10px] text-hud-cyan/60 font-mono mb-1">
+                    CONFIDENCE
                   </div>
                   <div
                     className={`text-sm font-mono ${
                       signal.confidence > 0.7
-                        ? "text-green-400"
+                        ? "text-hud-green"
                         : signal.confidence > 0.4
-                          ? "text-yellow-400"
-                          : "text-red-400"
+                          ? "text-hud-amber"
+                          : "text-hud-red"
                     }`}
                   >
                     {(signal.confidence * 100).toFixed(0)}%
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </HudPanel>
         )}
       </div>
     </>
