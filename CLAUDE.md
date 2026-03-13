@@ -1464,7 +1464,38 @@ Jeder Tab hat eigene Fear & Greed Gauge, 7d-History-Sparkline, Momentum, Volatil
 - 8.897 Backend Tests + 177 Frontend Tests — alle bestanden
 - Build: 0 Errors, 33 Routes + Middleware
 
+## ✅ ABGESCHLOSSEN: JARVIS AI Co-Pilot (12 Features)
+
+### Neue Dateien:
+| Datei | Beschreibung |
+|-------|-------------|
+| `src/lib/copilot-engine.ts` | Offline-Intelligence-Engine (Pattern, R:R, Confidence, Alerts, Responses) |
+| `src/lib/pattern-recognition.ts` | Chart-Pattern-Erkennung (H&S, Double Top/Bottom, Flags, Triangles, S/R) |
+| `src/lib/markdown.ts` | Shared Markdown-to-HTML Renderer (Chat + Co-Pilot) |
+| `src/hooks/use-copilot.ts` | Central Co-Pilot Hook (State, Messages, Patterns, Confidence) |
+| `src/hooks/use-proactive-warnings.ts` | Proaktive Warnungen (Regime, OOD, SL/TP, Signals) |
+| `src/components/copilot/copilot-panel.tsx` | Slide-In Panel UI (Glassmorphism, Chat, Quick Actions) |
+| `src/components/copilot/copilot-trigger.tsx` | Floating Trigger Button (FAB) |
+
+### Implementierte Features:
+1. **Pattern Recognition** — Pivot-basierte Erkennung: Head&Shoulders, Double Top/Bottom, Bull/Bear Flags, Triangles, Support/Resistance
+2. **Risk/Reward Calculator** — Auto R:R Berechnung mit Farbcodierung (gut/neutral/schlecht)
+3. **Confidence Score** — Formel: (1-ECE*5) × (1-OOD) × signal_confidence × regime_multiplier
+4. **Personalisierung** — 3 Risk-Profile (Conservative/Moderate/Aggressive) in localStorage
+5. **Sprache** — DE/EN Toggle, alle Responses bilingual
+6. **Alert per Chat** — NLP-light Parser erkennt "tell me when BTC hits $75000" → Alert erstellen
+7. **Proaktive Warnungen** — Toast bei Regime-Wechsel, hohem OOD, Position nahe SL/TP, starken Signals
+8. **Tagesrückblick** — Markt-Summary, Signal-Accuracy, Portfolio-Status, Outlook
+9. **Offline Fallback** — Regelbasierte Responses ohne API-Key (Keyword-Matching + Context)
+10. **Quick Actions** — 6 Buttons: Chart analysieren, Beste Strategie, R:R, Alert, Daily Review, Custom
+11. **Qualität** — Typing-Indicator (animated dots), max 50 Messages, mobile responsive, Escape-to-close
+12. **Dashboard Integration** — Trigger-FAB + Panel in page.tsx, proaktive Warnungen aktiv
+
+### Tests:
+- Build: 0 Errors, 33 Routes + Middleware
+- 177 Frontend Tests — alle bestanden
+
 ---
 
-*CLAUDE.md — Version 14.0.0 | März 2026*
+*CLAUDE.md — Version 15.0.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*

@@ -32,6 +32,10 @@ import { PnlTicker } from "@/components/dashboard/pnl-ticker";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { StrategyControl } from "@/components/dashboard/strategy-control";
 import type { JarvisTipsContext } from "@/components/chart/asset-chart";
+import { CoPilotPanel } from "@/components/copilot/copilot-panel";
+import { CoPilotTrigger } from "@/components/copilot/copilot-trigger";
+import { useCoPilot } from "@/hooks/use-copilot";
+import { useProactiveWarnings } from "@/hooks/use-proactive-warnings";
 import { useStrategy } from "@/hooks/use-strategy";
 import { MetricTooltip } from "@/components/ui/metric-tooltip";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -111,8 +115,9 @@ export default function DashboardPage() {
   // Feedback loop: auto-send trade outcomes to backend ML
   const { accuracyByAsset } = useFeedback(portfolio.closedTrades);
   const sentimentData = useSentiment(prices, priceHistory);
-  const { activeAlerts } = useAlerts();
+  const { activeAlerts, addAlert } = useAlerts();
   const strategy = useStrategy();
+  const [copilotOpen, setCopilotOpen] = useState(false);
 
   // --- Trading Engine: 1s tick for P&L updates, order fills, SL/TP checks ---
   const pricesTickRef = useRef(prices);
@@ -196,6 +201,51 @@ export default function DashboardPage() {
     }),
     [regime, status?.ece, status?.ood_score, status?.meta_unsicherheit, sentimentData, strategy.state.selectedStrategy]
   );
+
+  // --- JARVIS Co-Pilot ---
+  const topSig = useMemo(() => {
+    const sorted = [...signals].sort((a, b) => b.confidence - a.confidence);
+    return sorted[0] ?? null;
+  }, [signals]);
+
+  const copilot = useCoPilot({
+    regime,
+    ece: status?.ece ?? 0,
+    oodScore: status?.ood_score ?? 0,
+    metaUncertainty: status?.meta_unsicherheit ?? 0,
+    strategy: strategy.state.selectedStrategy,
+    selectedAsset: asset.symbol,
+    interval: chartInterval,
+    slPercent: strategy.state.params.slPercent,
+    tpPercent: strategy.state.params.tpPercent,
+    currentPrice: wsPrice ?? prices[asset.symbol] ?? asset.basePrice,
+    totalValue,
+    drawdown,
+    positionCount: portfolio.positions.length,
+    closedTradeCount: portfolio.closedTrades.length,
+    realizedPnl: portfolio.realizedPnl,
+    winRate: portfolio.closedTrades.length > 0 ? (portfolio.closedTrades.filter((t) => t.pnl > 0).length / portfolio.closedTrades.length) * 100 : 0,
+    signalCount: signals.length,
+    topSignalAsset: topSig?.asset ?? null,
+    topSignalDirection: topSig?.direction ?? null,
+    topSignalConfidence: topSig?.confidence ?? 0,
+    candles: [], // Chart manages its own candle data internally
+    addAlert,
+  });
+
+  // --- Proactive Warnings ---
+  useProactiveWarnings({
+    regime,
+    oodScore: status?.ood_score ?? 0,
+    positions: portfolio.positions.map((p) => ({ asset: p.asset, direction: p.direction, entryPrice: p.entryPrice })),
+    prices,
+    slPercent: strategy.state.params.slPercent,
+    tpPercent: strategy.state.params.tpPercent,
+    topSignalConfidence: topSig?.confidence ?? 0,
+    topSignalAsset: topSig?.asset ?? null,
+    topSignalDirection: topSig?.direction ?? null,
+    push: pushNotification,
+  });
 
   const totalPnl = portfolio.realizedPnl + unrealizedPnl;
   const topSignals = useMemo(
@@ -736,6 +786,18 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* JARVIS Co-Pilot */}
+      <CoPilotTrigger onClick={() => setCopilotOpen(true)} />
+      <CoPilotPanel
+        open={copilotOpen}
+        onClose={() => setCopilotOpen(false)}
+        state={copilot.state}
+        sendMessage={copilot.sendMessage}
+        setRiskProfile={copilot.setRiskProfile}
+        setLocale={copilot.setLocale}
+        clearHistory={copilot.clearHistory}
+      />
     </>
   );
 }
