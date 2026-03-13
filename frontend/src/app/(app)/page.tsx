@@ -142,6 +142,26 @@ export default function DashboardPage() {
   const asset = CHART_ASSETS[selectedAsset];
   const chartInterval = TIMEFRAMES[timeframeIdx].value;
 
+  // Memoize strategy overlay to prevent unnecessary chart re-renders
+  const strategyOverlay = useMemo(
+    () => ({
+      strategy: strategy.state.selectedStrategy,
+      slPercent: strategy.state.params.slPercent,
+      tpPercent: strategy.state.params.tpPercent,
+      rsiLength: strategy.state.params.rsiLength,
+      emaFast: strategy.state.params.emaFast,
+      emaSlow: strategy.state.params.emaSlow,
+    }),
+    [
+      strategy.state.selectedStrategy,
+      strategy.state.params.slPercent,
+      strategy.state.params.tpPercent,
+      strategy.state.params.rsiLength,
+      strategy.state.params.emaFast,
+      strategy.state.params.emaSlow,
+    ]
+  );
+
   const totalPnl = portfolio.realizedPnl + unrealizedPnl;
   const topSignals = useMemo(
     () =>
@@ -377,10 +397,7 @@ export default function DashboardPage() {
               height={400}
               interval={chartInterval}
               onPriceChange={handlePriceChange}
-              strategyOverlay={{
-                slPercent: strategy.state.params.slPercent,
-                tpPercent: strategy.state.params.tpPercent,
-              }}
+              strategyOverlay={strategyOverlay}
             />
           </CardContent>
         </Card>

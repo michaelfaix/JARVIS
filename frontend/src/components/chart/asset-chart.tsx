@@ -207,33 +207,104 @@ function generateSignalMarkers(
 ): { markers: SignalMarker[]; signals: SignalEntry[] } {
   const markers: SignalMarker[] = [];
   const signals: SignalEntry[] = [];
-  const step = 5 + (seed % 4);
 
-  for (let i = 5; i < data.length; i += step) {
-    const candle = data[i];
-    const momentum = candle.close - data[i - 5].close;
-    const isBullish = momentum > 0;
+  if (!overlay || data.length < 30) {
+    // Fallback: simple momentum markers (no strategy context)
+    const step = 5 + (seed % 4);
+    for (let i = 5; i < data.length; i += step) {
+      const candle = data[i];
+      const momentum = candle.close - data[i - 5].close;
+      const isBullish = momentum > 0;
+      markers.push({
+        time: candle.time,
+        position: isBullish ? "belowBar" : "aboveBar",
+        color: isBullish ? "#22c55e" : "#ef4444",
+        shape: isBullish ? "arrowUp" : "arrowDown",
+        text: isBullish ? "LONG" : "SHORT",
+      });
+      signals.push({ index: i, time: candle.time, price: candle.close, direction: isBullish ? "LONG" : "SHORT" });
+    }
+  } else {
+    // Strategy-aware signal generation using real indicators
+    const rsiValues = calcRSI(data, overlay.rsiLength);
+    const emaFastValues = calcEMA(data, overlay.emaFast);
+    const emaSlowValues = calcEMA(data, overlay.emaSlow);
 
-    markers.push({
-      time: candle.time,
-      position: isBullish ? "belowBar" : "aboveBar",
-      color: isBullish ? "#22c55e" : "#ef4444",
-      shape: isBullish ? "arrowUp" : "arrowDown",
-      text: isBullish ? "LONG" : "SHORT",
-    });
+    const startIdx = Math.max(overlay.emaSlow, overlay.rsiLength) + 2;
+    let lastSignalIdx = -5;
 
-    signals.push({
-      index: i,
-      time: candle.time,
-      price: candle.close,
-      direction: isBullish ? "LONG" : "SHORT",
-    });
+    for (let i = startIdx; i < data.length; i++) {
+      if (i - lastSignalIdx < 3) continue; // minimum gap between signals
 
-    // Add EXIT marker at the midpoint before next signal
-    if (overlay && i + step < data.length) {
-      const exitIdx = Math.min(i + Math.floor(step * 0.7), data.length - 1);
-      const exitCandle = data[exitIdx];
-      // Check if SL or TP would have been hit
+      const rsiVal = rsiValues[i];
+      const emaF = emaFastValues[i];
+      const emaS = emaSlowValues[i];
+      const prevEmaF = emaFastValues[i - 1];
+      const prevEmaS = emaSlowValues[i - 1];
+
+      if (rsiVal === null || emaF === null || emaS === null || prevEmaF === null || prevEmaS === null) continue;
+
+      let isBullish: boolean | null = null;
+
+      switch (overlay.strategy) {
+        case "scalping":
+        case "day_trading":
+          // EMA crossover signals
+          if (prevEmaF <= prevEmaS && emaF > emaS) isBullish = true;
+          if (prevEmaF >= prevEmaS && emaF < emaS) isBullish = false;
+          break;
+        case "mean_reversion":
+          // RSI oversold/overbought
+          if (rsiVal < 30) isBullish = true;
+          if (rsiVal > 70) isBullish = false;
+          break;
+        case "trend_following":
+          // EMA cross + RSI trend confirmation
+          if (prevEmaF <= prevEmaS && emaF > emaS && rsiVal > 50) isBullish = true;
+          if (prevEmaF >= prevEmaS && emaF < emaS && rsiVal < 50) isBullish = false;
+          break;
+        case "breakout": {
+          // Price breaking above/below recent range
+          let recentHigh = 0, recentLow = Infinity;
+          const lookback = Math.min(14, i);
+          for (let k = i - lookback; k < i; k++) {
+            recentHigh = Math.max(recentHigh, data[k].high);
+            recentLow = Math.min(recentLow, data[k].low);
+          }
+          if (data[i].close > recentHigh) isBullish = true;
+          if (data[i].close < recentLow) isBullish = false;
+          break;
+        }
+        case "swing_trading":
+        case "combined":
+        case "custom":
+        default:
+          // Combined: EMA cross + RSI confirmation
+          if (prevEmaF <= prevEmaS && emaF > emaS && rsiVal < 65) isBullish = true;
+          if (prevEmaF >= prevEmaS && emaF < emaS && rsiVal > 35) isBullish = false;
+          break;
+      }
+
+      if (isBullish === null) continue;
+
+      const candle = data[i];
+      markers.push({
+        time: candle.time,
+        position: isBullish ? "belowBar" : "aboveBar",
+        color: isBullish ? "#22c55e" : "#ef4444",
+        shape: isBullish ? "arrowUp" : "arrowDown",
+        text: isBullish ? "LONG" : "SHORT",
+      });
+      signals.push({
+        index: i,
+        time: candle.time,
+        price: candle.close,
+        direction: isBullish ? "LONG" : "SHORT",
+      });
+      lastSignalIdx = i;
+
+      // EXIT marker: scan forward for SL/TP hit
+      const exitScan = Math.min(i + 10, data.length - 1);
       const slPrice = isBullish
         ? candle.close * (1 - overlay.slPercent / 100)
         : candle.close * (1 + overlay.slPercent / 100);
@@ -241,23 +312,28 @@ function generateSignalMarkers(
         ? candle.close * (1 + overlay.tpPercent / 100)
         : candle.close * (1 - overlay.tpPercent / 100);
 
-      let hitExit = false;
-      for (let j = i + 1; j <= exitIdx; j++) {
-        if (isBullish) {
-          if (data[j].low <= slPrice || data[j].high >= tpPrice) { hitExit = true; break; }
-        } else {
-          if (data[j].high >= slPrice || data[j].low <= tpPrice) { hitExit = true; break; }
+      for (let j = i + 1; j <= exitScan; j++) {
+        const hitSL = isBullish ? data[j].low <= slPrice : data[j].high >= slPrice;
+        const hitTP = isBullish ? data[j].high >= tpPrice : data[j].low <= tpPrice;
+        if (hitSL || hitTP) {
+          markers.push({
+            time: data[j].time,
+            position: "aboveBar",
+            color: hitTP ? "#22c55e" : "#ef4444",
+            shape: "circle",
+            text: hitTP ? "TP HIT" : "SL HIT",
+          });
+          break;
         }
-      }
-
-      if (hitExit || exitIdx === i + Math.floor(step * 0.7)) {
-        markers.push({
-          time: exitCandle.time,
-          position: "aboveBar",
-          color: "#9ca3af",
-          shape: "circle",
-          text: "EXIT",
-        });
+        if (j === exitScan) {
+          markers.push({
+            time: data[j].time,
+            position: "aboveBar",
+            color: "#9ca3af",
+            shape: "circle",
+            text: "EXIT",
+          });
+        }
       }
     }
   }
@@ -316,8 +392,12 @@ const EMA_COLORS: Record<number, string> = {
 // ---------------------------------------------------------------------------
 
 export interface StrategyOverlay {
+  strategy: string;
   slPercent: number;
   tpPercent: number;
+  rsiLength: number;
+  emaFast: number;
+  emaSlow: number;
 }
 
 interface AssetChartProps {
@@ -358,6 +438,10 @@ export function AssetChart({
   const [lastPrice, setLastPrice] = useState<number>(0);
   const [priceChange, setPriceChange] = useState<number>(0);
   const [wsLive, setWsLive] = useState(false);
+  const [recalculating, setRecalculating] = useState(false);
+
+  // Store candle data so marker effect can access it without reloading data
+  const assetDataRef = useRef<CandlePoint[]>([]);
 
   // Indicator series refs — stored so we can remove them on re-render
   const indicatorSeriesRef = useRef<ISeriesApi<"Line">[]>([]);
@@ -466,7 +550,7 @@ export function AssetChart({
     };
   }, [symbol, interval, height]);
 
-  // Effect 2: Load initial chart data when klines arrive + indicator overlays
+  // Effect 2a: Load candle/volume data + indicator overlays (NOT strategy-dependent)
   useEffect(() => {
     if (!candleSeriesRef.current || !volumeSeriesRef.current || !chartRef.current) return;
 
@@ -488,9 +572,112 @@ export function AssetChart({
         ? klinesToCandles(klines)
         : generateAssetData(symbol, basePrice, interval);
 
+    assetDataRef.current = assetData;
+
     candleSeriesRef.current.setData(
       assetData as unknown as LWCandlestickData<Time>[]
     );
+
+    const volumeData = generateVolumeData(
+      assetData,
+      seed,
+      isCrypto && klines.length > 0 ? klines : undefined
+    );
+    volumeSeriesRef.current.setData(
+      volumeData as unknown as { time: Time; value: number; color: string }[]
+    );
+
+    // Store previous close for % change
+    const last = assetData[assetData.length - 1];
+    const prev = assetData.length > 1 ? assetData[assetData.length - 2] : last;
+    prevCloseRef.current = prev.close;
+    setLastPrice(last.close);
+    setPriceChange(((last.close - prev.close) / prev.close) * 100);
+
+    // --- Indicator overlays ---
+    if (indicators) {
+      const times = assetData.map((d) => d.time);
+
+      const addOverlayLine = (
+        values: (number | null)[],
+        color: string,
+        lineWidth: number = 2,
+        lineStyle: LineStyle = LineStyle.Solid
+      ) => {
+        const series = chart.addLineSeries({
+          color,
+          lineWidth: lineWidth as 1 | 2 | 3 | 4,
+          lineStyle,
+          priceScaleId: "right",
+          lastValueVisible: false,
+          priceLineVisible: false,
+        });
+        const lineData = values
+          .map((v, i) =>
+            v !== null ? { time: times[i] as Time, value: v } : null
+          )
+          .filter(Boolean) as { time: Time; value: number }[];
+        series.setData(lineData);
+        indicatorSeriesRef.current.push(series);
+        return series;
+      };
+
+      for (const period of indicators.sma) {
+        addOverlayLine(calcSMA(assetData, period), SMA_COLORS[period] ?? "#facc15");
+      }
+      for (const period of indicators.ema) {
+        addOverlayLine(calcEMA(assetData, period), EMA_COLORS[period] ?? "#f97316");
+      }
+      if (indicators.bollinger) {
+        const bb = calcBollingerBands(assetData, 20, 2);
+        addOverlayLine(bb.upper, "rgba(156, 163, 175, 0.6)", 1, LineStyle.Dashed);
+        addOverlayLine(bb.middle, "rgba(156, 163, 175, 0.8)", 1, LineStyle.Solid);
+        addOverlayLine(bb.lower, "rgba(156, 163, 175, 0.6)", 1, LineStyle.Dashed);
+      }
+      if (indicators.rsi) {
+        const rsiValues = calcRSI(assetData, 14);
+        const rsiSeries = chart.addLineSeries({ color: "#a855f7", lineWidth: 2, priceScaleId: "rsi", lastValueVisible: true, priceLineVisible: false });
+        chart.priceScale("rsi").applyOptions({ scaleMargins: { top: 0.78, bottom: 0.02 }, borderVisible: false });
+        const rsiData = rsiValues.map((v, i) => v !== null ? { time: times[i] as Time, value: v } : null).filter(Boolean) as { time: Time; value: number }[];
+        rsiSeries.setData(rsiData);
+        indicatorSeriesRef.current.push(rsiSeries);
+        for (const [level, color] of [[70, "rgba(239,68,68,0.3)"], [30, "rgba(34,197,94,0.3)"]] as const) {
+          const lvlSeries = chart.addLineSeries({ color, lineWidth: 1, lineStyle: LineStyle.Dashed, priceScaleId: "rsi", lastValueVisible: false, priceLineVisible: false });
+          const lvlData = rsiData.length > 0 ? [{ time: rsiData[0].time, value: level }, { time: rsiData[rsiData.length - 1].time, value: level }] : [];
+          lvlSeries.setData(lvlData);
+          indicatorSeriesRef.current.push(lvlSeries);
+        }
+      }
+      if (indicators.macd) {
+        const macd = calcMACD(assetData, 12, 26, 9);
+        const macdHist = chart.addHistogramSeries({ priceScaleId: "macd", lastValueVisible: false, priceLineVisible: false });
+        chart.priceScale("macd").applyOptions({ scaleMargins: { top: 0.85, bottom: 0.0 }, borderVisible: false });
+        const histData = macd.histogram.map((v, i) => v !== null ? { time: times[i] as Time, value: v, color: v >= 0 ? "rgba(34,197,94,0.5)" : "rgba(239,68,68,0.5)" } : null).filter(Boolean) as { time: Time; value: number; color: string }[];
+        macdHist.setData(histData);
+        indicatorHistogramRef.current.push(macdHist);
+        const macdLine = chart.addLineSeries({ color: "#06b6d4", lineWidth: 1, priceScaleId: "macd", lastValueVisible: false, priceLineVisible: false });
+        macdLine.setData(macd.macd.map((v, i) => v !== null ? { time: times[i] as Time, value: v } : null).filter(Boolean) as { time: Time; value: number }[]);
+        indicatorSeriesRef.current.push(macdLine);
+        const sigLine = chart.addLineSeries({ color: "#f97316", lineWidth: 1, priceScaleId: "macd", lastValueVisible: false, priceLineVisible: false });
+        sigLine.setData(macd.signal.map((v, i) => v !== null ? { time: times[i] as Time, value: v } : null).filter(Boolean) as { time: Time; value: number }[]);
+        indicatorSeriesRef.current.push(sigLine);
+      }
+    }
+
+    if (chartRef.current) {
+      chartRef.current.timeScale().fitContent();
+    }
+  }, [klines, isCrypto, symbol, basePrice, seed, interval, indicators]);
+
+  // Effect 2b: Update markers + SL/TP strategy overlay (reactive to strategy changes)
+  // Runs independently of data loading — does NOT re-set candle data
+  useEffect(() => {
+    if (!candleSeriesRef.current || !chartRef.current) return;
+    const chart = chartRef.current;
+    const assetData = assetDataRef.current;
+    if (assetData.length === 0) return;
+
+    setRecalculating(true);
 
     // --- Remove previous strategy overlay series ---
     for (const s of strategySeriesRef.current) {
@@ -498,6 +685,7 @@ export function AssetChart({
     }
     strategySeriesRef.current = [];
 
+    // Generate strategy-aware markers
     const { markers, signals } = generateSignalMarkers(assetData, regime, seed, strategyOverlay);
     candleSeriesRef.current.setMarkers(
       markers.map((m) => ({ ...m, time: m.time as Time }))
@@ -516,7 +704,6 @@ export function AssetChart({
         ? entryPrice * (1 + strategyOverlay.tpPercent / 100)
         : entryPrice * (1 - strategyOverlay.tpPercent / 100);
 
-      // Time range: from signal to end of chart
       const tStart = lastSignal.time;
       const tEnd = assetData[assetData.length - 1].time + 86400 * 30;
 
@@ -553,201 +740,10 @@ export function AssetChart({
       strategySeriesRef.current.push(tpSeries);
     }
 
-    const volumeData = generateVolumeData(
-      assetData,
-      seed,
-      isCrypto && klines.length > 0 ? klines : undefined
-    );
-    volumeSeriesRef.current.setData(
-      volumeData as unknown as { time: Time; value: number; color: string }[]
-    );
-
-    // Store previous close for % change
-    const last = assetData[assetData.length - 1];
-    const prev = assetData.length > 1 ? assetData[assetData.length - 2] : last;
-    prevCloseRef.current = prev.close;
-    setLastPrice(last.close);
-    setPriceChange(((last.close - prev.close) / prev.close) * 100);
-
-    // --- Indicator overlays ---
-    if (indicators) {
-      const times = assetData.map((d) => d.time);
-
-      // Helper: create a line series on main price scale and set data
-      const addOverlayLine = (
-        values: (number | null)[],
-        color: string,
-        lineWidth: number = 2,
-        lineStyle: LineStyle = LineStyle.Solid
-      ) => {
-        const series = chart.addLineSeries({
-          color,
-          lineWidth: lineWidth as 1 | 2 | 3 | 4,
-          lineStyle,
-          priceScaleId: "right",
-          lastValueVisible: false,
-          priceLineVisible: false,
-        });
-        const lineData = values
-          .map((v, i) =>
-            v !== null ? { time: times[i] as Time, value: v } : null
-          )
-          .filter(Boolean) as { time: Time; value: number }[];
-        series.setData(lineData);
-        indicatorSeriesRef.current.push(series);
-        return series;
-      };
-
-      // SMA lines
-      for (const period of indicators.sma) {
-        const values = calcSMA(assetData, period);
-        addOverlayLine(values, SMA_COLORS[period] ?? "#facc15");
-      }
-
-      // EMA lines
-      for (const period of indicators.ema) {
-        const values = calcEMA(assetData, period);
-        addOverlayLine(values, EMA_COLORS[period] ?? "#f97316");
-      }
-
-      // Bollinger Bands
-      if (indicators.bollinger) {
-        const bb = calcBollingerBands(assetData, 20, 2);
-        addOverlayLine(bb.upper, "rgba(156, 163, 175, 0.6)", 1, LineStyle.Dashed);
-        addOverlayLine(bb.middle, "rgba(156, 163, 175, 0.8)", 1, LineStyle.Solid);
-        addOverlayLine(bb.lower, "rgba(156, 163, 175, 0.6)", 1, LineStyle.Dashed);
-      }
-
-      // RSI — separate price scale
-      if (indicators.rsi) {
-        const rsiValues = calcRSI(assetData, 14);
-
-        const rsiSeries = chart.addLineSeries({
-          color: "#a855f7",
-          lineWidth: 2,
-          priceScaleId: "rsi",
-          lastValueVisible: true,
-          priceLineVisible: false,
-        });
-        chart.priceScale("rsi").applyOptions({
-          scaleMargins: { top: 0.78, bottom: 0.02 },
-          borderVisible: false,
-        });
-
-        const rsiData = rsiValues
-          .map((v, i) =>
-            v !== null ? { time: times[i] as Time, value: v } : null
-          )
-          .filter(Boolean) as { time: Time; value: number }[];
-        rsiSeries.setData(rsiData);
-        indicatorSeriesRef.current.push(rsiSeries);
-
-        // RSI 70 line
-        const rsi70 = chart.addLineSeries({
-          color: "rgba(239, 68, 68, 0.3)",
-          lineWidth: 1,
-          lineStyle: LineStyle.Dashed,
-          priceScaleId: "rsi",
-          lastValueVisible: false,
-          priceLineVisible: false,
-        });
-        const rsi70Data = rsiData.length > 0
-          ? [
-              { time: rsiData[0].time, value: 70 },
-              { time: rsiData[rsiData.length - 1].time, value: 70 },
-            ]
-          : [];
-        rsi70.setData(rsi70Data);
-        indicatorSeriesRef.current.push(rsi70);
-
-        // RSI 30 line
-        const rsi30 = chart.addLineSeries({
-          color: "rgba(34, 197, 94, 0.3)",
-          lineWidth: 1,
-          lineStyle: LineStyle.Dashed,
-          priceScaleId: "rsi",
-          lastValueVisible: false,
-          priceLineVisible: false,
-        });
-        const rsi30Data = rsiData.length > 0
-          ? [
-              { time: rsiData[0].time, value: 30 },
-              { time: rsiData[rsiData.length - 1].time, value: 30 },
-            ]
-          : [];
-        rsi30.setData(rsi30Data);
-        indicatorSeriesRef.current.push(rsi30);
-      }
-
-      // MACD — separate price scale
-      if (indicators.macd) {
-        const macd = calcMACD(assetData, 12, 26, 9);
-
-        // MACD histogram
-        const macdHist = chart.addHistogramSeries({
-          priceScaleId: "macd",
-          lastValueVisible: false,
-          priceLineVisible: false,
-        });
-        chart.priceScale("macd").applyOptions({
-          scaleMargins: { top: 0.85, bottom: 0.0 },
-          borderVisible: false,
-        });
-        const histData = macd.histogram
-          .map((v, i) =>
-            v !== null
-              ? {
-                  time: times[i] as Time,
-                  value: v,
-                  color:
-                    v >= 0
-                      ? "rgba(34, 197, 94, 0.5)"
-                      : "rgba(239, 68, 68, 0.5)",
-                }
-              : null
-          )
-          .filter(Boolean) as { time: Time; value: number; color: string }[];
-        macdHist.setData(histData);
-        indicatorHistogramRef.current.push(macdHist);
-
-        // MACD line
-        const macdLine = chart.addLineSeries({
-          color: "#06b6d4",
-          lineWidth: 1,
-          priceScaleId: "macd",
-          lastValueVisible: false,
-          priceLineVisible: false,
-        });
-        const macdLineData = macd.macd
-          .map((v, i) =>
-            v !== null ? { time: times[i] as Time, value: v } : null
-          )
-          .filter(Boolean) as { time: Time; value: number }[];
-        macdLine.setData(macdLineData);
-        indicatorSeriesRef.current.push(macdLine);
-
-        // Signal line
-        const sigLine = chart.addLineSeries({
-          color: "#f97316",
-          lineWidth: 1,
-          priceScaleId: "macd",
-          lastValueVisible: false,
-          priceLineVisible: false,
-        });
-        const sigLineData = macd.signal
-          .map((v, i) =>
-            v !== null ? { time: times[i] as Time, value: v } : null
-          )
-          .filter(Boolean) as { time: Time; value: number }[];
-        sigLine.setData(sigLineData);
-        indicatorSeriesRef.current.push(sigLine);
-      }
-    }
-
-    if (chartRef.current) {
-      chartRef.current.timeScale().fitContent();
-    }
-  }, [klines, isCrypto, symbol, basePrice, regime, seed, interval, indicators, strategyOverlay]);
+    // Brief flash then clear
+    const tid = setTimeout(() => setRecalculating(false), 150);
+    return () => clearTimeout(tid);
+  }, [regime, seed, strategyOverlay]);
 
   // Effect 3: Live candle update from WebSocket tick (crypto only)
   useEffect(() => {
@@ -1095,7 +1091,15 @@ export function AssetChart({
       </div>
 
       {/* Chart */}
-      <div ref={containerRef} className="w-full rounded-lg overflow-hidden" />
+      <div className="relative">
+        <div ref={containerRef} className="w-full rounded-lg overflow-hidden" />
+        {recalculating && (
+          <div className="absolute top-2 right-2 flex items-center gap-1.5 rounded bg-background/80 border border-border/50 px-2 py-1 text-[10px] text-blue-400 animate-pulse">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping" />
+            Recalculating signals...
+          </div>
+        )}
+      </div>
 
       {/* Legend */}
       <div className="flex gap-3 sm:gap-6 mt-3 text-xs text-muted-foreground flex-wrap">
