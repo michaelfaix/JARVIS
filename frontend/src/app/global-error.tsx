@@ -9,15 +9,24 @@ export default function GlobalError({
 }) {
   return (
     <html>
-      <body className="dark bg-[#05080f] text-white font-mono flex items-center justify-center min-h-screen">
-        <div className="text-center space-y-4">
-          <h2 className="text-lg text-[#ff4466]">Something went wrong</h2>
-          <p className="text-sm text-gray-400">{error.message}</p>
+      <body style={{ margin: 0, background: "#05080f", color: "#fff", fontFamily: "monospace", display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
+        <div style={{ textAlign: "center" }}>
+          <h2 style={{ fontSize: 18, color: "#ff4466" }}>Kritischer Fehler</h2>
+          <p style={{ fontSize: 14, color: "#888", marginTop: 8 }}>{error.message}</p>
           <button
             onClick={reset}
-            className="px-4 py-2 border border-[#4db8ff] text-[#4db8ff] rounded hover:bg-[#4db8ff]/10 transition-colors"
+            style={{
+              marginTop: 16,
+              padding: "8px 16px",
+              border: "1px solid #4db8ff",
+              color: "#4db8ff",
+              background: "transparent",
+              borderRadius: 4,
+              cursor: "pointer",
+              fontFamily: "monospace",
+            }}
           >
-            Try again
+            Neu laden
           </button>
         </div>
       </body>

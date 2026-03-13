@@ -1,6 +1,6 @@
 "use client";
 
-export default function AppError({
+export default function AuthError({
   error,
   reset,
 }: {
@@ -8,7 +8,7 @@ export default function AppError({
   reset: () => void;
 }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh", padding: 16 }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "50vh", padding: 16 }}>
       <div style={{ textAlign: "center" }}>
         <h2 style={{ fontSize: 18, color: "#ff4466", fontFamily: "monospace" }}>Fehler</h2>
         <p style={{ fontSize: 14, color: "#888", marginTop: 8 }}>{error.message}</p>
