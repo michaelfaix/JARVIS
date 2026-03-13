@@ -343,6 +343,8 @@ export interface StrategyControlProps {
   addRule: (rule: CustomRule) => void;
   removeRule: (id: string) => void;
   executeBacktest: (assets: string[], period: number) => void;
+  /** When true, renders without Card wrapper (for embedding in unified layout) */
+  embedded?: boolean;
 }
 
 export function StrategyControl({
@@ -354,6 +356,7 @@ export function StrategyControl({
   addRule,
   removeRule,
   executeBacktest,
+  embedded = false,
 }: StrategyControlProps) {
   const [expanded, setExpanded] = useState(false);
   const [showRules, setShowRules] = useState(false);
@@ -375,6 +378,167 @@ export function StrategyControl({
     const assets = DEFAULT_ASSETS.slice(0, 3).map((a) => a.symbol); // BTC, ETH, SOL
     executeBacktest(assets, 90); // 90 days
   }, [executeBacktest]);
+
+  const content = (
+    <div className={embedded ? "space-y-3" : "space-y-3 pb-4"}>
+      {/* Header row */}
+      <div className="flex items-center gap-2">
+        <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className="text-[11px] font-medium text-muted-foreground">Strategy</span>
+        {currentPreset && (
+          <Badge className="text-[9px] bg-blue-500/20 text-blue-400 border-blue-500/30">
+            {currentPreset.label}
+          </Badge>
+        )}
+        <button
+          onClick={() => setExpanded((p) => !p)}
+          className="ml-auto text-muted-foreground hover:text-white transition-colors"
+        >
+          {expanded ? (
+            <ChevronUp className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5" />
+          )}
+        </button>
+      </div>
+
+      {/* Strategy Selector — always visible */}
+      <div className="flex flex-wrap gap-1">
+        {STRATEGY_PRESETS.map((preset) => (
+          <button
+            key={preset.id}
+            onClick={() => selectStrategy(preset.id)}
+            className={`px-2 py-1 rounded-md text-[11px] font-medium transition-colors ${
+              state.selectedStrategy === preset.id
+                ? "bg-blue-600/20 text-blue-400 border border-blue-500/30"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent"
+            }`}
+            title={preset.description}
+          >
+            {preset.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Description */}
+      {currentPreset && (
+        <p className="text-[10px] text-muted-foreground leading-relaxed">
+          {currentPreset.description}
+        </p>
+      )}
+
+      {/* Expanded: Parameters + Backtest */}
+      {expanded && (
+        <>
+          {/* Parameter Sliders */}
+          <div className="space-y-2 pt-1">
+            <div className="text-[10px] text-muted-foreground font-medium">
+              Parameters
+            </div>
+            <ParamRow
+              label="RSI Length"
+              value={state.params.rsiLength}
+              min={5}
+              max={30}
+              step={1}
+              onChange={(v) => updateParam("rsiLength", v)}
+            />
+            <ParamRow
+              label="EMA Fast"
+              value={state.params.emaFast}
+              min={3}
+              max={30}
+              step={1}
+              onChange={(v) => updateParam("emaFast", v)}
+            />
+            <ParamRow
+              label="EMA Slow"
+              value={state.params.emaSlow}
+              min={10}
+              max={100}
+              step={1}
+              onChange={(v) => updateParam("emaSlow", v)}
+            />
+            <ParamRow
+              label="Stop Loss"
+              value={state.params.slPercent}
+              min={0.5}
+              max={10}
+              step={0.5}
+              suffix="%"
+              onChange={(v) => updateParam("slPercent", v)}
+            />
+            <ParamRow
+              label="Take Profit"
+              value={state.params.tpPercent}
+              min={1}
+              max={20}
+              step={0.5}
+              suffix="%"
+              onChange={(v) => updateParam("tpPercent", v)}
+            />
+            <ParamRow
+              label="Risk/Trade"
+              value={state.params.riskPerTrade}
+              min={0.5}
+              max={5}
+              step={0.5}
+              suffix="%"
+              onChange={(v) => updateParam("riskPerTrade", v)}
+            />
+          </div>
+
+          {/* Custom Rules (only for Custom strategy) */}
+          {state.selectedStrategy === "custom" && (
+            <div className="pt-1">
+              <button
+                onClick={() => setShowRules((p) => !p)}
+                className="text-[10px] text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1"
+              >
+                {showRules ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                {showRules ? "Hide" : "Show"} Rule Builder
+              </button>
+              {showRules && (
+                <div className="mt-2">
+                  <RuleBuilder
+                    rules={state.customRules}
+                    onAdd={addRule}
+                    onRemove={removeRule}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Custom Rules Validation */}
+          {state.selectedStrategy === "custom" && !customRulesValid && (
+            <div className="text-[10px] text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded px-2.5 py-1.5">
+              Add at least 1 BUY rule and 1 SELL rule to run backtest.
+            </div>
+          )}
+
+          {/* Run Backtest Button */}
+          <button
+            onClick={handleBacktest}
+            disabled={backtesting || (state.selectedStrategy === "custom" && !customRulesValid)}
+            className="w-full flex items-center justify-center gap-2 rounded-lg bg-blue-600/20 text-blue-400 border border-blue-500/30 py-2 text-xs font-medium hover:bg-blue-600/40 transition-colors disabled:opacity-50"
+          >
+            {backtesting ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Play className="h-3.5 w-3.5" />
+            )}
+            {backtesting ? "Running..." : "Run Backtest (90d)"}
+          </button>
+
+          {/* Backtest Results */}
+          {backtestResult && <BacktestResults result={backtestResult} />}
+        </>
+      )}
+    </div>
+  );
+
+  if (embedded) return content;
 
   return (
     <Card className="bg-card/50 border-border/50">
@@ -399,141 +563,7 @@ export function StrategyControl({
           </button>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3 pb-4">
-        {/* Strategy Selector — always visible */}
-        <div className="flex flex-wrap gap-1">
-          {STRATEGY_PRESETS.map((preset) => (
-            <button
-              key={preset.id}
-              onClick={() => selectStrategy(preset.id)}
-              className={`px-2 py-1 rounded-md text-[11px] font-medium transition-colors ${
-                state.selectedStrategy === preset.id
-                  ? "bg-blue-600/20 text-blue-400 border border-blue-500/30"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent"
-              }`}
-              title={preset.description}
-            >
-              {preset.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Description */}
-        {currentPreset && (
-          <p className="text-[10px] text-muted-foreground leading-relaxed">
-            {currentPreset.description}
-          </p>
-        )}
-
-        {/* Expanded: Parameters + Backtest */}
-        {expanded && (
-          <>
-            {/* Parameter Sliders */}
-            <div className="space-y-2 pt-1">
-              <div className="text-[10px] text-muted-foreground font-medium">
-                Parameters
-              </div>
-              <ParamRow
-                label="RSI Length"
-                value={state.params.rsiLength}
-                min={5}
-                max={30}
-                step={1}
-                onChange={(v) => updateParam("rsiLength", v)}
-              />
-              <ParamRow
-                label="EMA Fast"
-                value={state.params.emaFast}
-                min={3}
-                max={30}
-                step={1}
-                onChange={(v) => updateParam("emaFast", v)}
-              />
-              <ParamRow
-                label="EMA Slow"
-                value={state.params.emaSlow}
-                min={10}
-                max={100}
-                step={1}
-                onChange={(v) => updateParam("emaSlow", v)}
-              />
-              <ParamRow
-                label="Stop Loss"
-                value={state.params.slPercent}
-                min={0.5}
-                max={10}
-                step={0.5}
-                suffix="%"
-                onChange={(v) => updateParam("slPercent", v)}
-              />
-              <ParamRow
-                label="Take Profit"
-                value={state.params.tpPercent}
-                min={1}
-                max={20}
-                step={0.5}
-                suffix="%"
-                onChange={(v) => updateParam("tpPercent", v)}
-              />
-              <ParamRow
-                label="Risk/Trade"
-                value={state.params.riskPerTrade}
-                min={0.5}
-                max={5}
-                step={0.5}
-                suffix="%"
-                onChange={(v) => updateParam("riskPerTrade", v)}
-              />
-            </div>
-
-            {/* Custom Rules (only for Custom strategy) */}
-            {state.selectedStrategy === "custom" && (
-              <div className="pt-1">
-                <button
-                  onClick={() => setShowRules((p) => !p)}
-                  className="text-[10px] text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1"
-                >
-                  {showRules ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                  {showRules ? "Hide" : "Show"} Rule Builder
-                </button>
-                {showRules && (
-                  <div className="mt-2">
-                    <RuleBuilder
-                      rules={state.customRules}
-                      onAdd={addRule}
-                      onRemove={removeRule}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Custom Rules Validation */}
-            {state.selectedStrategy === "custom" && !customRulesValid && (
-              <div className="text-[10px] text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded px-2.5 py-1.5">
-                Add at least 1 BUY rule and 1 SELL rule to run backtest.
-              </div>
-            )}
-
-            {/* Run Backtest Button */}
-            <button
-              onClick={handleBacktest}
-              disabled={backtesting || (state.selectedStrategy === "custom" && !customRulesValid)}
-              className="w-full flex items-center justify-center gap-2 rounded-lg bg-blue-600/20 text-blue-400 border border-blue-500/30 py-2 text-xs font-medium hover:bg-blue-600/40 transition-colors disabled:opacity-50"
-            >
-              {backtesting ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Play className="h-3.5 w-3.5" />
-              )}
-              {backtesting ? "Running..." : "Run Backtest (90d)"}
-            </button>
-
-            {/* Backtest Results */}
-            {backtestResult && <BacktestResults result={backtestResult} />}
-          </>
-        )}
-      </CardContent>
+      <CardContent>{content}</CardContent>
     </Card>
   );
 }

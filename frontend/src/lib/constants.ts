@@ -11,6 +11,7 @@ export const DEFAULT_ASSETS = [
   { symbol: "NVDA", name: "NVIDIA", price: 890 },
   { symbol: "TSLA", name: "Tesla", price: 175 },
   { symbol: "GLD", name: "Gold ETF", price: 215 },
+  { symbol: "OIL", name: "Crude Oil", price: 78 },
 ] as const;
 
 export const DEFAULT_CAPITAL = 100_000;

@@ -31,12 +31,14 @@ import { Watchlist } from "@/components/dashboard/watchlist";
 import { PnlTicker } from "@/components/dashboard/pnl-ticker";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { StrategyControl } from "@/components/dashboard/strategy-control";
+import { JarvisTips } from "@/components/dashboard/jarvis-tips";
 import { useStrategy } from "@/hooks/use-strategy";
 import { MetricTooltip } from "@/components/ui/metric-tooltip";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ApiOfflineBanner } from "@/components/ui/api-offline-banner";
+import { loadJSON, saveJSON } from "@/lib/storage";
 import {
   TrendingUp,
   TrendingDown,
@@ -49,6 +51,7 @@ import {
   ArrowRight,
   Activity,
   Check,
+  Star,
 } from "lucide-react";
 
 const CHART_ASSETS = [
@@ -57,6 +60,7 @@ const CHART_ASSETS = [
   { symbol: "SOL", name: "Solana", basePrice: 145 },
   { symbol: "SPY", name: "S&P 500 ETF", basePrice: 520 },
   { symbol: "GLD", name: "Gold ETF", basePrice: 215 },
+  { symbol: "OIL", name: "Crude Oil", basePrice: 78 },
 ] as const;
 
 // ---------------------------------------------------------------------------
@@ -127,8 +131,26 @@ export default function DashboardPage() {
     return () => { clearInterval(id); clearInterval(cleanupId); };
   }, [updatePrices, checkOrders, checkSLTP, cleanupOrders]);
 
-  const [selectedAsset, setSelectedAsset] = useState(0);
-  const [timeframeIdx, setTimeframeIdx] = useState(4); // default: 4H Combined
+  // --- Favorite Chart (persisted in localStorage) ---
+  interface FavoriteChart {
+    assetIdx: number;
+    timeframeIdx: number;
+  }
+  const FAV_DEFAULT: FavoriteChart = useMemo(() => ({ assetIdx: 0, timeframeIdx: 4 }), []); // BTC / 4H
+  const savedFav = useRef(loadJSON<FavoriteChart>("jarvis:favorite-chart", FAV_DEFAULT));
+  const [selectedAsset, setSelectedAsset] = useState(savedFav.current.assetIdx);
+  const [timeframeIdx, setTimeframeIdx] = useState(savedFav.current.timeframeIdx);
+
+  const saveFavorite = useCallback(() => {
+    const fav: FavoriteChart = { assetIdx: selectedAsset, timeframeIdx };
+    saveJSON("jarvis:favorite-chart", fav);
+  }, [selectedAsset, timeframeIdx]);
+
+  // Check if current selection matches saved favorite
+  const isCurrentFavorite = useMemo(() => {
+    const fav = loadJSON<FavoriteChart>("jarvis:favorite-chart", FAV_DEFAULT);
+    return fav.assetIdx === selectedAsset && fav.timeframeIdx === timeframeIdx;
+  }, [selectedAsset, timeframeIdx, FAV_DEFAULT]);
 
   // Live price from chart (WS for crypto, sim for stocks)
   const [wsPrice, setWsPrice] = useState<number | null>(null);
@@ -311,43 +333,14 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* USP: Timeframe Slider — click navigates to charts */}
-        <Card className="bg-card/50 border-border/50">
-          <CardContent className="pt-5 pb-4">
-            <TimeframeSlider
-              value={timeframeIdx}
-              onChange={(idx) => {
-                setTimeframeIdx(idx);
-              }}
-            />
-            <button
-              onClick={() => router.push(`/charts`)}
-              className="mt-2 flex items-center gap-1 text-[10px] text-muted-foreground hover:text-blue-400 transition-colors"
-            >
-              Open in Charts
-              <ArrowRight className="h-2.5 w-2.5" />
-            </button>
-          </CardContent>
-        </Card>
-
-        {/* Strategy Control Panel */}
-        <StrategyControl
-          state={strategy.state}
-          backtestResult={strategy.backtestResult}
-          backtesting={strategy.backtesting}
-          selectStrategy={strategy.selectStrategy}
-          updateParam={strategy.updateParam}
-          addRule={strategy.addRule}
-          removeRule={strategy.removeRule}
-          executeBacktest={strategy.executeBacktest}
-        />
-
-        {/* Multi-Asset Chart */}
+        {/* ============================================================= */}
+        {/* UNIFIED TRADING CARD: Timeframe + Strategy + Chart            */}
+        {/* ============================================================= */}
         <Card className="bg-card/50 border-border/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
               {/* Asset Selector Tabs */}
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-1 items-center">
                 {CHART_ASSETS.map((a, i) => (
                   <button
                     key={a.symbol}
@@ -364,6 +357,18 @@ export default function DashboardPage() {
                     {a.symbol}
                   </button>
                 ))}
+                {/* Favorite button */}
+                <button
+                  onClick={saveFavorite}
+                  className={`ml-1 p-1 rounded transition-colors ${
+                    isCurrentFavorite
+                      ? "text-yellow-400"
+                      : "text-muted-foreground hover:text-yellow-400"
+                  }`}
+                  title={isCurrentFavorite ? "Current favorite" : "Set as favorite chart"}
+                >
+                  <Star className={`h-3.5 w-3.5 ${isCurrentFavorite ? "fill-yellow-400" : ""}`} />
+                </button>
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="text-[10px]">
@@ -383,24 +388,67 @@ export default function DashboardPage() {
                     {wsConnected ? "WS Live" : binanceConnected ? "REST" : "Live Sim"}
                   </span>
                 </div>
+                <button
+                  onClick={() => router.push(`/charts`)}
+                  className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-blue-400 transition-colors"
+                >
+                  Expand
+                  <ArrowRight className="h-2.5 w-2.5" />
+                </button>
               </div>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <AssetChart
-              key={`${asset.symbol}-${chartInterval}`}
-              symbol={asset.symbol}
-              name={asset.name}
-              basePrice={asset.basePrice}
-              livePrice={wsPrice ?? prices[asset.symbol]}
-              regime={regime}
-              height={400}
-              interval={chartInterval}
-              onPriceChange={handlePriceChange}
-              strategyOverlay={strategyOverlay}
+          <CardContent className="space-y-4">
+            {/* Timeframe Slider */}
+            <TimeframeSlider
+              value={timeframeIdx}
+              onChange={(idx) => {
+                setTimeframeIdx(idx);
+              }}
             />
+
+            {/* Strategy Control (embedded — no card wrapper) */}
+            <div className="border-t border-border/30 pt-3">
+              <StrategyControl
+                state={strategy.state}
+                backtestResult={strategy.backtestResult}
+                backtesting={strategy.backtesting}
+                selectStrategy={strategy.selectStrategy}
+                updateParam={strategy.updateParam}
+                addRule={strategy.addRule}
+                removeRule={strategy.removeRule}
+                executeBacktest={strategy.executeBacktest}
+                embedded
+              />
+            </div>
+
+            {/* Chart */}
+            <div className="border-t border-border/30 pt-2">
+              <AssetChart
+                key={`${asset.symbol}-${chartInterval}`}
+                symbol={asset.symbol}
+                name={asset.name}
+                basePrice={asset.basePrice}
+                livePrice={wsPrice ?? prices[asset.symbol]}
+                regime={regime}
+                height={400}
+                interval={chartInterval}
+                onPriceChange={handlePriceChange}
+                strategyOverlay={strategyOverlay}
+              />
+            </div>
           </CardContent>
         </Card>
+
+        {/* JARVIS Tips — FAS-based contextual recommendations */}
+        <JarvisTips
+          regime={regime}
+          ece={status?.ece ?? 0}
+          oodScore={status?.ood_score ?? 0}
+          metaUncertainty={status?.meta_unsicherheit ?? 0}
+          sentiment={sentimentData ? (sentimentData.crypto.momentum.score / 100) : null}
+          strategy={strategy.state.selectedStrategy}
+        />
 
         {/* Portfolio Summary + Top Signals */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
