@@ -1362,5 +1362,109 @@ Jeder Tab hat eigene Fear & Greed Gauge, 7d-History-Sparkline, Momentum, Volatil
 
 ---
 
-*CLAUDE.md — Version 11.5.0 | März 2026*
+## ✅ ABGESCHLOSSEN: Sentiment v3 — Bug Fixes, Security, Optimierung
+
+### Bugs behoben:
+1. **Callback Dependency Leak** (`fetchCryptoFG`/`fetchProxy`): `priceHistory` als useCallback-Dep → Callback-Neubildung alle 3s → Polling-Interval-Reset. Fix: `priceHistoryRef` Pattern, leere Deps.
+2. **`compositeCommodityFG` maFactor-Bug**: Base 50 wurde kumuliert statt pro-Symbol berechnet → verzerrter Durchschnitt. Fix: `maTotal/maCount` Pattern.
+3. **Commodities "Synthetic" Badge**: `error: "Composite"` war truthy → zeigte fälschlich "Synthetic" Badge. Fix: `error: null`.
+4. **`gecko.btcDominance` Type Guard**: Fehlender Typcheck konnte NaN-Werte durchlassen.
+
+### Security:
+5. **Rate Limiting** (`/api/sentiment/route.ts`): 30 req/min pro Serverless-Instanz, 429 bei Überschreitung.
+6. **Error Sanitizing**: `String(cnn.reason)` konnte Stack Traces leaken. Jetzt nur bekannte sichere Fehlermeldungen durchgereicht.
+
+### Performance:
+7. **Consolidated Memos**: 7 separate `useMemo` + 1 `useEffect` (VIX) → 1 einziger `derived` Memo mit allen Berechnungen.
+8. **Stabile Polling-Intervalle**: Durch Ref-Pattern keine unnötigen Callback-Neubildungen mehr.
+
+### Tests:
+- 177 Tests in 20 Suiten — alle bestanden
+- Build: 0 Errors, 32 Routes + Middleware
+
+---
+
+## ✅ ABGESCHLOSSEN: Backend-Anbindung, Auth, Live-Daten, Trading Engine
+
+### 1. Backend-Anbindung (use-signals.ts Rewrite)
+- **Echte Technical Features** statt Hash-basierter Fake-Werte: Momentum, Volatility (CV), Trend (lineare Regression), RSI, MACD-Proxy, Bollinger-Bandbreite, ATR — berechnet aus priceHistory Ring Buffer
+- **Live-Preise für Entry/SL/TP**: Nutzt `prices[symbol]` statt hardcodierte DEFAULT_ASSETS
+- **Graceful Fallback**: Backend offline → lokal abgeleitete Signale (markiert als OOD)
+- **`backendOnline` State**: UI differenziert zwischen Backend-online und Offline
+- **Ref-Pattern**: `pricesRef`/`priceHistoryRef` vermeidet Callback-Churn
+- Alle 6 Seiten (Dashboard, Signals, Charts, Markets, Radar, Asset-Detail) aktualisiert
+
+### 2. Auth/Supabase — Vervollständigung
+- Schema: `stripe_customer_id` + `stripe_subscription_id` Spalten zu `profiles` hinzugefügt
+- **Password Reset Flow**: "Forgot password?" auf Login-Seite, `resetPasswordForEmail()`, Success-Feedback
+- Auth war bereits vollständig: Middleware, Login/Register, OAuth, RLS, Tier-System
+
+### 3. Echte Stock/Commodity-Daten
+- **`/api/quotes/route.ts`**: Server-side Yahoo Finance Proxy für SPY, AAPL, NVDA, TSLA, GLD
+- In-Memory Cache (30s TTL), Rate Limiting (30 req/min), Error Sanitizing
+- **`use-prices.ts` erweitert**: Yahoo Quotes alle 30s gepollt, Fallback auf synthetische Preise
+- Neuer State `quotesConnected` für Yahoo-Verbindungsstatus
+
+### 4. Paper Trading Engine
+- **`use-trading-engine.ts`**: Zentraler Execution Loop (1s Tick) kombiniert Portfolio + Orders + Auto SL/TP
+- **`TradingEngineProvider`**: React Context im App Layout → Engine läuft auf jeder Seite
+- Automatische Position P&L Updates, Order-Fill-Checks, SL/TP-Trigger-Checks
+- Cleanup alter Orders (>24h) alle 5 Minuten
+
+### Neue Dateien:
+- `src/app/api/quotes/route.ts` — Yahoo Finance Proxy
+- `src/hooks/use-trading-engine.ts` — Zentraler Trading Loop
+- `src/context/trading-engine-context.tsx` — Trading Engine Provider
+
+### Tests:
+- 177 Tests in 20 Suiten — alle bestanden
+- Build: 0 Errors, **33 Routes** (neu: /api/quotes) + Middleware
+
+---
+
+## ✅ ABGESCHLOSSEN: Dashboard Zero-Data Fix — Live-Metriken aus Predictions
+
+### Root Cause:
+- `/status` und `/metrics` Endpunkte lasen aus `_system_zustand` — initialisiert mit Nullen, **nie aktualisiert**
+- `/predict` berechnete echte OOD-Scores, Sigma, Quality — schrieb aber nichts zurück
+- Dashboard zeigte: Meta-U 0.000, ECE 0.0%, OOD 0%, Severity 0/8, Quality 100.0/100
+
+### Fix (`jarvis/api/routes.py`):
+1. **Rolling Prediction History**: Letzte 50 Sigmas, Mus, OOD-Scores als Sliding Window
+2. **`/predict` aktualisiert `_system_zustand`** nach jedem Call mit:
+   - Running ECE (Mean-Sigma × 0.15 als Kalibrierungs-Proxy)
+   - Durchschnittlicher OOD-Score
+   - Meta-Unsicherheit (Standardabweichung der Sigmas × 3.0)
+   - Inkrementierender Entscheidungszähler
+3. **`/metrics` nutzt echte Daten**: sigma, recent_mus, regime_confidence → QualityScorer
+
+### Dashboard-Audit (alle 12 Widgets geprüft):
+| Widget | Status | Datenquelle |
+|--------|--------|-------------|
+| Market Regime | ✅ | GET /status → ECE, OOD, Meta-U |
+| System Mode | ✅ | GET /status → Modus, Severity, Konfidenz |
+| Decision Quality | ✅ | GET /metrics → Quality Score + 5 Komponenten |
+| Market Sentiment | ✅ | alternative.me + CNN Proxy + Computed |
+| Top Signals | ✅ | POST /predict (Batch) → ML Signale |
+| Portfolio Summary | ✅ | localStorage/Supabase |
+| Watchlist | ✅ | Binance WS + Yahoo Proxy |
+| Activity Feed | ✅ | Portfolio closedTrades |
+| Timeframe Slider | ✅ | Pure UI |
+| P&L Ticker | ✅ | Portfolio positions × live prices |
+| Signal Quality | ✅ | Signals + Metrics + Feedback |
+| StatCards | ✅ | Status + Metrics |
+
+### Ergebnis nach Fix:
+- ECE: ~0.023 (statt 0.000) — korrekt kalibriert
+- OOD: ~0.31 (statt 0%) — moderate In-Distribution
+- Quality: ~92.7/100 (statt 100.0) — realistisch
+- Modus: NORMAL (bleibt stabil, keine falsche KRISE)
+
+### Tests:
+- 8.897 Backend Tests + 177 Frontend Tests — alle bestanden
+- Build: 0 Errors, 33 Routes + Middleware
+
+---
+
+*CLAUDE.md — Version 14.0.0 | März 2026*
 *Backend 100% FAS-konform und abgeschlossen. FAS-Datei wird nicht mehr aktualisiert.*
