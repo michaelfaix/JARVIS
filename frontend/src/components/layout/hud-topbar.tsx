@@ -120,7 +120,7 @@ export function HudTopbar({
               )}
             >
               <Icon className="h-3 w-3 shrink-0" />
-              <span className="hidden lg:inline">{t(item.key)}</span>
+              <span className="hidden lg:inline" suppressHydrationWarning>{t(item.key)}</span>
             </Link>
           );
         })}
@@ -286,9 +286,10 @@ export function HudTopbar({
           <button
             onClick={onWidgetsClick}
             className="flex items-center gap-1 px-1.5 py-0.5 rounded border border-hud-border text-[9px] font-mono text-muted-foreground hover:text-hud-cyan hover:border-hud-cyan/30 transition-colors"
+            suppressHydrationWarning
           >
             <Grip className="h-3 w-3" />
-            <span className="hidden xl:inline">WIDGETS</span>
+            <span className="hidden xl:inline" suppressHydrationWarning>WIDGETS</span>
           </button>
         )}
       </div>

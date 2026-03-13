@@ -159,9 +159,10 @@ export function CoPilotEmbed({ state, sendMessage, onExpand }: CoPilotEmbedProps
                 key={action.label}
                 onClick={() => sendMessage(action.label)}
                 className="flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-hud-border text-[8px] font-mono text-muted-foreground hover:text-hud-cyan hover:border-hud-cyan/30 transition-colors"
+                suppressHydrationWarning
               >
                 <span>{action.emoji}</span>
-                <span className="hidden sm:inline">{action.label}</span>
+                <span className="hidden sm:inline" suppressHydrationWarning>{action.label}</span>
               </button>
             ))}
           </div>

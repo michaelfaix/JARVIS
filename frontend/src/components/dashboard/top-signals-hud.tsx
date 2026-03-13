@@ -117,13 +117,14 @@ export function TopSignalsHud({
                       ? "text-hud-green/50 border border-hud-green/20 cursor-default"
                       : "bg-hud-cyan/10 text-hud-cyan border border-hud-cyan/30 hover:bg-hud-cyan/20"
                   }`}
+                  suppressHydrationWarning
                 >
                   {alreadyOpen ? (
                     <span className="flex items-center justify-center gap-1">
                       <Check className="h-3 w-3" /> OPEN
                     </span>
                   ) : (
-                    "TRADE"
+                    <span>TRADE</span>
                   )}
                 </button>
               </div>
