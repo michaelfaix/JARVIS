@@ -11,9 +11,10 @@ import { useCallback, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  useStrategy,
   STRATEGY_PRESETS,
+  type StrategyParams,
   type CustomRule,
+  type StrategyState,
 } from "@/hooks/use-strategy";
 import type { BacktestResult } from "@/lib/backtest-engine";
 import { DEFAULT_ASSETS } from "@/lib/constants";
@@ -333,18 +334,27 @@ function RuleBuilder({
 // Main Widget
 // ---------------------------------------------------------------------------
 
-export function StrategyControl() {
-  const {
-    state,
-    backtestResult,
-    backtesting,
-    selectStrategy,
-    updateParam,
-    addRule,
-    removeRule,
-    executeBacktest,
-  } = useStrategy();
+export interface StrategyControlProps {
+  state: StrategyState;
+  backtestResult: BacktestResult | null;
+  backtesting: boolean;
+  selectStrategy: (id: string) => void;
+  updateParam: (key: keyof StrategyParams, value: number) => void;
+  addRule: (rule: CustomRule) => void;
+  removeRule: (id: string) => void;
+  executeBacktest: (assets: string[], period: number) => void;
+}
 
+export function StrategyControl({
+  state,
+  backtestResult,
+  backtesting,
+  selectStrategy,
+  updateParam,
+  addRule,
+  removeRule,
+  executeBacktest,
+}: StrategyControlProps) {
   const [expanded, setExpanded] = useState(false);
   const [showRules, setShowRules] = useState(false);
 
@@ -352,6 +362,14 @@ export function StrategyControl() {
     () => STRATEGY_PRESETS.find((p) => p.id === state.selectedStrategy),
     [state.selectedStrategy]
   );
+
+  // Custom strategy validation: need at least 1 BUY + 1 SELL rule
+  const customRulesValid = useMemo(() => {
+    if (state.selectedStrategy !== "custom") return true;
+    const hasBuy = state.customRules.some((r) => r.action === "BUY");
+    const hasSell = state.customRules.some((r) => r.action === "SELL");
+    return hasBuy && hasSell;
+  }, [state.selectedStrategy, state.customRules]);
 
   const handleBacktest = useCallback(() => {
     const assets = DEFAULT_ASSETS.slice(0, 3).map((a) => a.symbol); // BTC, ETH, SOL
@@ -490,10 +508,17 @@ export function StrategyControl() {
               </div>
             )}
 
+            {/* Custom Rules Validation */}
+            {state.selectedStrategy === "custom" && !customRulesValid && (
+              <div className="text-[10px] text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded px-2.5 py-1.5">
+                Add at least 1 BUY rule and 1 SELL rule to run backtest.
+              </div>
+            )}
+
             {/* Run Backtest Button */}
             <button
               onClick={handleBacktest}
-              disabled={backtesting}
+              disabled={backtesting || (state.selectedStrategy === "custom" && !customRulesValid)}
               className="w-full flex items-center justify-center gap-2 rounded-lg bg-blue-600/20 text-blue-400 border border-blue-500/30 py-2 text-xs font-medium hover:bg-blue-600/40 transition-colors disabled:opacity-50"
             >
               {backtesting ? (

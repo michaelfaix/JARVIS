@@ -10,6 +10,7 @@ import {
   runBacktest,
   type BacktestConfig,
   type BacktestResult,
+  type CustomRuleConfig,
 } from "@/lib/backtest-engine";
 import { DEFAULT_CAPITAL } from "@/lib/constants";
 
@@ -140,7 +141,7 @@ function toBacktestConfig(
     custom: "combined",
   };
 
-  return {
+  const config: BacktestConfig = {
     strategy: engineMap[state.selectedStrategy] ?? "combined",
     assets,
     period,
@@ -148,7 +149,24 @@ function toBacktestConfig(
     riskPerTrade: state.params.riskPerTrade,
     slPercent: state.params.slPercent,
     tpPercent: state.params.tpPercent,
+    emaFast: state.params.emaFast,
+    emaSlow: state.params.emaSlow,
+    rsiLength: state.params.rsiLength,
   };
+
+  // For custom strategy, pass rules to the engine
+  if (state.selectedStrategy === "custom" && state.customRules.length > 0) {
+    config.customRules = state.customRules.map((r): CustomRuleConfig => ({
+      id: r.id,
+      indicator: r.indicator,
+      operator: r.operator,
+      value: r.value,
+      logic: r.logic,
+      action: r.action,
+    }));
+  }
+
+  return config;
 }
 
 // ---------------------------------------------------------------------------

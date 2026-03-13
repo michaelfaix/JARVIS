@@ -192,12 +192,21 @@ function klinesToCandles(klines: Kline[]): CandlePoint[] {
   }));
 }
 
+interface SignalEntry {
+  index: number;
+  time: number;
+  price: number;
+  direction: "LONG" | "SHORT";
+}
+
 function generateSignalMarkers(
   data: CandlePoint[],
   regime: RegimeState,
-  seed: number
-): SignalMarker[] {
+  seed: number,
+  overlay?: StrategyOverlay,
+): { markers: SignalMarker[]; signals: SignalEntry[] } {
   const markers: SignalMarker[] = [];
+  const signals: SignalEntry[] = [];
   const step = 5 + (seed % 4);
 
   for (let i = 5; i < data.length; i += step) {
@@ -212,6 +221,45 @@ function generateSignalMarkers(
       shape: isBullish ? "arrowUp" : "arrowDown",
       text: isBullish ? "LONG" : "SHORT",
     });
+
+    signals.push({
+      index: i,
+      time: candle.time,
+      price: candle.close,
+      direction: isBullish ? "LONG" : "SHORT",
+    });
+
+    // Add EXIT marker at the midpoint before next signal
+    if (overlay && i + step < data.length) {
+      const exitIdx = Math.min(i + Math.floor(step * 0.7), data.length - 1);
+      const exitCandle = data[exitIdx];
+      // Check if SL or TP would have been hit
+      const slPrice = isBullish
+        ? candle.close * (1 - overlay.slPercent / 100)
+        : candle.close * (1 + overlay.slPercent / 100);
+      const tpPrice = isBullish
+        ? candle.close * (1 + overlay.tpPercent / 100)
+        : candle.close * (1 - overlay.tpPercent / 100);
+
+      let hitExit = false;
+      for (let j = i + 1; j <= exitIdx; j++) {
+        if (isBullish) {
+          if (data[j].low <= slPrice || data[j].high >= tpPrice) { hitExit = true; break; }
+        } else {
+          if (data[j].high >= slPrice || data[j].low <= tpPrice) { hitExit = true; break; }
+        }
+      }
+
+      if (hitExit || exitIdx === i + Math.floor(step * 0.7)) {
+        markers.push({
+          time: exitCandle.time,
+          position: "aboveBar",
+          color: "#9ca3af",
+          shape: "circle",
+          text: "EXIT",
+        });
+      }
+    }
   }
 
   if (regime === "CRISIS" && data.length > 0) {
@@ -225,7 +273,10 @@ function generateSignalMarkers(
     });
   }
 
-  return markers;
+  // Sort markers by time (required by lightweight-charts)
+  markers.sort((a, b) => a.time - b.time);
+
+  return { markers, signals };
 }
 
 function generateVolumeData(
@@ -264,6 +315,11 @@ const EMA_COLORS: Record<number, string> = {
 // Chart Component
 // ---------------------------------------------------------------------------
 
+export interface StrategyOverlay {
+  slPercent: number;
+  tpPercent: number;
+}
+
 interface AssetChartProps {
   symbol: string;
   name: string;
@@ -277,6 +333,7 @@ interface AssetChartProps {
   drawings?: ChartDrawing[];
   activeTool?: DrawingTool;
   onDrawingComplete?: (drawing: ChartDrawing) => void;
+  strategyOverlay?: StrategyOverlay;
 }
 
 export function AssetChart({
@@ -292,6 +349,7 @@ export function AssetChart({
   drawings,
   activeTool = "none",
   onDrawingComplete,
+  strategyOverlay,
 }: AssetChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -307,6 +365,9 @@ export function AssetChart({
 
   // Drawing series refs — kept separate from indicator series
   const drawingSeriesRef = useRef<ISeriesApi<"Line">[]>([]);
+
+  // Strategy overlay series refs (SL/TP lines)
+  const strategySeriesRef = useRef<ISeriesApi<"Line">[]>([]);
 
   // Pending drawing click state (first click of a two-click drawing)
   const pendingPointRef = useRef<DrawingPoint | null>(null);
@@ -401,6 +462,7 @@ export function AssetChart({
       indicatorSeriesRef.current = [];
       indicatorHistogramRef.current = [];
       drawingSeriesRef.current = [];
+      strategySeriesRef.current = [];
     };
   }, [symbol, interval, height]);
 
@@ -430,10 +492,66 @@ export function AssetChart({
       assetData as unknown as LWCandlestickData<Time>[]
     );
 
-    const markers = generateSignalMarkers(assetData, regime, seed);
+    // --- Remove previous strategy overlay series ---
+    for (const s of strategySeriesRef.current) {
+      try { chart.removeSeries(s); } catch { /* already removed */ }
+    }
+    strategySeriesRef.current = [];
+
+    const { markers, signals } = generateSignalMarkers(assetData, regime, seed, strategyOverlay);
     candleSeriesRef.current.setMarkers(
       markers.map((m) => ({ ...m, time: m.time as Time }))
     );
+
+    // --- Strategy Overlay: SL/TP lines for the most recent signal ---
+    if (strategyOverlay && signals.length > 0) {
+      const lastSignal = signals[signals.length - 1];
+      const entryPrice = lastSignal.price;
+      const isLong = lastSignal.direction === "LONG";
+
+      const slPrice = isLong
+        ? entryPrice * (1 - strategyOverlay.slPercent / 100)
+        : entryPrice * (1 + strategyOverlay.slPercent / 100);
+      const tpPrice = isLong
+        ? entryPrice * (1 + strategyOverlay.tpPercent / 100)
+        : entryPrice * (1 - strategyOverlay.tpPercent / 100);
+
+      // Time range: from signal to end of chart
+      const tStart = lastSignal.time;
+      const tEnd = assetData[assetData.length - 1].time + 86400 * 30;
+
+      // SL line (red dashed)
+      const slSeries = chart.addLineSeries({
+        color: "#ef4444",
+        lineWidth: 1,
+        lineStyle: LineStyle.Dashed,
+        priceScaleId: "right",
+        lastValueVisible: true,
+        priceLineVisible: false,
+        title: `SL ${strategyOverlay.slPercent}%`,
+      });
+      slSeries.setData([
+        { time: tStart as Time, value: slPrice },
+        { time: tEnd as Time, value: slPrice },
+      ]);
+      strategySeriesRef.current.push(slSeries);
+
+      // TP line (green dashed)
+      const tpSeries = chart.addLineSeries({
+        color: "#22c55e",
+        lineWidth: 1,
+        lineStyle: LineStyle.Dashed,
+        priceScaleId: "right",
+        lastValueVisible: true,
+        priceLineVisible: false,
+        title: `TP ${strategyOverlay.tpPercent}%`,
+      });
+      tpSeries.setData([
+        { time: tStart as Time, value: tpPrice },
+        { time: tEnd as Time, value: tpPrice },
+      ]);
+      strategySeriesRef.current.push(tpSeries);
+    }
 
     const volumeData = generateVolumeData(
       assetData,
@@ -629,7 +747,7 @@ export function AssetChart({
     if (chartRef.current) {
       chartRef.current.timeScale().fitContent();
     }
-  }, [klines, isCrypto, symbol, basePrice, regime, seed, interval, indicators]);
+  }, [klines, isCrypto, symbol, basePrice, regime, seed, interval, indicators, strategyOverlay]);
 
   // Effect 3: Live candle update from WebSocket tick (crypto only)
   useEffect(() => {
@@ -989,6 +1107,22 @@ export function AssetChart({
           <span className="w-2 h-2 rounded-full bg-red-500" />
           SHORT Signal
         </span>
+        {strategyOverlay && (
+          <>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-red-500 opacity-50" />
+              SL {strategyOverlay.slPercent}%
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-green-500 opacity-50" />
+              TP {strategyOverlay.tpPercent}%
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-gray-400" />
+              EXIT
+            </span>
+          </>
+        )}
         <span className="flex items-center gap-1.5">
           <span
             className="w-2 h-2 rounded-full"

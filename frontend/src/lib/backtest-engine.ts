@@ -8,6 +8,15 @@
 // Types
 // ---------------------------------------------------------------------------
 
+export interface CustomRuleConfig {
+  id: string;
+  indicator: string;
+  operator: ">" | "<" | ">=" | "<=" | "crosses_above" | "crosses_below";
+  value: number;
+  logic: "AND" | "OR";
+  action: "BUY" | "SELL";
+}
+
 export interface BacktestConfig {
   strategy: string;
   assets: string[];
@@ -16,6 +25,10 @@ export interface BacktestConfig {
   riskPerTrade: number; // 1-5 (percent)
   slPercent: number; // 1-10 (stop loss percent)
   tpPercent: number; // 2-20 (take profit percent)
+  customRules?: CustomRuleConfig[];
+  emaFast?: number;
+  emaSlow?: number;
+  rsiLength?: number;
 }
 
 export interface TradeRecord {
@@ -239,6 +252,150 @@ function generateOHLC(
   }
 
   return bars;
+}
+
+// ---------------------------------------------------------------------------
+// Inline Indicator Helpers (for backtest — avoid type mismatch with indicators.ts)
+// ---------------------------------------------------------------------------
+
+function calcEMAInline(closes: number[], period: number): (number | null)[] {
+  const result: (number | null)[] = new Array(closes.length).fill(null);
+  if (period <= 0 || closes.length < period) return result;
+  const k = 2 / (period + 1);
+  let sum = 0;
+  for (let i = 0; i < period; i++) sum += closes[i];
+  let ema = sum / period;
+  result[period - 1] = ema;
+  for (let i = period; i < closes.length; i++) {
+    ema = closes[i] * k + ema * (1 - k);
+    result[i] = ema;
+  }
+  return result;
+}
+
+function calcRSIInline(closes: number[], period: number): (number | null)[] {
+  const result: (number | null)[] = new Array(closes.length).fill(null);
+  if (period <= 0 || closes.length < period + 1) return result;
+  let avgGain = 0, avgLoss = 0;
+  for (let i = 1; i <= period; i++) {
+    const change = closes[i] - closes[i - 1];
+    if (change >= 0) avgGain += change; else avgLoss += Math.abs(change);
+  }
+  avgGain /= period;
+  avgLoss /= period;
+  result[period] = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
+  for (let i = period + 1; i < closes.length; i++) {
+    const change = closes[i] - closes[i - 1];
+    avgGain = (avgGain * (period - 1) + (change >= 0 ? change : 0)) / period;
+    avgLoss = (avgLoss * (period - 1) + (change < 0 ? Math.abs(change) : 0)) / period;
+    result[i] = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
+  }
+  return result;
+}
+
+function calcMACDInline(closes: number[]): (number | null)[] {
+  const fast = calcEMAInline(closes, 12);
+  const slow = calcEMAInline(closes, 26);
+  return fast.map((f, i) =>
+    f !== null && slow[i] !== null ? f - slow[i]! : null
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Custom Rule Signal Generation
+// ---------------------------------------------------------------------------
+
+function generateCustomSignals(
+  rules: CustomRuleConfig[],
+  priceData: Record<string, OHLCBar[]>,
+  assets: string[],
+  config: BacktestConfig,
+): Signal[] {
+  const signals: Signal[] = [];
+  const buyRules = rules.filter((r) => r.action === "BUY");
+  const sellRules = rules.filter((r) => r.action === "SELL");
+
+  for (const asset of assets) {
+    const bars = priceData[asset];
+    if (!bars || bars.length < 30) continue;
+
+    const closes = bars.map((b) => b.close);
+    const rsiValues = calcRSIInline(closes, config.rsiLength ?? 14);
+    const emaFastValues = calcEMAInline(closes, config.emaFast ?? 12);
+    const emaSlowValues = calcEMAInline(closes, config.emaSlow ?? 26);
+    const macdValues = calcMACDInline(closes);
+
+    // Get indicator value for a given day
+    const getIndicatorValue = (indicator: string, day: number): number | null => {
+      switch (indicator) {
+        case "RSI": return rsiValues[day] ?? null;
+        case "EMA_Fast": return emaFastValues[day] ?? null;
+        case "EMA_Slow": return emaSlowValues[day] ?? null;
+        case "MACD": return macdValues[day] ?? null;
+        case "Price": return closes[day] ?? null;
+        case "Volume": return 1000000; // synthetic placeholder
+        default: return null;
+      }
+    };
+
+    // Evaluate a single rule at a given day
+    const evaluateRule = (rule: CustomRuleConfig, day: number): boolean => {
+      const current = getIndicatorValue(rule.indicator, day);
+      if (current === null) return false;
+
+      switch (rule.operator) {
+        case ">": return current > rule.value;
+        case "<": return current < rule.value;
+        case ">=": return current >= rule.value;
+        case "<=": return current <= rule.value;
+        case "crosses_above": {
+          const prev = getIndicatorValue(rule.indicator, day - 1);
+          return prev !== null && prev <= rule.value && current > rule.value;
+        }
+        case "crosses_below": {
+          const prev = getIndicatorValue(rule.indicator, day - 1);
+          return prev !== null && prev >= rule.value && current < rule.value;
+        }
+        default: return false;
+      }
+    };
+
+    // Evaluate rule group (AND/OR combination)
+    const evaluateRuleGroup = (ruleGroup: CustomRuleConfig[], day: number): boolean => {
+      if (ruleGroup.length === 0) return false;
+      // First rule always evaluates; subsequent rules use their logic connector
+      let result = evaluateRule(ruleGroup[0], day);
+      for (let i = 1; i < ruleGroup.length; i++) {
+        const ruleResult = evaluateRule(ruleGroup[i], day);
+        if (ruleGroup[i].logic === "AND") {
+          result = result && ruleResult;
+        } else {
+          result = result || ruleResult;
+        }
+      }
+      return result;
+    };
+
+    // Walk through bars and generate signals
+    const startDay = Math.max(30, config.rsiLength ?? 14, config.emaSlow ?? 26);
+    let lastSignalDay = -10; // minimum gap between signals
+
+    for (let d = startDay; d < bars.length - 1; d++) {
+      if (d - lastSignalDay < 3) continue; // min 3 day gap between trades
+
+      if (evaluateRuleGroup(buyRules, d)) {
+        signals.push({ day: d, asset, direction: "LONG", strength: 0.7 });
+        lastSignalDay = d;
+      } else if (evaluateRuleGroup(sellRules, d)) {
+        signals.push({ day: d, asset, direction: "SHORT", strength: 0.7 });
+        lastSignalDay = d;
+      }
+    }
+  }
+
+  // Sort by day
+  signals.sort((a, b) => a.day - b.day);
+  return signals;
 }
 
 // ---------------------------------------------------------------------------
@@ -584,8 +741,10 @@ export function runBacktest(config: BacktestConfig): BacktestResult {
     priceData[asset] = generateOHLC(asset, config.period, rng, seed);
   }
 
-  // Generate signals
-  const signals = generateSignals(config.strategy, priceData, config.assets, rng);
+  // Generate signals — use custom rules if provided, otherwise standard strategy
+  const signals = config.customRules && config.customRules.length > 0
+    ? generateCustomSignals(config.customRules, priceData, config.assets, config)
+    : generateSignals(config.strategy, priceData, config.assets, rng);
 
   // Execute trades
   const { trades, equityCurve } = executeTrades(signals, priceData, config, rng);

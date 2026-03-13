@@ -31,6 +31,7 @@ import { Watchlist } from "@/components/dashboard/watchlist";
 import { PnlTicker } from "@/components/dashboard/pnl-ticker";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { StrategyControl } from "@/components/dashboard/strategy-control";
+import { useStrategy } from "@/hooks/use-strategy";
 import { MetricTooltip } from "@/components/ui/metric-tooltip";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -107,6 +108,7 @@ export default function DashboardPage() {
   const { accuracyByAsset } = useFeedback(portfolio.closedTrades);
   const sentimentData = useSentiment(prices, priceHistory);
   const { activeAlerts } = useAlerts();
+  const strategy = useStrategy();
 
   // --- Trading Engine: 1s tick for P&L updates, order fills, SL/TP checks ---
   const pricesTickRef = useRef(prices);
@@ -309,7 +311,16 @@ export default function DashboardPage() {
         </Card>
 
         {/* Strategy Control Panel */}
-        <StrategyControl />
+        <StrategyControl
+          state={strategy.state}
+          backtestResult={strategy.backtestResult}
+          backtesting={strategy.backtesting}
+          selectStrategy={strategy.selectStrategy}
+          updateParam={strategy.updateParam}
+          addRule={strategy.addRule}
+          removeRule={strategy.removeRule}
+          executeBacktest={strategy.executeBacktest}
+        />
 
         {/* Multi-Asset Chart */}
         <Card className="bg-card/50 border-border/50">
@@ -366,6 +377,10 @@ export default function DashboardPage() {
               height={400}
               interval={chartInterval}
               onPriceChange={handlePriceChange}
+              strategyOverlay={{
+                slPercent: strategy.state.params.slPercent,
+                tpPercent: strategy.state.params.tpPercent,
+              }}
             />
           </CardContent>
         </Card>
