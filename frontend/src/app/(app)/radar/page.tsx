@@ -141,7 +141,7 @@ export default function RadarPage() {
 
       {/* Momentum Scanner */}
       <HudPanel title="MOMENTUM SCANNER" scanLine>
-        <div className="p-2 sm:p-3 md:p-4">
+        <div className="p-2.5">
           <div className="space-y-3">
             {opportunities.map((opp) => (
               <div

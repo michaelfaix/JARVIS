@@ -308,62 +308,64 @@ export default function PortfolioPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
           {/* Asset Allocation */}
           <HudPanel title="ASSET ALLOCATION">
-            <div className="p-2 sm:p-3 md:p-4 space-y-3">
-              {Object.entries(allocation).length === 0 ? (
-                <div className="text-sm text-muted-foreground py-4 text-center">
-                  No open positions
+            <div className="p-2.5">
+              <div className="space-y-3">
+                {Object.entries(allocation).length === 0 ? (
+                  <div className="text-sm text-muted-foreground py-4 text-center">
+                    No open positions
+                  </div>
+                ) : (
+                  Object.entries(allocation).map(([asset, amount]) => {
+                    const pct =
+                      allocatedTotal > 0 ? (amount / allocatedTotal) * 100 : 0;
+                    return (
+                      <div key={asset}>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-white font-medium font-mono">{asset}</span>
+                          <span className="font-mono text-muted-foreground">
+                            {pct.toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="h-2 w-full rounded-full bg-hud-bg/60 overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-hud-cyan"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+                <Separator className="opacity-50 border-hud-border/30" />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Cash</span>
+                  <span className="font-mono">
+                    $
+                    {state.availableCapital.toLocaleString("en-US", {
+                      minimumFractionDigits: 0,
+                    })}
+                  </span>
                 </div>
-              ) : (
-                Object.entries(allocation).map(([asset, amount]) => {
-                  const pct =
-                    allocatedTotal > 0 ? (amount / allocatedTotal) * 100 : 0;
-                  return (
-                    <div key={asset}>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-white font-medium font-mono">{asset}</span>
-                        <span className="font-mono text-muted-foreground">
-                          {pct.toFixed(1)}%
-                        </span>
-                      </div>
-                      <div className="h-2 w-full rounded-full bg-hud-bg/60 overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-hud-cyan"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-              <Separator className="opacity-50 border-hud-border/30" />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Cash</span>
-                <span className="font-mono">
-                  $
-                  {state.availableCapital.toLocaleString("en-US", {
-                    minimumFractionDigits: 0,
-                  })}
-                </span>
-              </div>
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Market Regime</span>
-                <Badge
-                  variant="outline"
-                  className="text-[10px] px-1.5 py-0"
-                  style={{
-                    borderColor: REGIME_COLORS[regime],
-                    color: REGIME_COLORS[regime],
-                  }}
-                >
-                  {regime.replace("_", " ")}
-                </Badge>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Market Regime</span>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] px-1.5 py-0"
+                    style={{
+                      borderColor: REGIME_COLORS[regime],
+                      color: REGIME_COLORS[regime],
+                    }}
+                  >
+                    {regime.replace("_", " ")}
+                  </Badge>
+                </div>
               </div>
             </div>
           </HudPanel>
 
           {/* Open Positions Table */}
           <HudPanel title="OPEN POSITIONS" className="lg:col-span-2">
-            <div className="p-2 sm:p-3 md:p-4">
+            <div className="p-2.5">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-[10px] text-muted-foreground font-mono">
                   {state.positions.length} POSITIONS
@@ -508,7 +510,7 @@ export default function PortfolioPage() {
         {/* Auto-Close History */}
         {recentAutoCloses.length > 0 && (
           <HudPanel title="AUTO-CLOSE HISTORY">
-            <div className="p-2 sm:p-3 md:p-4">
+            <div className="p-2.5">
               <div className="flex items-center gap-2 mb-3">
                 <Zap className="h-4 w-4 text-purple-400" />
                 <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-[10px]">
@@ -610,7 +612,7 @@ export default function PortfolioPage() {
         {/* Equity Curve */}
         {state.closedTrades.length >= 2 && (
           <HudPanel title="EQUITY CURVE" scanLine>
-            <div className="p-2 sm:p-3 md:p-4">
+            <div className="p-2.5">
               <EquityCurve
                 closedTrades={state.closedTrades}
                 initialCapital={state.totalCapital}
@@ -636,7 +638,7 @@ export default function PortfolioPage() {
         {/* Achievements */}
         {state.closedTrades.length > 0 && (
           <HudPanel title="ACHIEVEMENTS">
-            <div className="p-2 sm:p-3 md:p-4">
+            <div className="p-2.5">
               <div className="flex items-center gap-2 mb-3">
                 <Star className="h-4 w-4 text-hud-amber" />
                 <Badge variant="outline" className="ml-auto text-[10px] border-hud-border/30 text-hud-cyan">
@@ -705,7 +707,7 @@ export default function PortfolioPage() {
         {/* Trade History */}
         {state.closedTrades.length > 0 && (
           <HudPanel title="TRADE JOURNAL">
-            <div className="p-2 sm:p-3 md:p-4">
+            <div className="p-2.5">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-[10px] text-muted-foreground font-mono">
                   {state.closedTrades.length} TRADES
