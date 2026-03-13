@@ -126,7 +126,7 @@ export function CoPilotEmbed({ state, sendMessage, onExpand }: CoPilotEmbedProps
                     {msg.role === "user" ? "you" : "j"}:
                   </span>
                   {msg.role === "assistant" ? (
-                    <span dangerouslySetInnerHTML={{ __html: simpleMarkdown(msg.content) }} />
+                    <span dangerouslySetInnerHTML={{ __html: msg.content.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/[#]+\s/g, "") }} />
                   ) : (
                     msg.content
                   )}
