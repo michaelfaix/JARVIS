@@ -25,6 +25,7 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   const supabase = createClient();
 
@@ -46,6 +47,24 @@ function LoginForm() {
 
     router.push(next);
     router.refresh();
+  }
+
+  async function handleResetPassword() {
+    if (!email) {
+      setError("Enter your email address first");
+      return;
+    }
+    setError("");
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/callback?next=/settings`,
+    });
+    setLoading(false);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setResetSent(true);
   }
 
   async function handleGoogleLogin() {
@@ -77,6 +96,14 @@ function LoginForm() {
         <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
           <AlertCircle className="h-4 w-4 shrink-0" />
           {error}
+        </div>
+      )}
+
+      {/* Reset sent */}
+      {resetSent && (
+        <div className="flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-400">
+          <Mail className="h-4 w-4 shrink-0" />
+          Password reset link sent — check your email.
         </div>
       )}
 
@@ -115,6 +142,16 @@ function LoginForm() {
               className="w-full rounded-lg border border-border/50 bg-card/50 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/50"
             />
           </div>
+        </div>
+
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={handleResetPassword}
+            className="text-xs text-muted-foreground hover:text-blue-400 transition-colors"
+          >
+            Forgot password?
+          </button>
         </div>
 
         <button

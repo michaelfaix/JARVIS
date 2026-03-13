@@ -1,10 +1,10 @@
 // =============================================================================
-// src/components/dashboard/system-status.tsx — System Status Cards
+// src/components/dashboard/system-status.tsx — System Status Cards (HUD)
 // =============================================================================
 
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { HudPanel } from "@/components/ui/hud-panel";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MetricTooltip } from "@/components/ui/metric-tooltip";
@@ -15,12 +15,40 @@ import type { MetricsResponse } from "@/lib/api";
 // System Mode Card
 // ---------------------------------------------------------------------------
 
+const MODUS_SEVERITY: Record<string, number> = {
+  NORMAL: 0,
+  ERHOEHTE_VORSICHT: 1,
+  REDUZIERTES_VERTRAUEN: 2,
+  MINIMALE_EXPOSITION: 3,
+  NUR_MONITORING: 4,
+  NOTFALL_MODUS: 5,
+  DATEN_QUARANTAENE: 6,
+  MODELL_ROLLBACK: 7,
+  KONFIDENZ_KOLLAPS: 8,
+};
+
+const MODUS_LABELS: Record<string, string> = {
+  NORMAL: "Normal",
+  ERHOEHTE_VORSICHT: "Erhöhte Vorsicht",
+  REDUZIERTES_VERTRAUEN: "Reduz. Vertrauen",
+  MINIMALE_EXPOSITION: "Min. Exposition",
+  NUR_MONITORING: "Nur Monitoring",
+  NOTFALL_MODUS: "Notfall",
+  DATEN_QUARANTAENE: "Daten-Quarantäne",
+  MODELL_ROLLBACK: "Modell Rollback",
+  KONFIDENZ_KOLLAPS: "Konfidenz-Kollaps",
+};
+
 interface SystemModeCardProps {
   modus: string;
   vorhersagenAktiv: boolean;
   konfidenzMultiplikator: number;
   entscheidungsCount: number;
+  ece: number;
+  oodScore: number;
+  metaUncertainty: number;
   loading?: boolean;
+  backendOnline?: boolean;
 }
 
 export function SystemModeCard({
@@ -28,74 +56,122 @@ export function SystemModeCard({
   vorhersagenAktiv,
   konfidenzMultiplikator,
   entscheidungsCount,
+  ece,
+  oodScore,
+  metaUncertainty,
   loading,
+  backendOnline = false,
 }: SystemModeCardProps) {
   const color = MODUS_COLORS[modus] || "#6b7280";
-  const modusLabel = modus.replace(/_/g, " ");
+  const label = MODUS_LABELS[modus] || modus.replace(/_/g, " ");
+  const severity = MODUS_SEVERITY[modus] ?? 0;
+  const severityPct = Math.min(100, (severity / 8) * 100);
+  const confReduced = konfidenzMultiplikator < 0.95;
 
   return (
-    <Card className="bg-card/50 border-border/50">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          <MetricTooltip term="System Mode">System Mode</MetricTooltip>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
+    <HudPanel title="System Mode">
+      <div className="p-2.5 space-y-2">
         {loading ? (
-          <Skeleton className="h-7 w-32" />
+          <>
+            <Skeleton className="h-6 w-28" />
+            <Skeleton className="h-1.5 w-full" />
+            <div className="space-y-1.5">
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-3.5 w-full" />
+              ))}
+            </div>
+          </>
         ) : (
-          <div className="flex items-center gap-2">
-            <div
-              className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: color }}
-            />
-            <span className="text-lg font-bold" style={{ color }}>
-              {modusLabel}
-            </span>
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 gap-2 text-sm">
-          <div className="flex justify-between">
-            <MetricTooltip term="Predictions">
-              <span className="text-muted-foreground">Predictions</span>
-            </MetricTooltip>
-            {loading ? (
-              <Skeleton className="h-5 w-16" />
-            ) : (
+          <>
+            {/* Mode name */}
+            <div className="flex items-center gap-2">
+              <div
+                className="w-2.5 h-2.5 rounded-full shrink-0"
+                style={{
+                  backgroundColor: color,
+                  boxShadow: severity >= 5 ? `0 0 8px ${color}` : "none",
+                  animation: severity >= 5 ? "pulseLive 2s infinite" : "none",
+                }}
+              />
+              <span className="text-sm font-bold font-mono truncate" style={{ color }}>
+                {label}
+              </span>
               <Badge
-                variant={vorhersagenAktiv ? "default" : "destructive"}
-                className="text-[10px]"
+                className="ml-auto text-[8px] border font-mono"
+                style={{
+                  backgroundColor: `${color}15`,
+                  color: color,
+                  borderColor: `${color}40`,
+                }}
               >
-                {vorhersagenAktiv ? "ACTIVE" : "DISABLED"}
+                {backendOnline ? "Live" : "Off"}
               </Badge>
-            )}
-          </div>
-          <div className="flex justify-between">
-            <MetricTooltip term="Confidence">
-              <span className="text-muted-foreground">Confidence</span>
-            </MetricTooltip>
-            {loading ? (
-              <Skeleton className="h-5 w-10" />
-            ) : (
-              <span className="font-mono text-white">
-                {(konfidenzMultiplikator * 100).toFixed(0)}%
-              </span>
-            )}
-          </div>
-          <div className="col-span-2 flex justify-between">
-            <span className="text-muted-foreground">Decisions</span>
-            {loading ? (
-              <Skeleton className="h-5 w-12" />
-            ) : (
-              <span className="font-mono text-white">
-                {entscheidungsCount.toLocaleString()}
-              </span>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+            </div>
+
+            {/* Severity bar */}
+            <div>
+              <div className="flex items-center justify-between text-[8px] font-mono text-muted-foreground mb-0.5">
+                <span>Severity</span>
+                <span>{severity}/8</span>
+              </div>
+              <div className="w-full h-1 bg-hud-bg rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-700"
+                  style={{
+                    width: `${severityPct}%`,
+                    background: "linear-gradient(90deg, #00e5a0, #ffaa00, #ff4466)",
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Metrics */}
+            <div className="space-y-1">
+              <MetricRow label="Predictions" tooltip="Predictions">
+                <Badge className={`text-[8px] font-mono ${vorhersagenAktiv ? "bg-hud-green/20 text-hud-green border-hud-green/30" : "bg-hud-red/20 text-hud-red border-hud-red/30"}`}>
+                  {vorhersagenAktiv ? "ACTIVE" : "OFF"}
+                </Badge>
+              </MetricRow>
+              <MetricRow label="Conf." tooltip="Confidence">
+                <span className={`font-mono text-[10px] ${confReduced ? "text-hud-amber" : "text-white"}`}>
+                  {konfidenzMultiplikator.toFixed(2)}×
+                </span>
+              </MetricRow>
+              <MetricRow label="ECE" tooltip="ECE">
+                <span className={`font-mono text-[10px] ${ece > 0.15 ? "text-hud-red" : ece > 0.08 ? "text-hud-amber" : "text-hud-green"}`}>
+                  {(ece * 100).toFixed(1)}%
+                </span>
+              </MetricRow>
+              <MetricRow label="OOD" tooltip="OOD Score">
+                <span className={`font-mono text-[10px] ${oodScore > 0.5 ? "text-hud-red" : oodScore > 0.3 ? "text-hud-amber" : "text-hud-green"}`}>
+                  {(oodScore * 100).toFixed(0)}%
+                </span>
+              </MetricRow>
+              <MetricRow label="Meta-U" tooltip="Meta Uncertainty">
+                <span className={`font-mono text-[10px] ${metaUncertainty > 0.5 ? "text-hud-red" : metaUncertainty > 0.3 ? "text-hud-amber" : "text-hud-green"}`}>
+                  {(metaUncertainty * 100).toFixed(0)}%
+                </span>
+              </MetricRow>
+              <div className="flex items-center justify-between text-[10px] pt-1 border-t border-hud-border/30">
+                <span className="text-muted-foreground font-mono">Decisions</span>
+                <span className="font-mono text-white">{entscheidungsCount.toLocaleString()}</span>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </HudPanel>
+  );
+}
+
+function MetricRow({ label, tooltip, children }: { label: string; tooltip: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between text-[10px]">
+      <MetricTooltip term={tooltip}>
+        <span className="text-muted-foreground font-mono">{label}</span>
+      </MetricTooltip>
+      {children}
+    </div>
   );
 }
 
@@ -111,92 +187,65 @@ interface QualityScoreCardProps {
 export function QualityScoreCard({ metrics, loading }: QualityScoreCardProps) {
   if (!metrics || loading) {
     return (
-      <Card className="bg-card/50 border-border/50">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            <MetricTooltip term="Quality Score">Decision Quality</MetricTooltip>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Skeleton className="h-9 w-24" />
-          <Skeleton className="h-2 w-full" />
+      <HudPanel title="Decision Quality">
+        <div className="p-2.5 space-y-2">
+          <Skeleton className="h-8 w-20" />
+          <Skeleton className="h-1.5 w-full" />
           <div className="space-y-1.5">
             {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="flex items-center gap-2">
-                <Skeleton className="h-3 w-24" />
-                <Skeleton className="h-1.5 flex-1" />
-                <Skeleton className="h-3 w-8" />
-              </div>
+              <Skeleton key={i} className="h-3 w-full" />
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </HudPanel>
     );
   }
 
   const score = metrics.quality_score;
-  const scoreColor =
-    score >= 0.8 ? "#22c55e" : score >= 0.5 ? "#eab308" : "#ef4444";
+  const scoreColor = score >= 0.8 ? "#00e5a0" : score >= 0.5 ? "#ffaa00" : "#ff4466";
 
   const components = [
     { label: "Calibration", value: metrics.calibration_component, weight: 0.35 },
     { label: "Confidence", value: metrics.confidence_component, weight: 0.25 },
     { label: "Stability", value: metrics.stability_component, weight: 0.2 },
-    { label: "Data Quality", value: metrics.data_quality_component, weight: 0.1 },
+    { label: "Data Qual.", value: metrics.data_quality_component, weight: 0.1 },
     { label: "Regime", value: metrics.regime_component, weight: 0.1 },
   ];
 
   return (
-    <Card className="bg-card/50 border-border/50">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          <MetricTooltip term="Quality Score">Decision Quality</MetricTooltip>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {/* Overall Score */}
-        <div className="flex items-baseline gap-2">
-          <span
-            className="text-3xl font-bold font-mono"
-            style={{ color: scoreColor }}
-          >
+    <HudPanel title="Decision Quality">
+      <div className="p-2.5 space-y-2">
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-2xl font-bold font-mono" style={{ color: scoreColor }}>
             {(score * 100).toFixed(1)}
           </span>
-          <span className="text-sm text-muted-foreground">/ 100</span>
+          <span className="text-[10px] text-muted-foreground font-mono">/ 100</span>
         </div>
 
-        {/* Progress bar */}
-        <div className="w-full h-2 bg-background/50 rounded-full overflow-hidden">
+        <div className="w-full h-1.5 bg-hud-bg rounded-full overflow-hidden">
           <div
             className="h-full rounded-full transition-all duration-500"
-            style={{
-              width: `${score * 100}%`,
-              backgroundColor: scoreColor,
-            }}
+            style={{ width: `${score * 100}%`, backgroundColor: scoreColor }}
           />
         </div>
 
-        {/* Components */}
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           {components.map((c) => (
-            <div key={c.label} className="flex items-center gap-2 text-xs">
+            <div key={c.label} className="flex items-center gap-1.5 text-[10px]">
               <MetricTooltip term={c.label}>
-                <span className="text-muted-foreground w-24">{c.label}</span>
+                <span className="text-muted-foreground font-mono w-16 shrink-0">{c.label}</span>
               </MetricTooltip>
-              <div className="flex-1 h-1.5 bg-background/50 rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-blue-500/70"
-                  style={{ width: `${c.value * 100}%` }}
-                />
+              <div className="flex-1 h-1 bg-hud-bg rounded-full overflow-hidden">
+                <div className="h-full rounded-full bg-hud-cyan/60" style={{ width: `${c.value * 100}%` }} />
               </div>
-              <span className="font-mono text-muted-foreground w-8 text-right">
+              <span className="font-mono text-muted-foreground w-6 text-right">
                 {(c.value * 100).toFixed(0)}
               </span>
             </div>
           ))}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </HudPanel>
   );
 }
 
@@ -212,28 +261,19 @@ interface ConnectionStatusProps {
 export function ConnectionStatus({ connected, checking }: ConnectionStatusProps) {
   if (checking) {
     return (
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+      <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
+        <div className="w-2 h-2 rounded-full bg-hud-amber animate-pulse" />
         Connecting to JARVIS...
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-2 text-xs">
-      <div
-        className={`w-2 h-2 rounded-full ${
-          connected ? "bg-green-500" : "bg-red-500"
-        }`}
-      />
-      <span className={connected ? "text-green-400" : "text-red-400"}>
+    <div className="flex items-center gap-2 text-xs font-mono">
+      <div className={`w-2 h-2 rounded-full ${connected ? "bg-hud-green" : "bg-hud-red"}`} />
+      <span className={connected ? "text-hud-green" : "text-hud-red"}>
         {connected ? "Backend Connected" : "Backend Offline"}
       </span>
-      {!connected && (
-        <span className="text-muted-foreground ml-1">
-          (Start: uvicorn jarvis.api.main:app --port 8000)
-        </span>
-      )}
     </div>
   );
 }

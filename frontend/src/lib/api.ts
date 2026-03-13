@@ -114,6 +114,35 @@ export async function postPrediction(
 }
 
 // ---------------------------------------------------------------------------
+// Feedback — send trade outcomes to improve backend ML
+// ---------------------------------------------------------------------------
+
+export interface FeedbackRequest {
+  prediction_id: string;
+  benutzer_aktion: "GEFOLGT" | "IGNORIERT" | "GEGENTEIL";
+  ergebnis: "ERFOLG" | "NEUTRAL" | "FEHLER";
+  konfidenz: number;
+  tatsaechliches_ergebnis: number;
+  vorhersage_fehler: number;
+}
+
+export interface FeedbackResponse {
+  prediction_id: string;
+  label_wert: number;
+  label_unsicherheit: number;
+  accepted: boolean;
+}
+
+export async function postFeedback(
+  req: FeedbackRequest
+): Promise<FeedbackResponse> {
+  return fetchApi<FeedbackResponse>("/feedback", {
+    method: "POST",
+    body: JSON.stringify(req),
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Batch predictions for multiple assets
 // ---------------------------------------------------------------------------
 

@@ -907,7 +907,39 @@ Analyse-Ergebnis: 6 P1-Bugs, 5 P2-Issues, 3 P3-Qualitätsthemen identifiziert.
 | 6 | P3 | Code-Duplikation Orders ↔ Auto-SLTP | ⏭️ Deferred |
 | 7 | P3 | Constants in Render-Body | ⏭️ Deferred |
 
-- Build: 0 Errors, **30 Routes** + Middleware | Typecheck: PASS
+- Build: 0 Errors, **33 Routes** + Middleware | Typecheck: PASS
+
+---
+
+## ✅ ABGESCHLOSSEN: Iron Man HUD Dashboard Redesign
+
+### Design System (Phase 1):
+- **tailwind.config.js**: `hud` color palette (bg, panel, border, cyan, green, red, amber + dim variants), mono font, scanLine/pulseLive/cornerFade keyframes
+- **globals.css**: Dark mode CSS vars → HUD colors (#05080f bg, #060c18 card, #0a1f35 border, #4db8ff primary)
+- **hud-panel.tsx**: Reusable HUD panel with corner brackets, title bar, optional scan-line
+
+### Layout (Phase 2):
+- **hud-topbar.tsx** (NEW): Desktop-only top bar with 12 nav tabs, Paper Trading/Research Only badges, EN/DE toggle, notifications, LIVE/RISK/FEAR badges, API latency
+- **sidebar.tsx**: 44px icon-only on desktop with cyan left-border active state; mobile keeps 240px slide-in overlay
+- **layout.tsx**: Forces `dark` class, 44px sidebar margin, HudTopbar above content (desktop), AppHeader kept for mobile
+- **footer.tsx**: HUD-styled monospace footer
+
+### Dashboard (Phase 3):
+- **page.tsx**: 3-column HUD grid layout (160px | 1fr | 155px), HudTopbar integration, CoPilot embed strip, scan-line overlay on chart
+- **All dashboard components** restyled with HudPanel wrappers, HUD color palette, monospace fonts
+- **top-signals-hud.tsx** (NEW): Compact signal cards with Entry/SL/TP from backend, confidence bars, TRADE buttons
+- **copilot-embed.tsx** (NEW): 2-column compact strip below chart with tips, recent messages, input, quick actions
+- **asset-chart.tsx**: Chart bg → #05080f, grid → #0a1f35, crosshair → cyan, candles → hud-green/hud-red
+
+### Widget System (Phase 4):
+- **react-grid-layout** installed, 11 widget definitions in registry
+- **use-widget-layout.ts**: Layout persistence in localStorage (`jarvis-widget-layout-v1`)
+- **widget-layout.tsx**: GridLayout wrapper with drag handles, HUD-styled widget wrappers
+- **widget-library.tsx**: Modal for adding/removing widgets with reset option
+
+### Stats:
+- 8 new files, ~15 modified files
+- Build: 0 errors | Tests: 176 passed | Typecheck: PASS
 
 ---
 

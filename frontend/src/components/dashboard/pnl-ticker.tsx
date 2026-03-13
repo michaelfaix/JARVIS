@@ -1,8 +1,5 @@
 // =============================================================================
-// src/components/dashboard/pnl-ticker.tsx — Floating P&L Ticker
-//
-// Compact horizontal ticker showing real-time P&L for all open positions.
-// Displayed at the top of the main content area with live price updates.
+// src/components/dashboard/pnl-ticker.tsx — P&L Ticker (HUD)
 // =============================================================================
 
 "use client";
@@ -24,10 +21,7 @@ interface PnlTickerProps {
 
 function formatPnl(value: number): string {
   const sign = value >= 0 ? "+" : "";
-  return `${sign}$${Math.abs(value).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+  return `${sign}$${Math.abs(value).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function calcPnl(position: Position, currentPrice: number): number {
@@ -51,42 +45,26 @@ export function PnlTicker({ positions, prices }: PnlTickerProps) {
     <div
       className={cn(
         "sticky top-0 z-10",
-        "bg-background/80 backdrop-blur-sm border-b border-border/30",
-        "flex items-center gap-3 px-4 py-1.5",
+        "bg-hud-bg/90 backdrop-blur-sm border-b border-hud-border/50",
+        "flex items-center gap-3 px-3 py-1",
         "overflow-x-auto scrollbar-hide"
       )}
-      style={{ fontSize: "11px" }}
+      style={{ fontSize: "10px" }}
     >
-      {/* Label */}
-      <span className="text-muted-foreground whitespace-nowrap shrink-0">
+      <span className="font-mono text-muted-foreground/60 whitespace-nowrap shrink-0 uppercase tracking-wider text-[8px]">
         Open P&amp;L
       </span>
 
-      {/* Position entries */}
       <div className="flex items-center gap-2 min-w-0">
         {pnlEntries.map((entry, idx) => (
           <React.Fragment key={entry.asset}>
-            {idx > 0 && (
-              <span className="text-muted-foreground/40 shrink-0">·</span>
-            )}
-            <span className="whitespace-nowrap shrink-0 flex items-center gap-1">
-              <span className="text-foreground font-medium">{entry.asset}</span>
-              <span
-                className={cn(
-                  "font-medium",
-                  entry.direction === "LONG"
-                    ? "text-green-400"
-                    : "text-red-400"
-                )}
-              >
+            {idx > 0 && <span className="text-hud-border shrink-0">·</span>}
+            <span className="whitespace-nowrap shrink-0 flex items-center gap-1 font-mono">
+              <span className="text-white font-medium">{entry.asset}</span>
+              <span className={entry.direction === "LONG" ? "text-hud-green" : "text-hud-red"}>
                 {entry.direction === "LONG" ? "▲" : "▼"}
               </span>
-              <span
-                className={cn(
-                  "tabular-nums",
-                  entry.pnl >= 0 ? "text-green-400" : "text-red-400"
-                )}
-              >
+              <span className={cn("tabular-nums", entry.pnl >= 0 ? "text-hud-green" : "text-hud-red")}>
                 {formatPnl(entry.pnl)}
               </span>
             </span>
@@ -94,16 +72,9 @@ export function PnlTicker({ positions, prices }: PnlTickerProps) {
         ))}
       </div>
 
-      {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Total */}
-      <span
-        className={cn(
-          "whitespace-nowrap shrink-0 font-bold tabular-nums",
-          totalPnl >= 0 ? "text-green-400" : "text-red-400"
-        )}
-      >
+      <span className={cn("whitespace-nowrap shrink-0 font-bold font-mono tabular-nums", totalPnl >= 0 ? "text-hud-green" : "text-hud-red")}>
         {formatPnl(totalPnl)}
       </span>
     </div>

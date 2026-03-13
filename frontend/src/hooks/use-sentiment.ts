@@ -1,11 +1,13 @@
 // =============================================================================
-// src/hooks/use-sentiment.ts — Multi-Market Sentiment (v2)
+// src/hooks/use-sentiment.ts — Multi-Market Sentiment (v3)
 //
 // Crypto: alternative.me F&G + intraday BTC momentum adjustment (±10).
 // Stocks: CNN F&G via /api/sentiment proxy (no CORS) + VIX proxy.
 // Commodities: Composite F&G from momentum, volatility, price-vs-MA.
 // Momentum & Volatility: From priceHistory ring buffer (60 snapshots, 3min).
-// BTC Dominance & total market cap: CoinGecko via /api/sentiment proxy.
+// BTC Dominance: CoinGecko via /api/sentiment proxy.
+//
+// v3 fixes: callback dep leak, maFactor math, consolidated memos, error flag.
 // =============================================================================
 
 "use client";
@@ -148,8 +150,8 @@ export function compositeCommodityFG(
   const vol = calculateVolatilityFromHistory(priceHistory, symbols);
   const volFactor = 100 - vol;
 
-  // Factor 3: price vs simple moving average
-  let maFactor = 50;
+  // Factor 3: price vs simple moving average (per-symbol, then average)
+  let maTotal = 0;
   let maCount = 0;
   for (const sym of symbols) {
     const hist = priceHistory[sym];
@@ -157,14 +159,13 @@ export function compositeCommodityFG(
     const ma = hist.reduce((s, v) => s + v, 0) / hist.length;
     const latest = hist[hist.length - 1];
     if (ma > 0) {
-      // +1% above MA → 100, -1% below → 0
       const pctAbove = ((latest - ma) / ma) * 100;
-      maFactor += Math.max(-50, Math.min(50, pctAbove * 50));
+      // Map ±1% above/below MA to 0-100
+      maTotal += Math.max(0, Math.min(100, 50 + pctAbove * 50));
       maCount++;
     }
   }
-  if (maCount > 0) maFactor /= maCount;
-  maFactor = Math.max(0, Math.min(100, maFactor));
+  const maFactor = maCount > 0 ? maTotal / maCount : 50;
 
   // Weighted composite
   const composite = Math.round(momFactor * 0.4 + volFactor * 0.3 + maFactor * 0.3);
@@ -212,10 +213,14 @@ export function useSentiment(
     value: null,
     trend: "stable",
   });
-  const [vixValue, setVixValue] = useState<number | null>(null);
 
   const mountedRef = useRef(true);
   const prevDominanceRef = useRef<number | null>(null);
+
+  // Use refs for priceHistory to avoid callback dependency churn.
+  // This prevents the polling interval from resetting every 3s.
+  const priceHistoryRef = useRef(priceHistory);
+  priceHistoryRef.current = priceHistory;
 
   // =========================================================================
   // Fetch: Crypto Fear & Greed (alternative.me) + intraday adjustment
@@ -237,15 +242,15 @@ export function useSentiment(
       if (isNaN(value)) throw new Error("Invalid value");
 
       // Intraday adjustment: BTC momentum ±10 points
-      if (priceHistory?.BTC && priceHistory.BTC.length >= 5) {
-        const btcHist = priceHistory.BTC;
+      const ph = priceHistoryRef.current;
+      if (ph?.BTC && ph.BTC.length >= 5) {
+        const btcHist = ph.BTC;
         const first = btcHist[0];
         const last = btcHist[btcHist.length - 1];
         if (first > 0) {
           const pctChange = ((last - first) / first) * 100;
-          // ±0.3% BTC move → ±10 F&G adjustment
-          const adjustment = Math.round(pctChange * 33.3);
-          value = Math.max(0, Math.min(100, value + Math.max(-10, Math.min(10, adjustment))));
+          const adjustment = Math.max(-10, Math.min(10, Math.round(pctChange * 33.3)));
+          value = Math.max(0, Math.min(100, value + adjustment));
         }
       }
 
@@ -270,8 +275,9 @@ export function useSentiment(
       if (!mountedRef.current) return;
       // Fallback: derive from BTC momentum
       let synth = 50;
-      if (priceHistory?.BTC && priceHistory.BTC.length >= 2) {
-        const btcH = priceHistory.BTC;
+      const ph = priceHistoryRef.current;
+      if (ph?.BTC && ph.BTC.length >= 2) {
+        const btcH = ph.BTC;
         const pct = ((btcH[btcH.length - 1] - btcH[0]) / btcH[0]) * 100;
         synth = Math.max(0, Math.min(100, Math.round(50 + pct * 100)));
       }
@@ -284,7 +290,7 @@ export function useSentiment(
         error: err instanceof Error ? err.message : "API unavailable",
       }));
     }
-  }, [priceHistory]);
+  }, []); // No priceHistory dep — uses ref
 
   // =========================================================================
   // Fetch: CNN Stocks F&G + CoinGecko via /api/sentiment proxy
@@ -321,24 +327,27 @@ export function useSentiment(
       // --- CoinGecko: BTC Dominance ---
       if (json.gecko && mountedRef.current) {
         const rounded = json.gecko.btcDominance;
-        const prev = prevDominanceRef.current;
-        const trend: BtcDominance["trend"] =
-          prev === null
-            ? "stable"
-            : rounded - prev > 0.2
-              ? "rising"
-              : rounded - prev < -0.2
-                ? "falling"
-                : "stable";
-        prevDominanceRef.current = rounded;
-        setBtcDominance({ value: rounded, trend });
+        if (typeof rounded === "number") {
+          const prev = prevDominanceRef.current;
+          const trend: BtcDominance["trend"] =
+            prev === null
+              ? "stable"
+              : rounded - prev > 0.2
+                ? "rising"
+                : rounded - prev < -0.2
+                  ? "falling"
+                  : "stable";
+          prevDominanceRef.current = rounded;
+          setBtcDominance({ value: rounded, trend });
+        }
       }
     } catch (err) {
       if (!mountedRef.current) return;
       // Stocks fallback: from price history
       let synth = 50;
-      if (priceHistory) {
-        const mom = calculateMomentumFromHistory(priceHistory, STOCK_SYMBOLS);
+      const ph = priceHistoryRef.current;
+      if (ph) {
+        const mom = calculateMomentumFromHistory(ph, STOCK_SYMBOLS);
         synth = Math.max(0, Math.min(100, 50 + Math.round(mom * 0.5)));
       }
       setStocksSentiment((prev) => ({
@@ -350,20 +359,10 @@ export function useSentiment(
         error: err instanceof Error ? err.message : "Proxy unavailable",
       }));
     }
-  }, [priceHistory]);
+  }, []); // No priceHistory dep — uses ref
 
   // =========================================================================
-  // VIX proxy from stock volatility
-  // =========================================================================
-  useEffect(() => {
-    if (!priceHistory) return;
-    const volScore = calculateVolatilityFromHistory(priceHistory, STOCK_SYMBOLS);
-    const vix = Math.round(12 + (volScore / 100) * 28);
-    setVixValue(vix);
-  }, [priceHistory]);
-
-  // =========================================================================
-  // Polling
+  // Polling — stable interval (callbacks have no deps that churn)
   // =========================================================================
   useEffect(() => {
     mountedRef.current = true;
@@ -382,102 +381,91 @@ export function useSentiment(
   }, [fetchCryptoFG, fetchProxy]);
 
   // =========================================================================
-  // Derived: per-market momentum + volatility (from 3-min ring buffer)
+  // Derived: all per-market metrics in one memo (avoids 7 separate memos)
   // =========================================================================
-  const cryptoMom = useMemo(() => {
-    const score = priceHistory
-      ? calculateMomentumFromHistory(priceHistory, CRYPTO_SYMBOLS)
-      : 0;
-    return { score, label: momentumLabel(score) };
-  }, [priceHistory]);
+  const derived = useMemo(() => {
+    const ph = priceHistory ?? {};
 
-  const cryptoVol = useMemo(() => {
-    const score = priceHistory
-      ? calculateVolatilityFromHistory(priceHistory, CRYPTO_SYMBOLS)
-      : 30;
-    return { score, label: volatilityLabel(score) };
-  }, [priceHistory]);
+    const mkMom = (symbols: string[]) => {
+      const score = calculateMomentumFromHistory(ph, symbols);
+      return { score, label: momentumLabel(score) };
+    };
+    const mkVol = (symbols: string[]) => {
+      const score = calculateVolatilityFromHistory(ph, symbols);
+      return { score, label: volatilityLabel(score) };
+    };
 
-  const stocksMom = useMemo(() => {
-    const score = priceHistory
-      ? calculateMomentumFromHistory(priceHistory, STOCK_SYMBOLS)
-      : 0;
-    return { score, label: momentumLabel(score) };
-  }, [priceHistory]);
+    const cryptoMom = mkMom(CRYPTO_SYMBOLS);
+    const cryptoVol = mkVol(CRYPTO_SYMBOLS);
+    const stocksMom = mkMom(STOCK_SYMBOLS);
+    const stocksVol = mkVol(STOCK_SYMBOLS);
+    const commoditiesMom = mkMom(COMMODITY_SYMBOLS);
+    const commoditiesVol = mkVol(COMMODITY_SYMBOLS);
 
-  const stocksVol = useMemo(() => {
-    const score = priceHistory
-      ? calculateVolatilityFromHistory(priceHistory, STOCK_SYMBOLS)
-      : 30;
-    return { score, label: volatilityLabel(score) };
-  }, [priceHistory]);
+    // VIX proxy from stock volatility
+    const vixValue = Math.round(12 + (stocksVol.score / 100) * 28);
 
-  const commoditiesMom = useMemo(() => {
-    const score = priceHistory
-      ? calculateMomentumFromHistory(priceHistory, COMMODITY_SYMBOLS)
-      : 0;
-    return { score, label: momentumLabel(score) };
-  }, [priceHistory]);
-
-  const commoditiesVol = useMemo(() => {
-    const score = priceHistory
-      ? calculateVolatilityFromHistory(priceHistory, COMMODITY_SYMBOLS)
-      : 30;
-    return { score, label: volatilityLabel(score) };
-  }, [priceHistory]);
-
-  // =========================================================================
-  // Commodities: Composite F&G (multi-factor, no external API)
-  // =========================================================================
-  const commoditiesSentiment = useMemo<SentimentData>(() => {
-    if (!priceHistory || !priceHistory.GLD || priceHistory.GLD.length < 5) {
-      return defaultSentiment(false);
+    // Commodities composite F&G
+    let commoditiesFG: SentimentData;
+    if (ph.GLD && ph.GLD.length >= 5) {
+      const composite = compositeCommodityFG(ph, COMMODITY_SYMBOLS);
+      const gld = ph.GLD;
+      const step = Math.max(1, Math.floor(gld.length / 7));
+      const sparkHistory: number[] = [];
+      for (let i = 0; i < gld.length; i += step) {
+        const base = gld[0];
+        const pct = base > 0 ? ((gld[i] - base) / base) * 100 : 0;
+        sparkHistory.push(Math.max(0, Math.min(100, Math.round(50 + pct * 100))));
+      }
+      commoditiesFG = {
+        value: composite,
+        classification: classify(composite),
+        timestamp: new Date().toISOString(),
+        history: sparkHistory,
+        loading: false,
+        error: null, // Not an error — computed is normal for commodities
+      };
+    } else {
+      commoditiesFG = defaultSentiment(false);
     }
-    const composite = compositeCommodityFG(priceHistory, COMMODITY_SYMBOLS);
 
-    // Build sparkline history from the ring buffer (sample every ~10 entries)
-    const gld = priceHistory.GLD;
-    const step = Math.max(1, Math.floor(gld.length / 7));
-    const sparkHistory: number[] = [];
-    for (let i = 0; i < gld.length; i += step) {
-      const base = gld[0];
-      const pct = base > 0 ? ((gld[i] - base) / base) * 100 : 0;
-      sparkHistory.push(Math.max(0, Math.min(100, Math.round(50 + pct * 100))));
+    // Correlation
+    let correlation: SentimentResult["correlation"] = null;
+    if (cryptoMom.score !== 0 || stocksMom.score !== 0) {
+      const sameDirection =
+        (cryptoMom.score > 0 && stocksMom.score > 0) ||
+        (cryptoMom.score < 0 && stocksMom.score < 0);
+      const avgMag =
+        (Math.abs(cryptoMom.score) + Math.abs(stocksMom.score)) / 2;
+      if (sameDirection && avgMag > 30) {
+        correlation = { value: avgMag, label: "Crypto & Stocks correlating" };
+      } else if (!sameDirection && avgMag > 30) {
+        correlation = { value: -avgMag, label: "Crypto & Stocks diverging" };
+      }
     }
 
     return {
-      value: composite,
-      classification: classify(composite),
-      timestamp: new Date().toISOString(),
-      history: sparkHistory,
-      loading: false,
-      error: "Composite",
+      cryptoMom,
+      cryptoVol,
+      stocksMom,
+      stocksVol,
+      commoditiesMom,
+      commoditiesVol,
+      vixValue,
+      commoditiesFG,
+      correlation,
     };
   }, [priceHistory]);
 
   // =========================================================================
-  // Correlation
-  // =========================================================================
-  const correlation = useMemo(() => {
-    if (cryptoMom.score === 0 && stocksMom.score === 0) return null;
-    const sameDirection =
-      (cryptoMom.score > 0 && stocksMom.score > 0) ||
-      (cryptoMom.score < 0 && stocksMom.score < 0);
-    const avgMag =
-      (Math.abs(cryptoMom.score) + Math.abs(stocksMom.score)) / 2;
-
-    if (sameDirection && avgMag > 30) {
-      return { value: avgMag, label: "Crypto & Stocks correlating" };
-    }
-    if (!sameDirection && avgMag > 30) {
-      return { value: -avgMag, label: "Crypto & Stocks diverging" };
-    }
-    return null;
-  }, [cryptoMom.score, stocksMom.score]);
-
-  // =========================================================================
   // Build per-market results
   // =========================================================================
+  const {
+    cryptoMom, cryptoVol, stocksMom, stocksVol,
+    commoditiesMom, commoditiesVol, vixValue,
+    commoditiesFG, correlation,
+  } = derived;
+
   const domLabel = btcDominance.value !== null ? `${btcDominance.value}%` : "—";
   const domColor =
     btcDominance.trend === "rising"
@@ -487,13 +475,11 @@ export function useSentiment(
         : "text-zinc-400";
 
   const vixColor =
-    vixValue !== null
-      ? vixValue > 25
-        ? "text-red-400"
-        : vixValue > 18
-          ? "text-yellow-400"
-          : "text-green-400"
-      : "text-zinc-400";
+    vixValue > 25
+      ? "text-red-400"
+      : vixValue > 18
+        ? "text-yellow-400"
+        : "text-green-400";
 
   const gldTrend: "rising" | "falling" | "stable" =
     commoditiesMom.score > 15
@@ -517,20 +503,14 @@ export function useSentiment(
     momentum: stocksMom,
     volatility: stocksVol,
     extraLabel: "VIX",
-    extraValue: vixValue !== null ? `${vixValue}` : "—",
+    extraValue: `${vixValue}`,
     extraColor: vixColor,
     extraTrend:
-      vixValue !== null
-        ? vixValue > 25
-          ? "rising"
-          : vixValue < 18
-            ? "falling"
-            : "stable"
-        : "stable",
+      vixValue > 25 ? "rising" : vixValue < 18 ? "falling" : "stable",
   };
 
   const commodities: MarketSentiment = {
-    sentiment: commoditiesSentiment,
+    sentiment: commoditiesFG,
     momentum: commoditiesMom,
     volatility: commoditiesVol,
     extraLabel: "Gold Trend",

@@ -1,7 +1,8 @@
 // =============================================================================
-// src/app/(app)/layout.tsx — Shared layout with sidebar navigation
+// src/app/(app)/layout.tsx — Shared layout with sidebar + HUD topbar
 //
-// Responsive: <768px overlay sidebar, 768-1024px collapsed, >1024px user choice
+// Desktop: 44px icon-only sidebar + HudTopbar above content
+// Mobile: overlay sidebar + AppHeader + bottom MobileNav
 // =============================================================================
 
 "use client";
@@ -123,7 +124,7 @@ export default function AppLayout({
     <NotificationProvider>
     <ToastProvider>
       <NotificationToastContainer />
-      <div className="min-h-screen bg-background overflow-x-hidden">
+      <div className="dark min-h-screen bg-hud-bg overflow-x-hidden">
         {/* Mobile overlay backdrop */}
         {isMobile && mobileOpen && (
           <div
@@ -143,14 +144,14 @@ export default function AppLayout({
         <div
           className={cn(
             "flex min-h-screen flex-col transition-all duration-200 overflow-x-hidden",
-            isMobile ? "ml-0" : sidebarCollapsed ? "ml-16" : "ml-60"
+            isMobile ? "ml-0" : "ml-[44px]"
           )}
         >
           {/* Mobile hamburger button */}
           {isMobile && (
             <button
               onClick={() => setMobileOpen(true)}
-              className="fixed top-3 left-3 z-20 flex h-8 w-8 items-center justify-center rounded-lg bg-card border border-border/50 text-muted-foreground hover:text-white"
+              className="fixed top-3 left-3 z-20 flex h-8 w-8 items-center justify-center rounded-lg bg-hud-panel border border-hud-border text-muted-foreground hover:text-hud-cyan"
             >
               <svg
                 className="h-4 w-4"

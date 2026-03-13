@@ -8,6 +8,8 @@ create table public.profiles (
   id uuid references auth.users on delete cascade primary key,
   display_name text,
   tier text default 'free' check (tier in ('free', 'pro', 'enterprise')),
+  stripe_customer_id text,
+  stripe_subscription_id text,
   created_at timestamptz default now()
 );
 

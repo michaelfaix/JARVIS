@@ -43,8 +43,8 @@ export default function AssetDetailPage({
   const symbol = params.symbol.toUpperCase();
   const asset = DEFAULT_ASSETS.find((a) => a.symbol === symbol);
 
-  const { prices, wsConnected, binanceConnected } = usePrices();
-  const { signals, loading: signalsLoading, error: signalsError } = useSignals();
+  const { prices, priceHistory, wsConnected, binanceConnected } = usePrices();
+  const { signals, loading: signalsLoading, error: signalsError } = useSignals(undefined, undefined, prices, priceHistory);
   const { state: portfolioState } = usePortfolio();
 
   const assetIndex = useMemo(

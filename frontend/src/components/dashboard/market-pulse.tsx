@@ -1,16 +1,11 @@
 // =============================================================================
-// src/components/dashboard/market-pulse.tsx — Multi-Market Pulse Card
-//
-// Tab-switchable: Crypto | Stocks | Commodities
-// Each tab: F&G gauge + 7d sparkline + momentum + extra indicator + volatility
-// Correlation badge when crypto & stocks move together/apart.
+// src/components/dashboard/market-pulse.tsx — Market Pulse (HUD)
 // =============================================================================
 
 "use client";
 
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { HudPanel } from "@/components/ui/hud-panel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MetricTooltip } from "@/components/ui/metric-tooltip";
 import { SentimentGauge } from "./sentiment-gauge";
@@ -20,7 +15,6 @@ import type {
   MarketSentiment,
 } from "@/hooks/use-sentiment";
 import {
-  Activity,
   TrendingUp,
   TrendingDown,
   Minus,
@@ -33,60 +27,49 @@ interface MarketPulseProps {
   data: SentimentResult;
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 function MomentumIcon({ label }: { label: string }) {
   if (label.includes("Bullish"))
-    return <TrendingUp className="h-3.5 w-3.5 text-green-400" />;
+    return <TrendingUp className="h-3 w-3 text-hud-green" />;
   if (label.includes("Bearish"))
-    return <TrendingDown className="h-3.5 w-3.5 text-red-400" />;
-  return <Minus className="h-3.5 w-3.5 text-yellow-400" />;
+    return <TrendingDown className="h-3 w-3 text-hud-red" />;
+  return <Minus className="h-3 w-3 text-hud-amber" />;
 }
 
 function getMomentumColor(label: string): string {
-  if (label.includes("Strong Bullish")) return "text-green-400";
-  if (label.includes("Bullish")) return "text-green-300";
-  if (label.includes("Strong Bearish")) return "text-red-400";
-  if (label.includes("Bearish")) return "text-red-300";
-  return "text-yellow-400";
+  if (label.includes("Strong Bullish")) return "text-hud-green";
+  if (label.includes("Bullish")) return "text-hud-green/80";
+  if (label.includes("Strong Bearish")) return "text-hud-red";
+  if (label.includes("Bearish")) return "text-hud-red/80";
+  return "text-hud-amber";
 }
 
 function getVolatilityColor(label: string): string {
-  if (label === "High") return "text-red-400";
-  if (label === "Medium") return "text-yellow-400";
-  return "text-green-400";
+  if (label === "High") return "text-hud-red";
+  if (label === "Medium") return "text-hud-amber";
+  return "text-hud-green";
 }
 
 function TrendIcon({ trend }: { trend: "rising" | "falling" | "stable" }) {
-  if (trend === "rising")
-    return <TrendingUp className="h-3.5 w-3.5" />;
-  if (trend === "falling")
-    return <TrendingDown className="h-3.5 w-3.5" />;
-  return <Minus className="h-3.5 w-3.5" />;
+  if (trend === "rising") return <TrendingUp className="h-3 w-3" />;
+  if (trend === "falling") return <TrendingDown className="h-3 w-3" />;
+  return <Minus className="h-3 w-3" />;
 }
 
 function fgColor(value: number): string {
-  if (value <= 25) return "#ef4444";
-  if (value <= 45) return "#f97316";
-  if (value <= 55) return "#eab308";
-  if (value <= 75) return "#84cc16";
-  return "#22c55e";
+  if (value <= 25) return "#ff4466";
+  if (value <= 45) return "#ffaa00";
+  if (value <= 55) return "#ffaa00";
+  if (value <= 75) return "#00e5a0";
+  return "#00e5a0";
 }
-
-// ---------------------------------------------------------------------------
-// Mini sparkline
-// ---------------------------------------------------------------------------
 
 function HistorySparkline({ data, label }: { data: number[]; label?: string }) {
   if (data.length < 2) return null;
-  const w = 120;
-  const h = 24;
+  const w = 100;
+  const h = 20;
   const min = Math.min(...data);
   const max = Math.max(...data);
   const range = max - min || 1;
-
   const points = data
     .map((v, i) => {
       const x = (i / (data.length - 1)) * w;
@@ -94,91 +77,53 @@ function HistorySparkline({ data, label }: { data: number[]; label?: string }) {
       return `${x},${y}`;
     })
     .join(" ");
-
   const latest = data[data.length - 1];
   const color = fgColor(latest);
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-[9px] text-muted-foreground whitespace-nowrap">
-        {label ?? "7d"}
-      </span>
+    <div className="flex items-center gap-1.5">
+      <span className="text-[8px] font-mono text-muted-foreground/50">{label ?? "7d"}</span>
       <svg width={w} height={h} className="shrink-0">
-        <polyline
-          points={points}
-          fill="none"
-          stroke={color}
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          opacity={0.8}
-        />
-        <circle
-          cx={w}
-          cy={h - ((latest - min) / range) * (h - 2) - 1}
-          r="2.5"
-          fill={color}
-        />
+        <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity={0.7} />
+        <circle cx={w} cy={h - ((latest - min) / range) * (h - 2) - 1} r="2" fill={color} />
       </svg>
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Tab config
-// ---------------------------------------------------------------------------
-
-const TABS: { key: MarketTab; label: string; tooltip: string }[] = [
-  { key: "crypto", label: "Crypto", tooltip: "Fear & Greed" },
-  { key: "stocks", label: "Stocks", tooltip: "Fear & Greed" },
-  { key: "commodities", label: "Commodities", tooltip: "Fear & Greed" },
+const TABS: { key: MarketTab; label: string }[] = [
+  { key: "crypto", label: "Crypto" },
+  { key: "stocks", label: "Stocks" },
+  { key: "commodities", label: "Commod." },
 ];
 
-// ---------------------------------------------------------------------------
-// Per-tab content
-// ---------------------------------------------------------------------------
-
 function TabContent({ market }: { market: MarketSentiment }) {
-  const { sentiment, momentum, volatility, extraLabel, extraValue, extraColor, extraTrend } =
-    market;
-
+  const { sentiment, momentum, volatility, extraLabel, extraValue, extraColor, extraTrend } = market;
   const loading = sentiment.loading;
 
   return (
-    <div className="flex flex-col items-center gap-3">
-      {/* Gauge */}
+    <div className="flex flex-col items-center gap-2">
       <MetricTooltip term="Fear & Greed">
         <SentimentGauge
           value={sentiment.value}
           classification={sentiment.classification}
-          size={150}
+          size={120}
           loading={loading}
         />
       </MetricTooltip>
 
-      {/* History sparkline */}
-      {sentiment.history.length >= 2 && (
-        <HistorySparkline data={sentiment.history} />
-      )}
+      {sentiment.history.length >= 2 && <HistorySparkline data={sentiment.history} />}
 
-      {/* Indicator Grid */}
-      <div className="grid grid-cols-3 gap-2 w-full mt-1">
-        {/* Momentum */}
+      <div className="grid grid-cols-3 gap-1.5 w-full">
         <MetricTooltip term="Momentum">
-          <div className="rounded-lg bg-background/50 p-2 text-center">
-            {loading ? (
-              <Skeleton className="h-8 w-full" />
-            ) : (
+          <div className="rounded bg-hud-bg/60 border border-hud-border/30 p-1.5 text-center">
+            {loading ? <Skeleton className="h-6 w-full" /> : (
               <>
-                <div className="flex items-center justify-center gap-1 mb-0.5">
+                <div className="flex items-center justify-center gap-0.5 mb-0.5">
                   <MomentumIcon label={momentum.label} />
-                  <span className="text-[10px] text-muted-foreground">
-                    Momentum
-                  </span>
+                  <span className="text-[8px] font-mono text-muted-foreground/60">Mom.</span>
                 </div>
-                <div
-                  className={`text-xs font-semibold ${getMomentumColor(momentum.label)}`}
-                >
+                <div className={`text-[10px] font-mono font-semibold ${getMomentumColor(momentum.label)}`}>
                   {momentum.label}
                 </div>
               </>
@@ -186,47 +131,29 @@ function TabContent({ market }: { market: MarketSentiment }) {
           </div>
         </MetricTooltip>
 
-        {/* Extra Indicator (BTC Dom / VIX / Gold Trend) */}
         <MetricTooltip term={extraLabel}>
-          <div className="rounded-lg bg-background/50 p-2 text-center">
-            {loading ? (
-              <Skeleton className="h-8 w-full" />
-            ) : (
+          <div className="rounded bg-hud-bg/60 border border-hud-border/30 p-1.5 text-center">
+            {loading ? <Skeleton className="h-6 w-full" /> : (
               <>
-                <div className="flex items-center justify-center gap-1 mb-0.5">
-                  <span className={extraColor}>
-                    <TrendIcon trend={extraTrend} />
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">
-                    {extraLabel}
-                  </span>
+                <div className="flex items-center justify-center gap-0.5 mb-0.5">
+                  <span className={extraColor}><TrendIcon trend={extraTrend} /></span>
+                  <span className="text-[8px] font-mono text-muted-foreground/60">{extraLabel}</span>
                 </div>
-                <div className={`text-xs font-semibold ${extraColor}`}>
-                  {extraValue}
-                </div>
+                <div className={`text-[10px] font-mono font-semibold ${extraColor}`}>{extraValue}</div>
               </>
             )}
           </div>
         </MetricTooltip>
 
-        {/* Volatility */}
         <MetricTooltip term="Volatility">
-          <div className="rounded-lg bg-background/50 p-2 text-center">
-            {loading ? (
-              <Skeleton className="h-8 w-full" />
-            ) : (
+          <div className="rounded bg-hud-bg/60 border border-hud-border/30 p-1.5 text-center">
+            {loading ? <Skeleton className="h-6 w-full" /> : (
               <>
-                <div className="flex items-center justify-center gap-1 mb-0.5">
-                  <BarChart3
-                    className={`h-3.5 w-3.5 ${getVolatilityColor(volatility.label)}`}
-                  />
-                  <span className="text-[10px] text-muted-foreground">
-                    Volatility
-                  </span>
+                <div className="flex items-center justify-center gap-0.5 mb-0.5">
+                  <BarChart3 className={`h-3 w-3 ${getVolatilityColor(volatility.label)}`} />
+                  <span className="text-[8px] font-mono text-muted-foreground/60">Vol.</span>
                 </div>
-                <div
-                  className={`text-xs font-semibold ${getVolatilityColor(volatility.label)}`}
-                >
+                <div className={`text-[10px] font-mono font-semibold ${getVolatilityColor(volatility.label)}`}>
                   {volatility.label}
                 </div>
               </>
@@ -238,52 +165,22 @@ function TabContent({ market }: { market: MarketSentiment }) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
-
 export function MarketPulse({ data }: MarketPulseProps) {
   const { activeTab, setActiveTab, correlation } = data;
   const market = data[activeTab];
-  const isLive = !market.sentiment.error && !market.sentiment.loading;
-  const isSynthetic = !!market.sentiment.error && !market.sentiment.loading;
-
   return (
-    <Card className="bg-card/50 border-border/50">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-          <Activity className="h-4 w-4" />
-          Market Sentiment
-          {market.sentiment.loading ? (
-            <Skeleton className="ml-auto h-4 w-12" />
-          ) : isSynthetic ? (
-            <Badge
-              variant="outline"
-              className="ml-auto text-[10px] text-yellow-400 border-yellow-500/30"
-            >
-              Synthetic
-            </Badge>
-          ) : isLive ? (
-            <Badge
-              variant="outline"
-              className="ml-auto text-[10px] text-green-400 border-green-500/30"
-            >
-              Live
-            </Badge>
-          ) : null}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pb-4 space-y-3">
+    <HudPanel title="Market Sentiment">
+      <div className="p-2.5 space-y-2">
         {/* Tab Switcher */}
-        <div className="flex rounded-lg bg-background/50 p-0.5">
+        <div className="flex rounded bg-hud-bg/60 p-0.5">
           {TABS.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex-1 py-1 rounded-md text-[11px] font-medium transition-colors ${
+              className={`flex-1 py-0.5 rounded text-[9px] font-mono transition-colors ${
                 activeTab === tab.key
-                  ? "bg-blue-600/20 text-blue-400"
-                  : "text-muted-foreground hover:text-white"
+                  ? "bg-hud-cyan/15 text-hud-cyan"
+                  : "text-muted-foreground hover:text-hud-cyan"
               }`}
             >
               {tab.label}
@@ -291,27 +188,20 @@ export function MarketPulse({ data }: MarketPulseProps) {
           ))}
         </div>
 
-        {/* Tab Content */}
         <TabContent market={market} />
 
         {/* Correlation Badge */}
         {correlation && (
-          <div
-            className={`flex items-center justify-center gap-1.5 text-[10px] rounded-md py-1 ${
-              correlation.value > 0
-                ? "bg-purple-500/10 text-purple-400"
-                : "bg-orange-500/10 text-orange-400"
-            }`}
-          >
-            {correlation.value > 0 ? (
-              <Link2 className="h-3 w-3" />
-            ) : (
-              <Unlink className="h-3 w-3" />
-            )}
+          <div className={`flex items-center justify-center gap-1 text-[9px] font-mono rounded py-0.5 ${
+            correlation.value > 0
+              ? "bg-purple-500/10 text-purple-400"
+              : "bg-orange-500/10 text-orange-400"
+          }`}>
+            {correlation.value > 0 ? <Link2 className="h-2.5 w-2.5" /> : <Unlink className="h-2.5 w-2.5" />}
             {correlation.label}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </HudPanel>
   );
 }

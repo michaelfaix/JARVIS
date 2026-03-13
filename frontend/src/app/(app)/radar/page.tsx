@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { useSignals } from "@/hooks/use-signals";
 import { useSystemStatus } from "@/hooks/use-jarvis";
+import { usePrices } from "@/hooks/use-prices";
 import {
   REGIME_COLORS,
   REGIME_LABELS,
@@ -49,7 +50,8 @@ function deriveOpportunities(
 
 export default function RadarPage() {
   const { regime, error: statusError } = useSystemStatus(5000);
-  const { signals: allSignals, loading, error: signalsError } = useSignals(regime, 10000);
+  const { prices, priceHistory } = usePrices(5000);
+  const { signals: allSignals, loading, error: signalsError } = useSignals(regime, 10000, prices, priceHistory);
   const { isPro } = useProfile();
 
   const signals = isPro

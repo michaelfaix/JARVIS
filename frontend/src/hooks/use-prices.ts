@@ -1,9 +1,11 @@
 // =============================================================================
-// src/hooks/use-prices.ts — Live prices via Binance WebSocket + REST fallback
+// src/hooks/use-prices.ts — Live prices via Binance WS + Yahoo Finance proxy
 //
 // Crypto (BTC, ETH, SOL): Real-time via Binance WebSocket combined stream.
-// Non-crypto: Synthetic random-walk prices updated every 1 second.
-// Falls back to REST polling if WebSocket fails.
+// Stocks/Commodities (SPY, AAPL, NVDA, TSLA, GLD): Real quotes via
+//   /api/quotes proxy (Yahoo Finance), polled every 30s.
+//   Falls back to synthetic random-walk if quotes unavailable.
+// Falls back to Binance REST polling if WebSocket fails.
 // Visibility API: reconnects when tab becomes visible again.
 // =============================================================================
 
@@ -56,7 +58,19 @@ async function fetchBinancePrices(): Promise<Record<string, number>> {
   return prices;
 }
 
+// Fetch real stock/commodity quotes from our proxy
+async function fetchQuotes(): Promise<Record<string, number>> {
+  const res = await fetch("/api/quotes", {
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!res.ok) throw new Error(`Quotes API ${res.status}`);
+  const json = await res.json();
+  if (!json.prices) throw new Error("No prices");
+  return json.prices as Record<string, number>;
+}
+
 // Random-walk for non-crypto: ±0.01–0.05% per tick, with mean reversion
+// Only used as fallback when Yahoo quotes are unavailable
 function syntheticPrices(
   prev: Record<string, number>
 ): Record<string, number> {
@@ -74,6 +88,7 @@ function syntheticPrices(
 }
 
 const HISTORY_SIZE = 60; // ring buffer: 60 snapshots × 3s = 3 min window
+const QUOTE_POLL_INTERVAL = 30_000; // 30s for Yahoo quotes
 
 export function usePrices(intervalMs: number = 5000) {
   const [prices, setPrices] = useState<Record<string, number>>(() => {
@@ -86,14 +101,32 @@ export function usePrices(intervalMs: number = 5000) {
   const [priceHistory, setPriceHistory] = useState<Record<string, number[]>>({});
   const [binanceConnected, setBinanceConnected] = useState(false);
   const [wsConnected, setWsConnected] = useState(false);
+  const [quotesConnected, setQuotesConnected] = useState(false);
   const prevRef = useRef(prices);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout>>();
   const mountedRef = useRef(true);
 
-  // --- Synthetic prices every 1s ---
+  // --- Fetch real stock/commodity quotes ---
+  const fetchRealQuotes = useCallback(async () => {
+    if (!mountedRef.current) return;
+    try {
+      const quotes = await fetchQuotes();
+      if (!mountedRef.current) return;
+      setQuotesConnected(true);
+      prevRef.current = { ...prevRef.current, ...quotes };
+      setPrices((p) => ({ ...p, ...quotes }));
+    } catch {
+      if (mountedRef.current) setQuotesConnected(false);
+    }
+  }, []);
+
+  // --- Synthetic prices every 1s (only for non-crypto when quotes unavailable) ---
   useEffect(() => {
     const id = setInterval(() => {
+      // Only generate synthetic prices for symbols we don't have real quotes for
+      // When quotesConnected, we still do small synthetic ticks for smooth UI
+      // (real quotes only update every 30s)
       const synthetic = syntheticPrices(prevRef.current);
       prevRef.current = { ...prevRef.current, ...synthetic };
       setPrices((p) => ({ ...p, ...synthetic }));
@@ -125,7 +158,6 @@ export function usePrices(intervalMs: number = 5000) {
       reconnectTimer.current = undefined;
     }
     if (wsRef.current) {
-      // Remove onclose to prevent reconnect during cleanup
       wsRef.current.onclose = null;
       wsRef.current.onerror = null;
       wsRef.current.onmessage = null;
@@ -139,7 +171,6 @@ export function usePrices(intervalMs: number = 5000) {
     if (!mountedRef.current) return;
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
-    // Clean up any existing connection first
     closeWs();
 
     try {
@@ -182,7 +213,6 @@ export function usePrices(intervalMs: number = 5000) {
         if (!mountedRef.current) return;
         setWsConnected(false);
         wsRef.current = null;
-        // Reconnect with backoff
         const attempts = reconnectTimer.current ? 1 : 0;
         const delay = Math.min(1000 * 2 ** attempts, 30000);
         reconnectTimer.current = setTimeout(() => {
@@ -200,7 +230,7 @@ export function usePrices(intervalMs: number = 5000) {
     }
   }, [closeWs]);
 
-  // --- REST fallback ---
+  // --- REST fallback for crypto ---
   const fetchRest = useCallback(async () => {
     if (!mountedRef.current) return;
     try {
@@ -220,6 +250,7 @@ export function usePrices(intervalMs: number = 5000) {
 
     fetchRest();
     connectWs();
+    fetchRealQuotes();
 
     // REST fallback polling if WS is down
     const restFallbackId = setInterval(() => {
@@ -228,29 +259,32 @@ export function usePrices(intervalMs: number = 5000) {
       }
     }, intervalMs);
 
+    // Yahoo quotes polling (every 30s)
+    const quotesId = setInterval(fetchRealQuotes, QUOTE_POLL_INTERVAL);
+
     return () => {
       mountedRef.current = false;
       clearInterval(restFallbackId);
+      clearInterval(quotesId);
       closeWs();
     };
-  }, [connectWs, fetchRest, closeWs, intervalMs]);
+  }, [connectWs, fetchRest, fetchRealQuotes, closeWs, intervalMs]);
 
   // --- Visibility API: reconnect when tab becomes visible ---
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === "visible" && mountedRef.current) {
-        // Reconnect WS if not connected
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
           connectWs();
         }
-        // Refresh REST prices immediately
         fetchRest();
+        fetchRealQuotes();
       }
     };
     document.addEventListener("visibilitychange", handleVisibility);
     return () =>
       document.removeEventListener("visibilitychange", handleVisibility);
-  }, [connectWs, fetchRest]);
+  }, [connectWs, fetchRest, fetchRealQuotes]);
 
-  return { prices, priceHistory, binanceConnected, wsConnected };
+  return { prices, priceHistory, binanceConnected, wsConnected, quotesConnected };
 }

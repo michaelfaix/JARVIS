@@ -609,25 +609,25 @@ export function AssetChart({
 
     const chart = createChart(containerRef.current, {
       layout: {
-        background: { type: ColorType.Solid, color: "transparent" },
-        textColor: "#9ca3af",
-        fontSize: 12,
+        background: { type: ColorType.Solid, color: "#05080f" },
+        textColor: "#6b7f99",
+        fontSize: 11,
       },
       grid: {
-        vertLines: { color: "rgba(255, 255, 255, 0.04)" },
-        horzLines: { color: "rgba(255, 255, 255, 0.04)" },
+        vertLines: { color: "#0a1f35" },
+        horzLines: { color: "#0a1f35" },
       },
       width: containerRef.current.clientWidth,
       height,
       crosshair: {
-        vertLine: { color: "rgba(255, 255, 255, 0.1)" },
-        horzLine: { color: "rgba(255, 255, 255, 0.1)" },
+        vertLine: { color: "rgba(77, 184, 255, 0.3)" },
+        horzLine: { color: "rgba(77, 184, 255, 0.3)" },
       },
       rightPriceScale: {
-        borderColor: "rgba(255, 255, 255, 0.1)",
+        borderColor: "#0a1f35",
       },
       timeScale: {
-        borderColor: "rgba(255, 255, 255, 0.1)",
+        borderColor: "#0a1f35",
         timeVisible: ["1m", "5m", "15m", "1h", "4h"].includes(interval),
       },
     });
@@ -635,12 +635,12 @@ export function AssetChart({
     chartRef.current = chart;
 
     const candleSeries = chart.addCandlestickSeries({
-      upColor: "#22c55e",
-      downColor: "#ef4444",
-      borderUpColor: "#22c55e",
-      borderDownColor: "#ef4444",
-      wickUpColor: "#22c55e",
-      wickDownColor: "#ef4444",
+      upColor: "#00e5a0",
+      downColor: "#ff4466",
+      borderUpColor: "#00e5a0",
+      borderDownColor: "#ff4466",
+      wickUpColor: "#00e5a0",
+      wickDownColor: "#ff4466",
     });
     candleSeriesRef.current = candleSeries;
 

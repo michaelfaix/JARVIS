@@ -170,9 +170,9 @@ function CompactChartHeader({
 }
 
 export default function ChartsPage() {
-  const { prices, wsConnected, binanceConnected } = usePrices(5000);
+  const { prices, priceHistory, wsConnected, binanceConnected } = usePrices(5000);
   const { regime, error: statusError } = useSystemStatus(5000);
-  const { signals, error: signalsError, refresh: refreshSignals } = useSignals(regime, 10000);
+  const { signals, error: signalsError, refresh: refreshSignals } = useSignals(regime, 10000, prices, priceHistory);
 
   // Layout state
   const [layout, setLayout] = useState<Layout>("1x1");

@@ -41,11 +41,46 @@ module.exports = {
           DEFAULT: "hsl(var(--card) / <alpha-value>)",
           foreground: "hsl(var(--card-foreground) / <alpha-value>)",
         },
+        hud: {
+          bg: "#05080f",
+          panel: "#060c18",
+          border: "#0a1f35",
+          cyan: "#4db8ff",
+          "cyan-dim": "#2a6b99",
+          green: "#00e5a0",
+          "green-dim": "#007a55",
+          red: "#ff4466",
+          "red-dim": "#992233",
+          amber: "#ffaa00",
+          "amber-dim": "#996600",
+        },
+      },
+      fontFamily: {
+        mono: ['"Courier New"', "Courier", "monospace"],
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      keyframes: {
+        scanLine: {
+          "0%": { top: "0%" },
+          "100%": { top: "100%" },
+        },
+        pulseLive: {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.4" },
+        },
+        cornerFade: {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.5" },
+        },
+      },
+      animation: {
+        "scan-line": "scanLine 3s linear infinite",
+        "pulse-live": "pulseLive 2s ease-in-out infinite",
+        "corner-fade": "cornerFade 1.5s ease-in-out infinite",
       },
     },
   },

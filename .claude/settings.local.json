@@ -1,7 +1,40 @@
 {
   "permissions": {
     "allow": [
-      "Bash(cmd.exe /c \"copy /Y jarvis\\\\metrics\\\\engine.py jarvis\\\\metrics\\\\engine_bak.py\" 2>&1)"
+      "Bash(cmd.exe /c \"copy /Y jarvis\\\\metrics\\\\engine.py jarvis\\\\metrics\\\\engine_bak.py\" 2>&1)",
+      "Bash(npx --yes create-next-app@14 frontend --typescript --tailwind --eslint --app --src-dir --no-import-alias --use-npm 2>&1 | tail -20)",
+      "Bash(cd /c/Project/JARVIS/frontend && npm install lightweight-charts@4.1.0 2>&1 | tail -5)",
+      "Bash(npx --yes shadcn-ui@latest init -y 2>&1)",
+      "Bash(npx --yes shadcn@latest init -d 2>&1)",
+      "Bash(npx shadcn@latest add card badge 2>&1)",
+      "Bash(npx next:*)",
+      "Bash(cd /c/Project/JARVIS && python -m pytest --tb=short -q 2>&1 | tail -10)",
+      "Bash(curl -s http://localhost:8000/api/v1/health && echo \"\" && curl -s http://localhost:8000/api/v1/status && echo \"\" && curl -s http://localhost:8000/api/v1/metrics)",
+      "Bash(curl -s -I -X OPTIONS http://localhost:8000/api/v1/health -H \"Origin: http://localhost:3001\" -H \"Access-Control-Request-Method: GET\" 2>&1 | grep -i \"access-control\\\\|HTTP\")",
+      "Bash(netstat -ano | grep \":8000\" | head -5)",
+      "Bash(taskkill //PID 47948 //F 2>&1)",
+      "Bash(echo \"=== /health ===\" && curl -s http://localhost:8000/api/v1/health && echo -e \"\\\\n=== /status ===\" && curl -s http://localhost:8000/api/v1/status && echo -e \"\\\\n=== /metrics ===\" && curl -s http://localhost:8000/api/v1/metrics && echo -e \"\\\\n=== /predict ===\" && curl -s -X POST http://localhost:8000/api/v1/predict -H \"Content-Type: application/json\" -d '{\"features\":[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0],\"regime\":\"RISK_ON\"}')",
+      "Bash(curl -s -X POST http://localhost:8000/api/v1/predict -H \"Content-Type: application/json\" -d '{\"features\":{\"momentum\":0.1,\"volatility\":0.2,\"trend\":0.3},\"regime\":\"RISK_ON\"}')",
+      "Bash(netstat -ano | grep -E \":300[012]\" | grep \"ABH\" 2>&1)",
+      "Bash(taskkill //PID 49676 //F 2>&1 && taskkill //PID 44948 //F 2>&1 && taskkill //PID 47152 //F 2>&1)",
+      "Bash(echo \"=== PAGE 1: Dashboard \\(/\\) ===\" && curl -s http://localhost:3000/ 2>&1 | grep -oE \"\\(Backend Connected|Backend Offline|JARVIS Trader|Risk On|Risk Off|CRISIS|NORMAL|Quality Score|quality_score|Predictions Today\\)\" | sort -u && echo \"\" && echo \"=== PAGE 2: Signals \\(/signals\\) ===\" && curl -s http://localhost:3000/signals 2>&1 | grep -oE \"\\(Signal Feed|Active Signals|LONG|SHORT|Confidence|Entry|Stop Loss|Take Profit|Quality\\)\" | sort -u && echo \"\" && echo \"=== PAGE 3: Portfolio \\(/portfolio\\) ===\" && curl -s http://localhost:3000/portfolio 2>&1 | grep -oE \"\\(Paper Trading|Total Value|Asset Allocation|Risk Score|Available Capital|Open Positions\\)\" | sort -u && echo \"\" && echo \"=== PAGE 4: Radar \\(/radar\\) ===\" && curl -s http://localhost:3000/radar 2>&1 | grep -oE \"\\(Opportunity Radar|Momentum Scanner|Long Bias|Short Bias|Active Regime\\)\" | sort -u && echo \"\" && echo \"=== PAGE 5: Strategy Lab \\(/strategy-lab\\) ===\" && curl -s http://localhost:3000/strategy-lab 2>&1 | grep -oE \"\\(Strategy Lab|Momentum|Mean Reversion|Combined|Backtest|Coming Soon|Win Rate|Sharpe|Max DD\\)\" | sort -u && echo \"\" && echo \"=== PAGE 6: Settings \\(/settings\\) ===\" && curl -s http://localhost:3000/settings 2>&1 | grep -oE \"\\(Settings|Paper Trading|Starting Capital|Active Strategy|Dark Mode|Poll Interval|Reset All|Tracked Assets\\)\" | sort -u)",
+      "Bash(cd C:/Project/JARVIS/frontend && node -e \"console.log\\(require\\('tailwindcss/package.json'\\).version\\)\")",
+      "Bash(cd C:/Project/JARVIS/frontend && npm install -D autoprefixer 2>&1 | tail -5)",
+      "Bash(cd C:/Project/JARVIS/frontend && rm -rf .next)",
+      "Bash(sleep 8 && curl -s http://localhost:3000 2>&1 | head -100)",
+      "Bash(curl -s http://localhost:3000/_next/static/css/app/layout.css 2>&1 | head -20)",
+      "Bash(curl -s http://localhost:3000/_next/static/css/app/layout.css 2>&1 | grep -c \"bg-background\\\\|text-white\\\\|border-border\\\\|bg-card\")",
+      "Bash(curl -s http://localhost:3000/_next/static/css/app/layout.css 2>&1 | grep -c \"\\\\-\\\\-background\\\\|\\\\.dark\")",
+      "Bash(ls C:/Project/JARVIS/frontend/src/app/\\\\\\(app\\\\\\)/)",
+      "Bash(cd C:/Project/JARVIS/frontend && npm install @anthropic-ai/sdk 2>&1 | tail -5)",
+      "Bash(du -sh /tmp/* 2>/dev/null | sort -rh | head -20)",
+      "Bash(sleep 10 && curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000)",
+      "Bash(sleep 8 && curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000)",
+      "Bash(curl -s --connect-timeout 10 -o /dev/null -w \"HTTP_STATUS: %{http_code}\\\\n\" https://api.anthropic.com/v1/messages 2>&1)",
+      "Bash(curl -s --connect-timeout 10 -k https://api.anthropic.com/v1/messages -H \"Content-Type: application/json\" -H \"x-api-key: test\" -H \"anthropic-version: 2023-06-01\" -d '{\"model\":\"claude-sonnet-4-20250514\",\"max_tokens\":10,\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}]}' 2>&1 | head -5)",
+      "Bash(curl -s http://localhost:3001/landing 2>&1 | head -50)",
+      "Bash(taskkill //F //IM node.exe 2>/dev/null; sleep 1 && rm -rf /c/Project/JARVIS/frontend/.next)",
+      "Bash(curl -s \"http://localhost:3000/_next/static/css/app/layout.css?v=1773276728156\" | wc -c && echo \" bytes\" && curl -s \"http://localhost:3000/_next/static/css/app/layout.css?v=1773276728156\" | head -20)"
     ]
   }
 }

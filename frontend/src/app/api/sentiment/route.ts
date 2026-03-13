@@ -93,17 +93,56 @@ async function fetchGecko(): Promise<GeckoData> {
 }
 
 // ---------------------------------------------------------------------------
+// Simple rate limiter (per serverless instance)
+// ---------------------------------------------------------------------------
+
+const RATE_WINDOW = 60_000; // 1 minute
+const RATE_LIMIT = 30; // max requests per window
+let rateWindowStart = Date.now();
+let rateCount = 0;
+
+function isRateLimited(): boolean {
+  const now = Date.now();
+  if (now - rateWindowStart > RATE_WINDOW) {
+    rateWindowStart = now;
+    rateCount = 0;
+  }
+  rateCount++;
+  return rateCount > RATE_LIMIT;
+}
+
+/** Sanitize error — never expose stack traces or internal details */
+function sanitizeError(err: unknown): string {
+  if (err instanceof Error) {
+    // Only pass through known safe error messages (HTTP status codes)
+    const match = err.message.match(/^(CNN|CoinGecko|API|Proxy)\s+\d{3}$/);
+    if (match) return err.message;
+    if (err.message === "Invalid CNN data") return "Invalid upstream data";
+  }
+  return "Upstream service unavailable";
+}
+
+// ---------------------------------------------------------------------------
 // GET /api/sentiment
 // ---------------------------------------------------------------------------
 
 export async function GET() {
+  if (isRateLimited()) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": "60" } }
+    );
+  }
+
   const [cnn, gecko] = await Promise.allSettled([fetchCnn(), fetchGecko()]);
 
   return NextResponse.json({
     cnn: cnn.status === "fulfilled" ? cnn.value : null,
-    cnnError: cnn.status === "rejected" ? String(cnn.reason) : null,
+    cnnError:
+      cnn.status === "rejected" ? sanitizeError(cnn.reason) : null,
     gecko: gecko.status === "fulfilled" ? gecko.value : null,
-    geckoError: gecko.status === "rejected" ? String(gecko.reason) : null,
+    geckoError:
+      gecko.status === "rejected" ? sanitizeError(gecko.reason) : null,
     cached: {
       cnn: cnnCache ? Date.now() - cnnCache.ts < CACHE_TTL : false,
       gecko: geckoCache ? Date.now() - geckoCache.ts < CACHE_TTL : false,

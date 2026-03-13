@@ -1,5 +1,8 @@
 // =============================================================================
-// src/components/layout/sidebar.tsx — Left Sidebar Navigation
+// src/components/layout/sidebar.tsx — Left Sidebar Navigation (HUD)
+//
+// Desktop: 44px icon-only with cyan left-border active state
+// Mobile: 240px slide-in overlay with labels (existing behavior)
 // =============================================================================
 
 "use client";
@@ -22,8 +25,6 @@ import {
   BookOpen,
   CalendarDays,
   Settings,
-  ChevronsLeft,
-  ChevronsRight,
   LogOut,
   User,
 } from "lucide-react";
@@ -59,6 +60,7 @@ interface SidebarProps {
   mobileOpen?: boolean;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function Sidebar({ collapsed, onToggle, connected, mobile, mobileOpen }: SidebarProps) {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
@@ -67,20 +69,25 @@ export function Sidebar({ collapsed, onToggle, connected, mobile, mobileOpen }: 
   // On mobile: hidden by default, slides in when open
   if (mobile && !mobileOpen) return null;
 
+  // Desktop: always icon-only (44px). Mobile overlay: 240px with labels.
+  const isIconOnly = !mobile;
+
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-border/50 bg-card/95 backdrop-blur-md transition-all duration-200 overflow-hidden",
-        mobile ? "w-60" : collapsed ? "w-16" : "w-60"
+        "fixed left-0 top-0 z-40 flex h-screen flex-col border-r overflow-hidden transition-all duration-200",
+        mobile
+          ? "w-60 border-border/50 bg-card/95 backdrop-blur-md"
+          : "w-[44px] border-hud-border bg-hud-bg/95 backdrop-blur-sm"
       )}
     >
       {/* Logo */}
-      <div className="flex h-14 items-center gap-3 px-4">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 font-bold text-white text-sm">
+      <div className="flex h-10 items-center justify-center px-2 shrink-0">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-hud-cyan/20 font-bold text-hud-cyan text-xs font-mono">
           J
         </div>
-        {!collapsed && (
-          <div className="overflow-hidden">
+        {!isIconOnly && (
+          <div className="overflow-hidden ml-2">
             <div className="text-sm font-bold text-white truncate">
               JARVIS Trader
             </div>
@@ -89,10 +96,10 @@ export function Sidebar({ collapsed, onToggle, connected, mobile, mobileOpen }: 
         )}
       </div>
 
-      <Separator className="opacity-50" />
+      <Separator className="opacity-30" />
 
       {/* Navigation */}
-      <nav role="navigation" aria-label="Main navigation" className="flex-1 space-y-1 px-2 py-4">
+      <nav role="navigation" aria-label="Main navigation" className="flex-1 space-y-0.5 px-1 py-2 overflow-y-auto">
         {NAV_ITEMS.map((item) => {
           const isActive = pathname === item.path;
           const Icon = item.icon;
@@ -101,15 +108,23 @@ export function Sidebar({ collapsed, onToggle, connected, mobile, mobileOpen }: 
               key={item.path}
               href={item.path}
               aria-current={isActive ? "page" : undefined}
+              title={isIconOnly ? t(item.key) : undefined}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                "flex items-center gap-3 rounded text-sm transition-colors relative",
+                isIconOnly ? "justify-center px-0 py-2 mx-0.5" : "px-3 py-2.5",
                 isActive
-                  ? "bg-blue-600/20 text-blue-400"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  ? isIconOnly
+                    ? "text-hud-cyan"
+                    : "bg-hud-cyan/10 text-hud-cyan"
+                  : "text-muted-foreground hover:text-hud-cyan hover:bg-hud-cyan/5"
               )}
             >
-              <Icon className="h-5 w-5 shrink-0" />
-              {!collapsed && (
+              {/* Cyan left border for active state (desktop) */}
+              {isActive && isIconOnly && (
+                <div className="absolute left-0 top-1 bottom-1 w-0.5 rounded-r bg-hud-cyan" />
+              )}
+              <Icon className={cn("shrink-0", isIconOnly ? "h-4 w-4" : "h-5 w-5")} />
+              {!isIconOnly && (
                 <span className="truncate">{t(item.key)}</span>
               )}
             </Link>
@@ -117,66 +132,61 @@ export function Sidebar({ collapsed, onToggle, connected, mobile, mobileOpen }: 
         })}
       </nav>
 
-      <Separator className="opacity-50" />
+      <Separator className="opacity-30" />
 
       {/* User section */}
-      {user && (
+      {user && !isIconOnly && (
         <div className="px-3 py-2">
           <div className="flex items-center gap-2 rounded-lg px-2 py-2">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600/20 text-blue-400">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-hud-cyan/20 text-hud-cyan">
               <User className="h-3.5 w-3.5" />
             </div>
-            {!collapsed && (
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-xs font-medium text-white">
-                  {user.email}
-                </div>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-xs font-medium text-white">
+                {user.email}
               </div>
-            )}
+            </div>
           </div>
           <button
             onClick={signOut}
-            className={cn(
-              "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-red-500/10 hover:text-red-400 transition-colors",
-            )}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-red-500/10 hover:text-red-400 transition-colors"
           >
             <LogOut className="h-4 w-4 shrink-0" />
-            {!collapsed && <span>{t('nav_sign_out')}</span>}
+            <span>{t("nav_sign_out")}</span>
           </button>
         </div>
       )}
 
-      <Separator className="opacity-50" />
-
       {/* Bottom section */}
-      <div className="flex items-center justify-between px-4 py-3">
+      <div className={cn(
+        "flex items-center px-2 py-2 shrink-0",
+        isIconOnly ? "justify-center" : "justify-between px-4 py-3"
+      )}>
         {/* Connection indicator */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" title={connected ? "Connected" : "Offline"}>
           <div
             className={cn(
               "h-2 w-2 rounded-full",
-              connected ? "bg-green-500" : "bg-red-500"
+              connected ? "bg-hud-green animate-pulse-live" : "bg-hud-red"
             )}
           />
-          {!collapsed && (
+          {!isIconOnly && (
             <span className="text-[10px] text-muted-foreground">
-              {connected ? t('common_api_connected') : t('common_offline')}
+              {connected ? t("common_api_connected") : t("common_offline")}
             </span>
           )}
         </div>
 
-        {/* Collapse toggle */}
-        <button
-          onClick={onToggle}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-        >
-          {collapsed ? (
-            <ChevronsRight className="h-4 w-4" />
-          ) : (
-            <ChevronsLeft className="h-4 w-4" />
-          )}
-        </button>
+        {/* Settings icon for desktop icon-only */}
+        {isIconOnly && (
+          <Link
+            href="/settings"
+            className="hidden"
+            aria-hidden
+          >
+            Settings
+          </Link>
+        )}
       </div>
     </aside>
   );

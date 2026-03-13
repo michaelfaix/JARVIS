@@ -56,6 +56,13 @@ export const MODUS_COLORS: Record<string, string> = {
 // Signals
 // ---------------------------------------------------------------------------
 
+export interface SignalUncertainty {
+  aleatoric: number;
+  epistemic_model: number;
+  epistemic_data: number;
+  total: number;
+}
+
 export interface Signal {
   id: string;
   asset: string;
@@ -67,6 +74,9 @@ export interface Signal {
   qualityScore: number;
   regime: string;
   isOod: boolean;
+  oodScore: number;
+  uncertainty: SignalUncertainty | null;
+  deepPathUsed: boolean;
   timestamp: Date;
 }
 

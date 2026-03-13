@@ -29,25 +29,25 @@
   }
 
   .dark {
-    --background: 240 10% 3.9%;
+    --background: 218 60% 4%;
     --foreground: 0 0% 98%;
-    --card: 240 10% 6%;
+    --card: 218 55% 5%;
     --card-foreground: 0 0% 98%;
-    --popover: 240 10% 6%;
+    --popover: 218 55% 5%;
     --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
+    --primary: 207 100% 65%;
+    --primary-foreground: 218 60% 4%;
+    --secondary: 218 40% 12%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
+    --muted: 218 40% 12%;
+    --muted-foreground: 215 20% 55%;
+    --accent: 218 40% 12%;
     --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 350 100% 40%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
+    --border: 210 50% 12%;
+    --input: 210 50% 12%;
+    --ring: 207 100% 65%;
   }
 }
 
@@ -57,5 +57,43 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .hud-panel {
+    @apply relative rounded border border-hud-border bg-hud-panel/80 backdrop-blur-sm;
+  }
+
+  .hud-corners::before,
+  .hud-corners::after {
+    content: "";
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-color: theme("colors.hud.cyan");
+    pointer-events: none;
+    animation: cornerFade 1.5s ease-in-out infinite;
+  }
+  .hud-corners::before {
+    top: -1px;
+    left: -1px;
+    border-top: 1px solid;
+    border-left: 1px solid;
+  }
+  .hud-corners::after {
+    bottom: -1px;
+    right: -1px;
+    border-bottom: 1px solid;
+    border-right: 1px solid;
+  }
+
+  .hud-label {
+    @apply font-mono text-[9px] uppercase tracking-widest text-hud-cyan/70;
+  }
+
+  .hud-scan-line {
+    @apply pointer-events-none absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-hud-cyan/20 to-transparent;
+    animation: scanLine 3s linear infinite;
   }
 }

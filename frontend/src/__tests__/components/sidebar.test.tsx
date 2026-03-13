@@ -121,22 +121,27 @@ describe("Sidebar", () => {
     expect(links.length).toBeGreaterThanOrEqual(15);
   });
 
-  it("shows navigation labels when not collapsed", () => {
-    render(<Sidebar {...defaultProps} collapsed={false} />);
+  it("renders as 44px icon-only sidebar on desktop", () => {
+    const { container } = render(<Sidebar {...defaultProps} />);
+    const aside = container.querySelector("aside");
+    expect(aside).toBeInTheDocument();
+    expect(aside?.className).toContain("w-[44px]");
+  });
 
+  it("hides navigation labels on desktop (icon-only)", () => {
+    render(<Sidebar {...defaultProps} collapsed={false} />);
+    // Desktop mode is always icon-only, labels hidden
+    expect(screen.queryByText("Dashboard")).not.toBeInTheDocument();
+    expect(screen.queryByText("Charts")).not.toBeInTheDocument();
+  });
+
+  it("shows navigation labels on mobile when open", () => {
+    render(<Sidebar {...defaultProps} mobile={true} mobileOpen={true} />);
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
     expect(screen.getByText("Charts")).toBeInTheDocument();
     expect(screen.getByText("Signals")).toBeInTheDocument();
     expect(screen.getByText("Portfolio")).toBeInTheDocument();
     expect(screen.getByText("Settings")).toBeInTheDocument();
-  });
-
-  it("hides navigation labels when collapsed", () => {
-    render(<Sidebar {...defaultProps} collapsed={true} />);
-
-    expect(screen.queryByText("Dashboard")).not.toBeInTheDocument();
-    expect(screen.queryByText("Charts")).not.toBeInTheDocument();
-    expect(screen.queryByText("Signals")).not.toBeInTheDocument();
   });
 
   it("marks the active route with aria-current", () => {
@@ -147,19 +152,19 @@ describe("Sidebar", () => {
     expect(activeLink).toHaveAttribute("href", "/signals");
   });
 
-  it("applies active styling to current route", () => {
+  it("applies active styling to current route with cyan", () => {
     mockPathname = "/portfolio";
     render(<Sidebar {...defaultProps} />);
 
     const activeLink = screen.getByRole("link", { current: "page" });
-    expect(activeLink.className).toContain("blue");
+    expect(activeLink.className).toContain("cyan");
   });
 
   it("shows connection indicator as green when connected", () => {
     const { container } = render(
       <Sidebar {...defaultProps} connected={true} />
     );
-    const dot = container.querySelector(".bg-green-500");
+    const dot = container.querySelector(".bg-hud-green");
     expect(dot).toBeInTheDocument();
   });
 
@@ -167,39 +172,24 @@ describe("Sidebar", () => {
     const { container } = render(
       <Sidebar {...defaultProps} connected={false} />
     );
-    const dot = container.querySelector(".bg-red-500");
+    const dot = container.querySelector(".bg-hud-red");
     expect(dot).toBeInTheDocument();
   });
 
-  it("shows user email", () => {
-    render(<Sidebar {...defaultProps} />);
+  it("shows user email on mobile overlay", () => {
+    render(<Sidebar {...defaultProps} mobile={true} mobileOpen={true} />);
     expect(screen.getByText("test@jarvis.com")).toBeInTheDocument();
   });
 
-  it("calls signOut when sign out button is clicked", async () => {
+  it("calls signOut when sign out button is clicked (mobile)", async () => {
     const user = userEvent.setup();
-    render(<Sidebar {...defaultProps} />);
+    render(<Sidebar {...defaultProps} mobile={true} mobileOpen={true} />);
 
     const signOutButton = screen.getByText("Sign Out").closest("button");
     expect(signOutButton).toBeInTheDocument();
 
     await user.click(signOutButton!);
     expect(mockSignOut).toHaveBeenCalledTimes(1);
-  });
-
-  it("calls onToggle when collapse button is clicked", async () => {
-    const user = userEvent.setup();
-    const onToggle = jest.fn();
-    render(<Sidebar {...defaultProps} onToggle={onToggle} />);
-
-    const toggleButton = screen.getByLabelText("Collapse sidebar");
-    await user.click(toggleButton);
-    expect(onToggle).toHaveBeenCalledTimes(1);
-  });
-
-  it("shows expand label when collapsed", () => {
-    render(<Sidebar {...defaultProps} collapsed={true} />);
-    expect(screen.getByLabelText("Expand sidebar")).toBeInTheDocument();
   });
 
   it("returns null on mobile when not open", () => {
@@ -209,16 +199,23 @@ describe("Sidebar", () => {
     expect(container.querySelector("aside")).not.toBeInTheDocument();
   });
 
-  it("renders on mobile when open", () => {
+  it("renders on mobile when open with 240px width", () => {
     const { container } = render(
       <Sidebar {...defaultProps} mobile={true} mobileOpen={true} />
     );
-    expect(container.querySelector("aside")).toBeInTheDocument();
+    const aside = container.querySelector("aside");
+    expect(aside).toBeInTheDocument();
+    expect(aside?.className).toContain("w-60");
   });
 
-  it("shows JARVIS Trader branding", () => {
+  it("shows JARVIS branding logo", () => {
     render(<Sidebar {...defaultProps} />);
-    expect(screen.getByText("JARVIS Trader")).toBeInTheDocument();
     expect(screen.getByText("J")).toBeInTheDocument();
+  });
+
+  it("shows tooltip titles on desktop icon-only nav links", () => {
+    render(<Sidebar {...defaultProps} />);
+    const dashboardLink = screen.getAllByRole("link").find(l => l.getAttribute("href") === "/");
+    expect(dashboardLink).toHaveAttribute("title", "Dashboard");
   });
 });

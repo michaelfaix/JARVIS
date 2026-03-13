@@ -48,9 +48,9 @@ import {
 
 export default function SignalsPage() {
   const { regime, error: statusError } = useSystemStatus(5000);
-  const { signals: allSignals, loading, error, refresh } = useSignals(regime, 10000);
   const { state: portfolio, openPosition, closePosition } = usePortfolio();
-  const { prices, binanceConnected, wsConnected } = usePrices(5000);
+  const { prices, priceHistory, binanceConnected, wsConnected } = usePrices(5000);
+  const { signals: allSignals, loading, error, refresh } = useSignals(regime, 10000, prices, priceHistory);
   const { toast } = useToast();
   const { tier, isPro } = useProfile();
   const { checkSignals } = useSignalAlerts();

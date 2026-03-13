@@ -23,9 +23,9 @@ import {
 import { ApiOfflineBanner } from "@/components/ui/api-offline-banner";
 
 export default function MarketsPage() {
-  const { prices, wsConnected, binanceConnected } = usePrices(5000);
+  const { prices, priceHistory, wsConnected, binanceConnected } = usePrices(5000);
   const { regime, error: statusError } = useSystemStatus(5000);
-  const { signals, error: signalsError } = useSignals(regime, 10000);
+  const { signals, error: signalsError } = useSignals(regime, 10000, prices, priceHistory);
 
   // Track previous prices for change calculation
   const prevPricesRef = useRef<Record<string, number>>({});
