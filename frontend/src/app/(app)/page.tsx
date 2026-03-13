@@ -32,8 +32,9 @@ import { PnlTicker } from "@/components/dashboard/pnl-ticker";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { StrategyControl } from "@/components/dashboard/strategy-control";
 import type { JarvisTipsContext } from "@/components/chart/asset-chart";
-import { CoPilotPanel } from "@/components/copilot/copilot-panel";
-import { CoPilotTrigger } from "@/components/copilot/copilot-trigger";
+import dynamic from "next/dynamic";
+const CoPilotPanel = dynamic(() => import("@/components/copilot/copilot-panel").then((m) => m.CoPilotPanel), { ssr: false });
+const CoPilotTrigger = dynamic(() => import("@/components/copilot/copilot-trigger").then((m) => m.CoPilotTrigger), { ssr: false });
 import { useCoPilot } from "@/hooks/use-copilot";
 import { useProactiveWarnings } from "@/hooks/use-proactive-warnings";
 import { useStrategy } from "@/hooks/use-strategy";
@@ -142,9 +143,17 @@ export default function DashboardPage() {
     timeframeIdx: number;
   }
   const FAV_DEFAULT: FavoriteChart = useMemo(() => ({ assetIdx: 0, timeframeIdx: 4 }), []); // BTC / 4H
-  const savedFav = useRef(loadJSON<FavoriteChart>("jarvis:favorite-chart", FAV_DEFAULT));
-  const [selectedAsset, setSelectedAsset] = useState(savedFav.current.assetIdx);
-  const [timeframeIdx, setTimeframeIdx] = useState(savedFav.current.timeframeIdx);
+  const [selectedAsset, setSelectedAsset] = useState(0);
+  const [timeframeIdx, setTimeframeIdx] = useState(4);
+  const [favLoaded, setFavLoaded] = useState(false);
+
+  // Hydrate favorite from localStorage after mount
+  useEffect(() => {
+    const fav = loadJSON<FavoriteChart>("jarvis:favorite-chart", FAV_DEFAULT);
+    setSelectedAsset(fav.assetIdx);
+    setTimeframeIdx(fav.timeframeIdx);
+    setFavLoaded(true);
+  }, [FAV_DEFAULT]);
 
   const saveFavorite = useCallback(() => {
     const fav: FavoriteChart = { assetIdx: selectedAsset, timeframeIdx };
@@ -153,9 +162,10 @@ export default function DashboardPage() {
 
   // Check if current selection matches saved favorite
   const isCurrentFavorite = useMemo(() => {
+    if (!favLoaded) return false;
     const fav = loadJSON<FavoriteChart>("jarvis:favorite-chart", FAV_DEFAULT);
     return fav.assetIdx === selectedAsset && fav.timeframeIdx === timeframeIdx;
-  }, [selectedAsset, timeframeIdx, FAV_DEFAULT]);
+  }, [selectedAsset, timeframeIdx, FAV_DEFAULT, favLoaded]);
 
   // Live price from chart (WS for crypto, sim for stocks)
   const [wsPrice, setWsPrice] = useState<number | null>(null);
@@ -698,23 +708,28 @@ export default function DashboardPage() {
                           />
                         </div>
                       </button>
-                      {alreadyOpen ? (
-                        <span className="flex items-center gap-1 text-[10px] text-green-400/60 shrink-0" title="Position already open">
-                          <Check className="h-3 w-3" />
-                          Open
-                        </span>
-                      ) : (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            acceptSignal(signal);
-                          }}
-                          className="shrink-0 px-2 py-1 rounded text-[10px] font-medium bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600/40 transition-colors"
-                          title="Quick-Trade: Open position with 5% capital"
-                        >
-                          Trade
-                        </button>
-                      )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!alreadyOpen) acceptSignal(signal);
+                        }}
+                        disabled={alreadyOpen}
+                        className={`shrink-0 px-2 py-1 rounded text-[10px] font-medium transition-colors ${
+                          alreadyOpen
+                            ? "text-green-400/60 cursor-default"
+                            : "bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600/40"
+                        }`}
+                        title={alreadyOpen ? "Position already open" : "Quick-Trade: Open position with 5% capital"}
+                      >
+                        {alreadyOpen ? (
+                          <span className="flex items-center gap-1">
+                            <Check className="h-3 w-3" />
+                            Open
+                          </span>
+                        ) : (
+                          "Trade"
+                        )}
+                      </button>
                       <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-blue-400 transition-colors shrink-0" />
                     </div>
                   );
