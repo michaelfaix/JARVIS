@@ -3,22 +3,23 @@
 import { useCallback, useEffect, useState } from "react";
 import { loadJSON, saveJSON } from "@/lib/storage";
 
-const KEY = "jarvis-sidebar-collapsed";
+const KEY = "jarvis-sidebar-expanded";
 
 export function useSidebar() {
-  const [collapsed, setCollapsed] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
-    setCollapsed(loadJSON(KEY, false));
+    setExpanded(loadJSON(KEY, false));
   }, []);
 
   const toggle = useCallback(() => {
-    setCollapsed((prev) => {
+    setExpanded((prev) => {
       const next = !prev;
       saveJSON(KEY, next);
       return next;
     });
   }, []);
 
-  return { collapsed, toggle };
+  // Keep collapsed/toggle for backward compat with layout
+  return { collapsed: !expanded, expanded, toggle };
 }

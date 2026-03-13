@@ -121,16 +121,28 @@ describe("Sidebar", () => {
     expect(links.length).toBeGreaterThanOrEqual(15);
   });
 
-  it("renders as 44px icon-only sidebar on desktop", () => {
-    const { container } = render(<Sidebar {...defaultProps} />);
+  it("renders as 44px icon-only sidebar when collapsed", () => {
+    const { container } = render(<Sidebar {...defaultProps} collapsed={true} />);
     const aside = container.querySelector("aside");
     expect(aside).toBeInTheDocument();
     expect(aside?.className).toContain("w-[44px]");
   });
 
-  it("hides navigation labels on desktop (icon-only)", () => {
+  it("renders as 220px expanded sidebar when not collapsed", () => {
+    const { container } = render(<Sidebar {...defaultProps} collapsed={false} />);
+    const aside = container.querySelector("aside");
+    expect(aside).toBeInTheDocument();
+    expect(aside?.className).toContain("w-[220px]");
+  });
+
+  it("shows navigation labels when expanded", () => {
     render(<Sidebar {...defaultProps} collapsed={false} />);
-    // Desktop mode is always icon-only, labels hidden
+    expect(screen.getByText("Dashboard")).toBeInTheDocument();
+    expect(screen.getByText("Charts")).toBeInTheDocument();
+  });
+
+  it("hides navigation labels when collapsed", () => {
+    render(<Sidebar {...defaultProps} collapsed={true} />);
     expect(screen.queryByText("Dashboard")).not.toBeInTheDocument();
     expect(screen.queryByText("Charts")).not.toBeInTheDocument();
   });
@@ -213,8 +225,8 @@ describe("Sidebar", () => {
     expect(screen.getByText("J")).toBeInTheDocument();
   });
 
-  it("shows tooltip titles on desktop icon-only nav links", () => {
-    render(<Sidebar {...defaultProps} />);
+  it("shows tooltip titles when collapsed (icon-only)", () => {
+    render(<Sidebar {...defaultProps} collapsed={true} />);
     const dashboardLink = screen.getAllByRole("link").find(l => l.getAttribute("href") === "/");
     expect(dashboardLink).toHaveAttribute("title", "Dashboard");
   });

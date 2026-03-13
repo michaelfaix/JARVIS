@@ -1,5 +1,5 @@
 // =============================================================================
-// Tests: use-sidebar.ts — Sidebar collapse state
+// Tests: use-sidebar.ts — Sidebar expand/collapse state
 // =============================================================================
 
 import { renderHook, act } from "@testing-library/react";
@@ -11,28 +11,31 @@ describe("useSidebar", () => {
     jest.clearAllMocks();
   });
 
-  it("defaults to not collapsed", () => {
+  it("defaults to collapsed (not expanded)", () => {
     const { result } = renderHook(() => useSidebar());
-    expect(result.current.collapsed).toBe(false);
-  });
-
-  it("toggles collapsed state", () => {
-    const { result } = renderHook(() => useSidebar());
-
-    act(() => {
-      result.current.toggle();
-    });
-
     expect(result.current.collapsed).toBe(true);
+    expect(result.current.expanded).toBe(false);
+  });
+
+  it("toggles expanded state", () => {
+    const { result } = renderHook(() => useSidebar());
 
     act(() => {
       result.current.toggle();
     });
 
+    expect(result.current.expanded).toBe(true);
     expect(result.current.collapsed).toBe(false);
+
+    act(() => {
+      result.current.toggle();
+    });
+
+    expect(result.current.expanded).toBe(false);
+    expect(result.current.collapsed).toBe(true);
   });
 
-  it("persists collapsed state to localStorage", () => {
+  it("persists expanded state to localStorage", () => {
     const { result } = renderHook(() => useSidebar());
 
     act(() => {
@@ -40,19 +43,19 @@ describe("useSidebar", () => {
     });
 
     expect(localStorage.setItem).toHaveBeenCalledWith(
-      "jarvis-sidebar-collapsed",
+      "jarvis-sidebar-expanded",
       "true"
     );
   });
 
-  it("loads collapsed state from localStorage", () => {
-    localStorage.setItem("jarvis-sidebar-collapsed", "true");
+  it("loads expanded state from localStorage", () => {
+    localStorage.setItem("jarvis-sidebar-expanded", "true");
 
     const { result } = renderHook(() => useSidebar());
 
-    // After useEffect runs
     act(() => {}); // flush effects
 
-    expect(result.current.collapsed).toBe(true);
+    expect(result.current.expanded).toBe(true);
+    expect(result.current.collapsed).toBe(false);
   });
 });

@@ -119,13 +119,16 @@ export default function AppLayout({
     };
   }, []);
 
-  // Sidebar is always collapsed on tablet, user-controlled on desktop
+  // Sidebar: mobile=overlay, tablet=always collapsed, desktop=user toggle
   const sidebarCollapsed = isMobile ? !mobileOpen : isTablet ? true : collapsed;
   const sidebarToggle = isMobile
     ? () => setMobileOpen((p) => !p)
     : isTablet
-      ? () => {} // no toggle on tablet — always collapsed
+      ? () => {}
       : toggle;
+
+  // Dynamic content margin: 220px expanded, 44px collapsed, 0 mobile
+  const contentMargin = isMobile ? "ml-0" : (!isTablet && !collapsed) ? "ml-[220px]" : "ml-[44px]";
 
   return (
     <LocaleProvider>
@@ -151,8 +154,8 @@ export default function AppLayout({
 
         <div
           className={cn(
-            "flex min-h-screen flex-col transition-all duration-200 overflow-x-hidden",
-            isMobile ? "ml-0" : "ml-[44px]"
+            "flex min-h-screen flex-col transition-all duration-300 overflow-x-hidden",
+            contentMargin
           )}
         >
           {/* HUD Topbar: desktop only */}
