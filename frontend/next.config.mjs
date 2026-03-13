@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  transpilePackages: ["react-grid-layout"],
   // ---------------------------------------------------------------------------
   // Workaround: Next.js 14 persistent file-system cache causes stale CSS.
   // When source files change while the dev server is stopped, the cached CSS

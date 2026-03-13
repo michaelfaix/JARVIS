@@ -141,7 +141,7 @@ export function CoPilotEmbed({ state, sendMessage, onExpand }: CoPilotEmbedProps
                   handleSend();
                 }
               }}
-              placeholder="Ask JARVIS..."
+              placeholder="Frag JARVIS..."
               className="flex-1 bg-hud-bg/80 border border-hud-border rounded px-2 py-1 text-[10px] font-mono text-white placeholder:text-muted-foreground/40 focus:outline-none focus:border-hud-cyan/50"
             />
             <button
