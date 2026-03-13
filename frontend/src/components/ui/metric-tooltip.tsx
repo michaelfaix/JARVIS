@@ -30,6 +30,7 @@ const GLOSSARY: Record<string, string> = {
   "Drawdown": "Maximum portfolio value decline from peak. Measures worst-case loss exposure. >5% triggers risk warnings.",
   "Win Rate": "Percentage of closed trades that were profitable. Above 50% generally indicates a profitable strategy.",
   "Sharpe": "Risk-adjusted return metric. Measures excess return per unit of volatility. >1.0 is good, >2.0 is excellent.",
+  "Profit Factor": "Ratio of gross profits to gross losses. >1.0 means profitable, >1.5 is good, >2.0 is excellent. Infinity means no losing trades.",
   "Fear & Greed": "Crypto market sentiment index (0-100). 0 = Extreme Fear (buying opportunity), 100 = Extreme Greed (sell signal).",
   "Momentum": "Directional price strength across tracked assets. Bullish = prices rising, Bearish = prices falling.",
   "Volatility": "Price fluctuation intensity. High volatility = larger price swings = higher risk and opportunity.",

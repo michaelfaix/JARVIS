@@ -5,6 +5,7 @@
 "use client";
 
 import React, { useMemo } from "react";
+import { MetricTooltip } from "@/components/ui/metric-tooltip";
 import type { ClosedTrade } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
@@ -47,7 +48,7 @@ function StatCard({
   label,
   children,
 }: {
-  label: string;
+  label: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -504,7 +505,7 @@ export function AnalyticsPanel({
 
       {/* 1. Advanced Performance Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-        <StatCard label="Sharpe Ratio">
+        <StatCard label={<MetricTooltip term="Sharpe">Sharpe Ratio</MetricTooltip>}>
           <span
             className={
               metrics.sharpe > 1
@@ -518,7 +519,7 @@ export function AnalyticsPanel({
           </span>
         </StatCard>
 
-        <StatCard label="Profit Factor">
+        <StatCard label={<MetricTooltip term="Profit Factor">Profit Factor</MetricTooltip>}>
           <span
             className={
               metrics.profitFactor > 1.5

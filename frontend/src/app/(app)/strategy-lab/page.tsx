@@ -186,172 +186,174 @@ function StrategyLabContent() {
 
       {/* Controls Panel */}
       <HudPanel title="BACKTEST CONFIGURATION">
-        <div className="p-2 sm:p-3 md:p-4 space-y-4">
-          {/* Period Selection */}
-          <div className="space-y-2">
-            <div className="text-[10px] text-muted-foreground font-mono">PERIOD</div>
-            <div className="flex gap-2">
-              {PERIOD_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setPeriod(opt.value)}
-                  className={`px-3 py-1.5 rounded text-xs font-mono transition-colors ${
-                    period === opt.value
-                      ? "bg-hud-cyan/20 text-hud-cyan border border-hud-cyan/30"
-                      : "bg-hud-bg/60 text-muted-foreground border border-hud-border/30 hover:text-white hover:border-hud-border/50"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Asset Selection */}
-          <div className="space-y-2">
-            <div className="text-[10px] text-muted-foreground font-mono">ASSETS</div>
-            <div className="flex flex-wrap gap-2">
-              {AVAILABLE_ASSETS.map((asset) => {
-                const isChecked = selectedAssets.includes(asset);
-                return (
+        <div className="p-2.5">
+          <div className="space-y-4">
+            {/* Period Selection */}
+            <div className="space-y-2">
+              <div className="text-[10px] text-muted-foreground font-mono">PERIOD</div>
+              <div className="flex gap-2">
+                {PERIOD_OPTIONS.map((opt) => (
                   <button
-                    key={asset}
-                    onClick={() => toggleAsset(asset)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition-colors ${
-                      isChecked
+                    key={opt.value}
+                    onClick={() => setPeriod(opt.value)}
+                    className={`px-3 py-1.5 rounded text-xs font-mono transition-colors ${
+                      period === opt.value
                         ? "bg-hud-cyan/20 text-hud-cyan border border-hud-cyan/30"
                         : "bg-hud-bg/60 text-muted-foreground border border-hud-border/30 hover:text-white hover:border-hud-border/50"
                     }`}
                   >
-                    <div
-                      className={`h-3 w-3 rounded-sm border flex items-center justify-center ${
-                        isChecked ? "bg-hud-cyan border-hud-cyan" : "border-muted-foreground/50"
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Asset Selection */}
+            <div className="space-y-2">
+              <div className="text-[10px] text-muted-foreground font-mono">ASSETS</div>
+              <div className="flex flex-wrap gap-2">
+                {AVAILABLE_ASSETS.map((asset) => {
+                  const isChecked = selectedAssets.includes(asset);
+                  return (
+                    <button
+                      key={asset}
+                      onClick={() => toggleAsset(asset)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition-colors ${
+                        isChecked
+                          ? "bg-hud-cyan/20 text-hud-cyan border border-hud-cyan/30"
+                          : "bg-hud-bg/60 text-muted-foreground border border-hud-border/30 hover:text-white hover:border-hud-border/50"
                       }`}
                     >
-                      {isChecked && (
-                        <svg viewBox="0 0 12 12" className="h-2 w-2 text-white">
-                          <path
-                            d="M2 6l3 3 5-5"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      )}
-                    </div>
-                    {asset}
-                  </button>
-                );
-              })}
+                      <div
+                        className={`h-3 w-3 rounded-sm border flex items-center justify-center ${
+                          isChecked ? "bg-hud-cyan border-hud-cyan" : "border-muted-foreground/50"
+                        }`}
+                      >
+                        {isChecked && (
+                          <svg viewBox="0 0 12 12" className="h-2 w-2 text-white">
+                            <path
+                              d="M2 6l3 3 5-5"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        )}
+                      </div>
+                      {asset}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
 
-          {/* Risk Settings */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <div className="text-[10px] text-muted-foreground font-mono">
-                RISK PER TRADE: <span className="font-mono text-white">{riskPerTrade}%</span>
+            {/* Risk Settings */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <div className="text-[10px] text-muted-foreground font-mono">
+                  RISK PER TRADE: <span className="font-mono text-white">{riskPerTrade}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={1}
+                  max={5}
+                  step={0.5}
+                  value={riskPerTrade}
+                  onChange={(e) => setRiskPerTrade(parseFloat(e.target.value))}
+                  className="w-full accent-hud-cyan"
+                />
+                <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
+                  <span>1%</span>
+                  <span>5%</span>
+                </div>
               </div>
-              <input
-                type="range"
-                min={1}
-                max={5}
-                step={0.5}
-                value={riskPerTrade}
-                onChange={(e) => setRiskPerTrade(parseFloat(e.target.value))}
-                className="w-full accent-hud-cyan"
-              />
-              <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
-                <span>1%</span>
-                <span>5%</span>
+              <div className="space-y-2">
+                <div className="text-[10px] text-muted-foreground font-mono">
+                  STOP LOSS: <span className="font-mono text-white">{slPercent}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={1}
+                  max={10}
+                  step={0.5}
+                  value={slPercent}
+                  onChange={(e) => setSlPercent(parseFloat(e.target.value))}
+                  className="w-full accent-hud-red"
+                />
+                <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
+                  <span>1%</span>
+                  <span>10%</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-[10px] text-muted-foreground font-mono">
+                  TAKE PROFIT: <span className="font-mono text-white">{tpPercent}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={2}
+                  max={20}
+                  step={1}
+                  value={tpPercent}
+                  onChange={(e) => setTpPercent(parseFloat(e.target.value))}
+                  className="w-full accent-hud-green"
+                />
+                <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
+                  <span>2%</span>
+                  <span>20%</span>
+                </div>
               </div>
             </div>
-            <div className="space-y-2">
-              <div className="text-[10px] text-muted-foreground font-mono">
-                STOP LOSS: <span className="font-mono text-white">{slPercent}%</span>
-              </div>
-              <input
-                type="range"
-                min={1}
-                max={10}
-                step={0.5}
-                value={slPercent}
-                onChange={(e) => setSlPercent(parseFloat(e.target.value))}
-                className="w-full accent-hud-red"
-              />
-              <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
-                <span>1%</span>
-                <span>10%</span>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="text-[10px] text-muted-foreground font-mono">
-                TAKE PROFIT: <span className="font-mono text-white">{tpPercent}%</span>
-              </div>
-              <input
-                type="range"
-                min={2}
-                max={20}
-                step={1}
-                value={tpPercent}
-                onChange={(e) => setTpPercent(parseFloat(e.target.value))}
-                className="w-full accent-hud-green"
-              />
-              <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
-                <span>2%</span>
-                <span>20%</span>
-              </div>
-            </div>
-          </div>
 
-          <Separator className="opacity-30 border-hud-border/30" />
+            <Separator className="opacity-30 border-hud-border/30" />
 
-          {/* Action Buttons */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4 text-xs font-mono">
-              <div>
-                <span className="text-muted-foreground">Strategy: </span>
-                <span className="text-white">
-                  {STRATEGIES.find((s) => s.id === selectedStrategy)?.label}
-                </span>
+            {/* Action Buttons */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4 text-xs font-mono">
+                <div>
+                  <span className="text-muted-foreground">Strategy: </span>
+                  <span className="text-white">
+                    {STRATEGIES.find((s) => s.id === selectedStrategy)?.label}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Capital: </span>
+                  <span className="text-white">$100,000</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Assets: </span>
+                  <span className="text-white">{selectedAssets.length}</span>
+                </div>
               </div>
-              <div>
-                <span className="text-muted-foreground">Capital: </span>
-                <span className="text-white">$100,000</span>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleBacktest}
+                  disabled={running || runningWFV}
+                  className="bg-hud-cyan/20 hover:bg-hud-cyan/30 text-hud-cyan border border-hud-cyan/30 gap-2"
+                >
+                  {running ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Play className="h-4 w-4" />
+                  )}
+                  Run Backtest
+                </Button>
+                <Button
+                  onClick={handleWalkForward}
+                  disabled={running || runningWFV}
+                  variant="outline"
+                  className="border-hud-cyan/30 text-hud-cyan hover:bg-hud-cyan/10 gap-2"
+                >
+                  {runningWFV ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Zap className="h-4 w-4" />
+                  )}
+                  Run Walk-Forward
+                </Button>
               </div>
-              <div>
-                <span className="text-muted-foreground">Assets: </span>
-                <span className="text-white">{selectedAssets.length}</span>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={handleBacktest}
-                disabled={running || runningWFV}
-                className="bg-hud-cyan/20 hover:bg-hud-cyan/30 text-hud-cyan border border-hud-cyan/30 gap-2"
-              >
-                {running ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Play className="h-4 w-4" />
-                )}
-                Run Backtest
-              </Button>
-              <Button
-                onClick={handleWalkForward}
-                disabled={running || runningWFV}
-                variant="outline"
-                className="border-hud-cyan/30 text-hud-cyan hover:bg-hud-cyan/10 gap-2"
-              >
-                {runningWFV ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Zap className="h-4 w-4" />
-                )}
-                Run Walk-Forward
-              </Button>
             </div>
           </div>
         </div>
@@ -474,7 +476,7 @@ function StrategyLabContent() {
 
       {/* Architecture Info */}
       <HudPanel title="JARVIS ARCHITECTURE">
-        <div className="p-2 sm:p-3 md:p-4">
+        <div className="p-2.5">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
             <div className="rounded-lg bg-hud-bg/60 border border-hud-border/30 p-3">
               <div className="text-[10px] text-muted-foreground mb-1 font-mono">ML MODULES</div>
@@ -588,7 +590,7 @@ function EquityCurveChart({ result }: { result: BacktestResult }) {
 
   return (
     <HudPanel title="EQUITY CURVE">
-      <div className="p-2 sm:p-3 md:p-4">
+      <div className="p-2.5">
         <div className="text-[10px] text-muted-foreground mb-2 font-mono">
           $100,000 starting capital
         </div>
@@ -709,7 +711,7 @@ function TradeLogTable({ trades }: { trades: BacktestResult["trades"] }) {
 
   return (
     <HudPanel title="TRADE LOG">
-      <div className="p-2 sm:p-3 md:p-4">
+      <div className="p-2.5">
         <div className="text-[10px] text-muted-foreground mb-3 font-mono">
           {trades.length} trades — showing last {displayed.length}
         </div>
@@ -808,7 +810,7 @@ function WalkForwardPanel({ wfv }: { wfv: WFVResult }) {
     <div className="space-y-3">
       {/* Robustness Badge + Aggregate Metrics */}
       <HudPanel title="WALK-FORWARD VALIDATION">
-        <div className="p-2 sm:p-3 md:p-4">
+        <div className="p-2.5">
           <div className="flex items-center justify-between mb-3">
             <div className="text-[10px] text-muted-foreground font-mono flex items-center gap-2">
               <Zap className="h-4 w-4" />

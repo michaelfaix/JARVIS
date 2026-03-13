@@ -30,7 +30,7 @@ function calcPnl(position: Position, currentPrice: number): number {
     : (position.entryPrice - currentPrice) * position.size;
 }
 
-export function PnlTicker({ positions, prices }: PnlTickerProps) {
+export const PnlTicker = React.memo(function PnlTicker({ positions, prices }: PnlTickerProps) {
   if (!positions || positions.length === 0) return null;
 
   const pnlEntries = positions.map((pos) => {
@@ -79,4 +79,4 @@ export function PnlTicker({ positions, prices }: PnlTickerProps) {
       </span>
     </div>
   );
-}
+});

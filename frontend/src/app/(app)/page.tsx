@@ -6,7 +6,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AssetChart } from "@/components/chart/asset-chart";
+import dynamic from "next/dynamic";
+const AssetChart = dynamic(() => import("@/components/chart/asset-chart").then((m) => m.AssetChart), { ssr: false });
 import { TimeframeSlider, TIMEFRAMES } from "@/components/dashboard/timeframe-slider";
 import { RegimeDisplay } from "@/components/dashboard/regime-display";
 import {
@@ -33,7 +34,6 @@ import { PnlTicker } from "@/components/dashboard/pnl-ticker";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { StrategyControl } from "@/components/dashboard/strategy-control";
 import type { JarvisTipsContext } from "@/components/chart/asset-chart";
-import dynamic from "next/dynamic";
 const CoPilotPanel = dynamic(() => import("@/components/copilot/copilot-panel").then((m) => m.CoPilotPanel), { ssr: false });
 const CoPilotTrigger = dynamic(() => import("@/components/copilot/copilot-trigger").then((m) => m.CoPilotTrigger), { ssr: false });
 import { CoPilotEmbed } from "@/components/copilot/copilot-embed";

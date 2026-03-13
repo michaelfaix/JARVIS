@@ -23,6 +23,7 @@ import { usePrices } from "@/hooks/use-prices";
 import { useAutoSLTP } from "@/hooks/use-auto-sl-tp";
 import { REGIME_COLORS } from "@/lib/types";
 import { useToast } from "@/components/ui/toast";
+import { MetricTooltip } from "@/components/ui/metric-tooltip";
 import { EquityCurve } from "@/components/chart/equity-curve";
 import { AnalyticsPanel } from "@/components/portfolio/analytics-panel";
 import { useAchievements } from "@/hooks/use-achievements";
@@ -574,7 +575,7 @@ export default function PortfolioPage() {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <div className="bg-hud-bg/60 border border-hud-border/30 rounded p-2.5">
               <div className="flex items-center gap-2 text-[10px] text-muted-foreground mb-1">
-                <Trophy className="h-3 w-3" /> WIN RATE
+                <Trophy className="h-3 w-3" /> <MetricTooltip term="Win Rate">WIN RATE</MetricTooltip>
               </div>
               <div className={`text-xl font-bold font-mono ${winRate >= 50 ? "text-hud-green" : "text-hud-red"}`}>
                 {winRate.toFixed(1)}%
@@ -600,7 +601,7 @@ export default function PortfolioPage() {
             </div>
             <div className="bg-hud-bg/60 border border-hud-border/30 rounded p-2.5">
               <div className="flex items-center gap-2 text-[10px] text-muted-foreground mb-1">
-                <BarChart3 className="h-3 w-3" /> DRAWDOWN
+                <BarChart3 className="h-3 w-3" /> <MetricTooltip term="Drawdown">DRAWDOWN</MetricTooltip>
               </div>
               <div className={`text-xl font-bold font-mono ${drawdown > 5 ? "text-hud-red" : drawdown > 0 ? "text-hud-amber" : "text-hud-green"}`}>
                 {drawdown.toFixed(2)}%

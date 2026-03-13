@@ -172,8 +172,8 @@ export default function LeaderboardPage() {
 
       {/* Your Position */}
       {currentUserEntry && (
-        <HudPanel title="Your Position" className="bg-hud-cyan/5 border-hud-cyan/20">
-          <div className="p-3">
+        <HudPanel title="YOUR POSITION" className="bg-hud-cyan/5 border-hud-cyan/20">
+          <div className="p-2.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-hud-cyan/20">
@@ -210,7 +210,7 @@ export default function LeaderboardPage() {
 
       {/* Full Ranking Table */}
       <Tabs defaultValue="return">
-        <TabsList>
+        <TabsList className="bg-hud-bg/60 border border-hud-border/30">
           <TabsTrigger value="return" className="gap-1 data-[state=active]:text-hud-cyan">
             <TrendingUp className="h-3 w-3" /> Return
           </TabsTrigger>
@@ -281,130 +281,132 @@ function RankingTable({
   canFollow: boolean;
 }) {
   return (
-    <HudPanel title="Rankings" className="mt-4">
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-hud-border">
-              <TableHead className="w-12 font-mono text-[10px]">#</TableHead>
-              <TableHead className="font-mono text-[10px]">Trader</TableHead>
-              <TableHead className="font-mono text-[10px]">Tier</TableHead>
-              <TableHead className="text-right font-mono text-[10px]">Return</TableHead>
-              <TableHead className="text-right font-mono text-[10px]">Win Rate</TableHead>
-              <TableHead className="text-right font-mono text-[10px]">Trades</TableHead>
-              <TableHead className="text-right font-mono text-[10px]">Max DD</TableHead>
-              {sortKey === "riskAdjusted" && (
-                <TableHead className="text-right font-mono text-[10px]">Score</TableHead>
-              )}
-              <TableHead className="text-center w-20 font-mono text-[10px]">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {entries.map((entry, i) => {
-              const following = !entry.isCurrentUser && isFollowing(entry.name);
-              return (
-              <TableRow
-                key={entry.name}
-                className={`border-hud-border/30 ${
-                  entry.isCurrentUser
-                    ? "bg-hud-cyan/5 border-hud-cyan/20"
-                    : ""
-                }`}
-              >
-                <TableCell className="font-mono text-muted-foreground">
-                  {i < 3 ? RANK_ICONS[i] : i + 1}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-1.5">
-                    {entry.isCurrentUser && (
-                      <User className="h-3 w-3 text-hud-cyan" />
-                    )}
-                    <span
-                      className={`font-medium font-mono ${
-                        entry.isCurrentUser ? "text-hud-cyan" : "text-white"
-                      }`}
-                    >
-                      {entry.name}
-                    </span>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    className={`text-[9px] ${TIER_BADGE[entry.tier]}`}
-                  >
-                    {entry.tier}
-                  </Badge>
-                </TableCell>
-                <TableCell
-                  className={`text-right font-mono ${
-                    entry.totalReturn >= 0 ? "text-hud-green" : "text-hud-red"
-                  }`}
-                >
-                  {entry.totalReturn >= 0 ? "+" : ""}
-                  {entry.totalReturn.toFixed(1)}%
-                </TableCell>
-                <TableCell className="text-right font-mono text-white">
-                  {entry.winRate}%
-                </TableCell>
-                <TableCell className="text-right font-mono text-muted-foreground">
-                  {entry.trades}
-                </TableCell>
-                <TableCell
-                  className={`text-right font-mono ${
-                    entry.drawdown > 10
-                      ? "text-hud-red"
-                      : entry.drawdown > 5
-                      ? "text-hud-amber"
-                      : "text-hud-green"
-                  }`}
-                >
-                  {entry.drawdown.toFixed(1)}%
-                </TableCell>
+    <HudPanel title="RANKINGS" className="mt-4">
+      <div className="p-2.5">
+        <div className="overflow-x-auto">
+          <Table className="border-hud-border/30">
+            <TableHeader>
+              <TableRow className="border-hud-border/30">
+                <TableHead className="w-12 font-mono text-[10px]">#</TableHead>
+                <TableHead className="font-mono text-[10px]">Trader</TableHead>
+                <TableHead className="font-mono text-[10px]">Tier</TableHead>
+                <TableHead className="text-right font-mono text-[10px]">Return</TableHead>
+                <TableHead className="text-right font-mono text-[10px]">Win Rate</TableHead>
+                <TableHead className="text-right font-mono text-[10px]">Trades</TableHead>
+                <TableHead className="text-right font-mono text-[10px]">Max DD</TableHead>
                 {sortKey === "riskAdjusted" && (
-                  <TableCell className="text-right font-mono text-white">
-                    {entry.drawdown > 0
-                      ? (entry.totalReturn / entry.drawdown).toFixed(2)
-                      : "—"}
-                  </TableCell>
+                  <TableHead className="text-right font-mono text-[10px]">Score</TableHead>
                 )}
-                <TableCell className="text-center">
-                  {!entry.isCurrentUser && (
-                    <div className="flex items-center justify-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 p-0"
-                        onClick={() => following ? unfollowTrader(entry.name) : followTrader(entry.name)}
-                        disabled={!following && !canFollow}
-                        title={following ? "Unfollow" : canFollow ? "Follow" : "Max follows reached"}
-                      >
-                        <Heart
-                          className={`h-3.5 w-3.5 ${
-                            following
-                              ? "fill-hud-red text-hud-red"
-                              : "text-muted-foreground hover:text-hud-red"
-                          }`}
-                        />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 p-0"
-                        title="Copy trades"
-                        onClick={() => {
-                          if (!following) followTrader(entry.name);
-                        }}
-                      >
-                        <Copy className="h-3.5 w-3.5 text-muted-foreground hover:text-hud-cyan" />
-                      </Button>
-                    </div>
-                  )}
-                </TableCell>
+                <TableHead className="text-center w-20 font-mono text-[10px]">Actions</TableHead>
               </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {entries.map((entry, i) => {
+                const following = !entry.isCurrentUser && isFollowing(entry.name);
+                return (
+                <TableRow
+                  key={entry.name}
+                  className={`border-hud-border/30 ${
+                    entry.isCurrentUser
+                      ? "bg-hud-cyan/5 border-hud-cyan/20"
+                      : ""
+                  }`}
+                >
+                  <TableCell className="font-mono text-muted-foreground">
+                    {i < 3 ? RANK_ICONS[i] : i + 1}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1.5">
+                      {entry.isCurrentUser && (
+                        <User className="h-3 w-3 text-hud-cyan" />
+                      )}
+                      <span
+                        className={`font-medium font-mono ${
+                          entry.isCurrentUser ? "text-hud-cyan" : "text-white"
+                        }`}
+                      >
+                        {entry.name}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      className={`text-[9px] ${TIER_BADGE[entry.tier]}`}
+                    >
+                      {entry.tier}
+                    </Badge>
+                  </TableCell>
+                  <TableCell
+                    className={`text-right font-mono ${
+                      entry.totalReturn >= 0 ? "text-hud-green" : "text-hud-red"
+                    }`}
+                  >
+                    {entry.totalReturn >= 0 ? "+" : ""}
+                    {entry.totalReturn.toFixed(1)}%
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-white">
+                    {entry.winRate}%
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-muted-foreground">
+                    {entry.trades}
+                  </TableCell>
+                  <TableCell
+                    className={`text-right font-mono ${
+                      entry.drawdown > 10
+                        ? "text-hud-red"
+                        : entry.drawdown > 5
+                        ? "text-hud-amber"
+                        : "text-hud-green"
+                    }`}
+                  >
+                    {entry.drawdown.toFixed(1)}%
+                  </TableCell>
+                  {sortKey === "riskAdjusted" && (
+                    <TableCell className="text-right font-mono text-white">
+                      {entry.drawdown > 0
+                        ? (entry.totalReturn / entry.drawdown).toFixed(2)
+                        : "—"}
+                    </TableCell>
+                  )}
+                  <TableCell className="text-center">
+                    {!entry.isCurrentUser && (
+                      <div className="flex items-center justify-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          onClick={() => following ? unfollowTrader(entry.name) : followTrader(entry.name)}
+                          disabled={!following && !canFollow}
+                          title={following ? "Unfollow" : canFollow ? "Follow" : "Max follows reached"}
+                        >
+                          <Heart
+                            className={`h-3.5 w-3.5 ${
+                              following
+                                ? "fill-hud-red text-hud-red"
+                                : "text-muted-foreground hover:text-hud-red"
+                            }`}
+                          />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          title="Copy trades"
+                          onClick={() => {
+                            if (!following) followTrader(entry.name);
+                          }}
+                        >
+                          <Copy className="h-3.5 w-3.5 text-muted-foreground hover:text-hud-cyan" />
+                        </Button>
+                      </div>
+                    )}
+                  </TableCell>
+                </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     </HudPanel>
   );

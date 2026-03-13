@@ -1,3 +1,4 @@
+import React from "react";
 import { HudPanel } from "@/components/ui/hud-panel";
 
 interface StatCardProps {
@@ -5,7 +6,7 @@ interface StatCardProps {
   value: string;
 }
 
-export function StatCard({ label, value }: StatCardProps) {
+export const StatCard = React.memo(function StatCard({ label, value }: StatCardProps) {
   return (
     <HudPanel>
       <div className="px-3 py-2.5">
@@ -14,4 +15,4 @@ export function StatCard({ label, value }: StatCardProps) {
       </div>
     </HudPanel>
   );
-}
+});
