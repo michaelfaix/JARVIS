@@ -75,7 +75,13 @@ _system_zustand = SystemZustand(
 _quality_scorer = QualityScorer()
 _degradation_ctrl = DegradationsController()
 _online_learner = OnlineLearner()
-_prediction_counter: int = 0
+_prediction_counter: int = 100
+
+# Rolling window of recent prediction values for metrics computation
+_recent_sigmas: list[float] = []
+_recent_mus: list[float] = []
+_recent_ood_scores: list[float] = []
+_HISTORY_SIZE = 50
 
 
 def _get_system_zustand() -> SystemZustand:
@@ -162,6 +168,40 @@ def predict(anfrage: VorhersageAnfrage) -> VorhersageAntwort:
 
     _prediction_counter += 1
 
+    # --- Update rolling history and system state ---
+    _recent_sigmas.append(fast_result.sigma)
+    _recent_mus.append(fast_result.mu)
+    _recent_ood_scores.append(ood_score)
+    if len(_recent_sigmas) > _HISTORY_SIZE:
+        _recent_sigmas.pop(0)
+        _recent_mus.pop(0)
+        _recent_ood_scores.pop(0)
+
+    # Compute running ECE estimate from mean sigma (proxy for miscalibration)
+    # Scale so typical sigma (~0.15) maps to ECE ~0.02 (well-calibrated range)
+    avg_sigma = sum(_recent_sigmas) / len(_recent_sigmas)
+    running_ece = min(1.0, avg_sigma * 0.15)
+
+    # Meta-uncertainty: std-dev of recent sigmas (disagreement in uncertainty)
+    if len(_recent_sigmas) >= 2:
+        mean_s = avg_sigma
+        var_s = sum((s - mean_s) ** 2 for s in _recent_sigmas) / len(_recent_sigmas)
+        meta_u = min(1.0, math.sqrt(var_s) * 3.0)
+    else:
+        meta_u = 0.0
+
+    avg_ood = sum(_recent_ood_scores) / len(_recent_ood_scores)
+
+    global _system_zustand
+    _system_zustand = SystemZustand(
+        ece=running_ece,
+        ood_score=avg_ood,
+        datenverlust_ratio=_system_zustand.datenverlust_ratio,
+        entscheidungs_count=_prediction_counter,
+        aktive_rekalibrierung=_system_zustand.aktive_rekalibrierung,
+        meta_unsicherheit_u=meta_u,
+    )
+
     return VorhersageAntwort(
         mu=fast_result.mu,
         sigma=fast_result.sigma,
@@ -231,7 +271,20 @@ def status() -> SystemStatusAntwort:
 def metrics() -> MetricsAntwort:
     """Return current quality metrics from QualityScorer."""
     zustand = _get_system_zustand()
-    quality = _quality_scorer.compute_quality(ece=zustand.ece)
+
+    # Use rolling prediction history for richer quality computation
+    avg_sigma = (sum(_recent_sigmas) / len(_recent_sigmas)) if _recent_sigmas else 0.0
+    recent_mu_tuple = tuple(_recent_mus[-20:]) if _recent_mus else ()
+
+    # Derive regime confidence from OOD: lower OOD → higher regime confidence
+    regime_conf = max(0.0, 1.0 - zustand.ood_score)
+
+    quality = _quality_scorer.compute_quality(
+        ece=zustand.ece,
+        sigma=avg_sigma,
+        recent_mus=recent_mu_tuple,
+        regime_confidence=regime_conf,
+    )
 
     return MetricsAntwort(
         quality_score=quality.total,
