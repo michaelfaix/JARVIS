@@ -5,7 +5,7 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import { Clock, Zap } from "lucide-react";
+import { Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface TimeframeConfig {

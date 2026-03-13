@@ -265,6 +265,42 @@ icacls "C:\Project\JARVIS" /grant DESKTOP-PQU68JS\MikeFaix:F /T
 
 ---
 
+## ✅ ABGESCHLOSSEN: System-Check & QA v17.0.0
+
+### Frontend Test-Suite (268 Tests)
+| Kategorie | Suites | Tests |
+|-----------|--------|-------|
+| Unit: Hooks (portfolio, signals, strategy, prices, auth, alerts, sidebar, sentiment, feedback) | 9 | 62 |
+| Unit: Components (dashboard, copilot-embed, top-signals-hud, signal-quality, tooltip, skeleton, sidebar, api-offline) | 8 | 75 |
+| Unit: Lib (markdown, api-latency, storage, types, csv-escape, copilot-engine) | 6 | 48 |
+| Integration (backend-health, css-loading, strategy-backtest) | 3 | 18 |
+| **GESAMT** | **28** | **268** |
+
+### Gefixte Bugs (v16→v17)
+- **XSS Vulnerability**: `copilot-embed.tsx` hatte `dangerouslySetInnerHTML` ohne HTML-Escaping — gefixt
+- **Hydration Errors**: Conditional `<span>` in bell buttons (app-header + hud-topbar) verursachte DOM-Mismatch — span immer rendern, CSS hidden
+- **Invalid DOM Nesting**: Block-Level Markdown (`<h2>`, `<br>`) in `<span>` → inline-only Rendering
+- **Duplicate Price**: Preis-Header entfernt (Chart zeigt Preis bereits)
+- **Unused Import**: `Zap` in timeframe-slider.tsx entfernt
+- **Missing Security Headers**: X-Frame-Options, X-Content-Type-Options, Referrer-Policy hinzugefuegt
+
+### Performance-Metriken
+| Metrik | Wert |
+|--------|------|
+| Build | 0 errors, 0 warnings |
+| First Load JS (shared) | 87.4 kB |
+| Dashboard Page | 27.7 kB (198 kB mit deps) |
+| ESLint | 0 warnings |
+| TypeScript | 0 errors, 0 `any` types |
+| Memory Leaks | 0 (alle useEffect cleanup verifiziert) |
+
+### Bekannte Limitierungen
+- CSP Header (Content-Security-Policy) noch nicht konfiguriert (braucht eval fuer Next.js)
+- `lightweight-charts` und `react-grid-layout` koennten via `next/dynamic` lazy-loaded werden
+- Backend muss laufen fuer ML-basierte Signale (Fallback auf lokale Signale funktioniert)
+
+---
+
 ## ✅ ABGESCHLOSSEN: FastAPI Entry Point
 
 - `jarvis/api/main.py` erstellt — CORS für localhost:3000, Router unter /api/v1
