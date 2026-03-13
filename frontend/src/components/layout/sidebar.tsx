@@ -125,7 +125,7 @@ export function Sidebar({ collapsed, onToggle, connected, mobile, mobileOpen }: 
               )}
               <Icon className={cn("shrink-0", isIconOnly ? "h-4 w-4" : "h-5 w-5")} />
               {!isIconOnly && (
-                <span className="truncate">{t(item.key)}</span>
+                <span className="truncate" suppressHydrationWarning>{t(item.key)}</span>
               )}
             </Link>
           );
@@ -150,9 +150,10 @@ export function Sidebar({ collapsed, onToggle, connected, mobile, mobileOpen }: 
           <button
             onClick={signOut}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-red-500/10 hover:text-red-400 transition-colors"
+            suppressHydrationWarning
           >
             <LogOut className="h-4 w-4 shrink-0" />
-            <span>{t("nav_sign_out")}</span>
+            <span suppressHydrationWarning>{t("nav_sign_out")}</span>
           </button>
         </div>
       )}
@@ -171,7 +172,7 @@ export function Sidebar({ collapsed, onToggle, connected, mobile, mobileOpen }: 
             )}
           />
           {!isIconOnly && (
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-[10px] text-muted-foreground" suppressHydrationWarning>
               {connected ? t("common_api_connected") : t("common_offline")}
             </span>
           )}

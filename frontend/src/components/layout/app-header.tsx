@@ -58,12 +58,14 @@ export function AppHeader({ title, subtitle }: AppHeaderProps) {
         <Badge
           variant="outline"
           className="text-[10px] text-muted-foreground"
+          suppressHydrationWarning
         >
           {t('common_paper_trading')}
         </Badge>
         <Badge
           variant="outline"
           className="text-[10px] text-green-400 border-green-400/30"
+          suppressHydrationWarning
         >
           {t('common_research_only')}
         </Badge>
@@ -77,6 +79,7 @@ export function AppHeader({ title, subtitle }: AppHeaderProps) {
                 ? 'bg-blue-600/20 text-blue-400'
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted'
             }`}
+            suppressHydrationWarning
           >
             EN
           </button>
@@ -88,6 +91,7 @@ export function AppHeader({ title, subtitle }: AppHeaderProps) {
                 ? 'bg-blue-600/20 text-blue-400'
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted'
             }`}
+            suppressHydrationWarning
           >
             DE
           </button>
@@ -100,20 +104,22 @@ export function AppHeader({ title, subtitle }: AppHeaderProps) {
             aria-expanded={open}
             aria-label="Notifications"
             className="relative flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-white hover:bg-muted transition-colors"
+            suppressHydrationWarning
           >
             <Bell className="h-4 w-4" />
-            {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[9px] font-bold text-white">
-                {unreadCount > 9 ? "9+" : unreadCount}
-              </span>
-            )}
+            <span
+              className={`absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[9px] font-bold text-white ${unreadCount === 0 ? "hidden" : ""}`}
+              suppressHydrationWarning
+            >
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
           </button>
 
           {open && (
             <div className="absolute right-0 top-10 z-50 w-80 rounded-lg border border-border/50 bg-card/95 backdrop-blur-md shadow-xl">
               {/* Header */}
               <div className="flex items-center justify-between border-b border-border/30 px-3 py-2">
-                <span className="text-xs font-medium text-white">
+                <span className="text-xs font-medium text-white" suppressHydrationWarning>
                   {t('common_notifications')}
                 </span>
                 <div className="flex items-center gap-1">
@@ -122,6 +128,7 @@ export function AppHeader({ title, subtitle }: AppHeaderProps) {
                       onClick={markAllRead}
                       aria-label="Dismiss"
                       className="text-[10px] text-muted-foreground hover:text-white transition-colors px-1.5 py-0.5 rounded flex items-center gap-1"
+                      suppressHydrationWarning
                     >
                       <Check className="h-2.5 w-2.5" />
                       {t('common_read_all')}
@@ -132,6 +139,7 @@ export function AppHeader({ title, subtitle }: AppHeaderProps) {
                       onClick={clearAll}
                       aria-label="Dismiss"
                       className="text-[10px] text-muted-foreground hover:text-red-400 transition-colors px-1.5 py-0.5 rounded flex items-center gap-1"
+                      suppressHydrationWarning
                     >
                       <Trash2 className="h-2.5 w-2.5" />
                       {t('common_clear')}
