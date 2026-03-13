@@ -4,7 +4,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AssetChart } from "@/components/chart/asset-chart";
 import { TimeframeSlider, TIMEFRAMES } from "@/components/dashboard/timeframe-slider";
@@ -21,11 +21,16 @@ import { usePortfolio } from "@/hooks/use-portfolio";
 import { usePrices } from "@/hooks/use-prices";
 import { useSentiment } from "@/hooks/use-sentiment";
 import { useAlerts } from "@/hooks/use-alerts";
+import { useOrders } from "@/hooks/use-orders";
+import { useAutoSLTP } from "@/hooks/use-auto-sl-tp";
+import { useNotifications } from "@/hooks/use-notifications";
+import { useFeedback } from "@/hooks/use-feedback";
 import { MarketPulse } from "@/components/dashboard/market-pulse";
-// useWebSocket for backend stream (optional)
+import { SignalQuality } from "@/components/dashboard/signal-quality";
 import { Watchlist } from "@/components/dashboard/watchlist";
 import { PnlTicker } from "@/components/dashboard/pnl-ticker";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
+import { StrategyControl } from "@/components/dashboard/strategy-control";
 import { MetricTooltip } from "@/components/ui/metric-tooltip";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -83,19 +88,43 @@ export default function DashboardPage() {
     lastUpdated: metricsUpdated,
     refresh: refreshMetrics,
   } = useMetrics(5000);
+  const { prices, priceHistory, wsConnected, binanceConnected } = usePrices(5000);
+
   const {
     signals,
     loading: signalsLoading,
-    error: signalsError,
+    backendOnline,
     refresh: refreshSignals,
-  } = useSignals(regime, 10000);
+  } = useSignals(regime, 10000, prices, priceHistory);
 
-  const backendOffline = !!(statusError || metricsError || signalsError);
-  const { state: portfolio, unrealizedPnl, totalValue, winRate, drawdown, openPosition } =
+  const backendOffline = !!(statusError || metricsError) && !backendOnline;
+  const { state: portfolio, unrealizedPnl, totalValue, winRate, drawdown, openPosition, closePosition, updatePrices } =
     usePortfolio();
-  const { prices, priceHistory, wsConnected, binanceConnected } = usePrices(5000);
+  const { checkOrders, cleanupOrders } = useOrders(openPosition);
+  const { push: pushNotification } = useNotifications();
+  const { checkSLTP } = useAutoSLTP(portfolio.positions, closePosition, pushNotification);
+  // Feedback loop: auto-send trade outcomes to backend ML
+  const { accuracyByAsset } = useFeedback(portfolio.closedTrades);
   const sentimentData = useSentiment(prices, priceHistory);
   const { activeAlerts } = useAlerts();
+
+  // --- Trading Engine: 1s tick for P&L updates, order fills, SL/TP checks ---
+  const pricesTickRef = useRef(prices);
+  pricesTickRef.current = prices;
+  useEffect(() => {
+    const tick = () => {
+      const p = pricesTickRef.current;
+      if (Object.keys(p).length === 0) return;
+      updatePrices(p);
+      checkOrders(p);
+      checkSLTP(p);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    const cleanupId = setInterval(cleanupOrders, 5 * 60 * 1000);
+    return () => { clearInterval(id); clearInterval(cleanupId); };
+  }, [updatePrices, checkOrders, checkSLTP, cleanupOrders]);
+
   const [selectedAsset, setSelectedAsset] = useState(0);
   const [timeframeIdx, setTimeframeIdx] = useState(4); // default: 4H Combined
 
@@ -187,7 +216,15 @@ export default function DashboardPage() {
         {/* Open P&L Ticker */}
         <PnlTicker positions={portfolio.positions} prices={prices} />
 
-        {backendOffline && <ApiOfflineBanner />}
+        {backendOffline && (
+          <ApiOfflineBanner
+            message={
+              !backendOnline
+                ? "JARVIS Backend offline — signals are locally derived from market data"
+                : "JARVIS Backend partially unavailable — some metrics may be stale"
+            }
+          />
+        )}
 
         {/* Approaching Alerts */}
         {approachingAlerts.length > 0 && (
@@ -218,7 +255,11 @@ export default function DashboardPage() {
             vorhersagenAktiv={status?.vorhersagen_aktiv ?? true}
             konfidenzMultiplikator={status?.konfidenz_multiplikator ?? 1.0}
             entscheidungsCount={status?.entscheidungs_count ?? 0}
+            ece={status?.ece ?? 0}
+            oodScore={status?.ood_score ?? 0}
+            metaUncertainty={status?.meta_unsicherheit ?? 0}
             loading={statusLoading}
+            backendOnline={backendOnline}
           />
           <QualityScoreCard metrics={metrics} loading={metricsLoading} />
           <MarketPulse data={sentimentData} />
@@ -266,6 +307,9 @@ export default function DashboardPage() {
             </button>
           </CardContent>
         </Card>
+
+        {/* Strategy Control Panel */}
+        <StrategyControl />
 
         {/* Multi-Asset Chart */}
         <Card className="bg-card/50 border-border/50">
@@ -573,30 +617,37 @@ export default function DashboardPage() {
               }))}
             />
           </div>
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-6">
+            {/* Signal Quality Panel */}
+            <SignalQuality
+              signals={signals}
+              metrics={metrics}
+              accuracyByAsset={accuracyByAsset}
+              backendOnline={backendOnline}
+            />
             {/* Stats Row */}
             <div className="grid grid-cols-2 gap-4">
-          <StatCard
-            label="Predictions Today"
-            value={status?.entscheidungs_count?.toString() ?? "0"}
-          />
-          <StatCard
-            label="Model Calibration"
-            value={
-              metrics
-                ? `${(metrics.calibration_component * 100).toFixed(1)}%`
-                : "—"
-            }
-          />
-          <StatCard
-            label="Data Quality"
-            value={
-              metrics
-                ? `${(metrics.data_quality_component * 100).toFixed(1)}%`
-                : "—"
-            }
-          />
-          <StatCard label="System Uptime" value="100%" />
+              <StatCard
+                label="Predictions Today"
+                value={status?.entscheidungs_count?.toString() ?? "0"}
+              />
+              <StatCard
+                label="Model Calibration"
+                value={
+                  metrics
+                    ? `${(metrics.calibration_component * 100).toFixed(1)}%`
+                    : "—"
+                }
+              />
+              <StatCard
+                label="Data Quality"
+                value={
+                  metrics
+                    ? `${(metrics.data_quality_component * 100).toFixed(1)}%`
+                    : "—"
+                }
+              />
+              <StatCard label="System Uptime" value="100%" />
             </div>
           </div>
         </div>
