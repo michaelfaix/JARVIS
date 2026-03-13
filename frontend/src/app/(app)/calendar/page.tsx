@@ -1,12 +1,11 @@
 // =============================================================================
-// src/app/(app)/calendar/page.tsx — Economic Calendar Page
+// src/app/(app)/calendar/page.tsx — Economic Calendar Page (HUD)
 // =============================================================================
 
 "use client";
 
 import { useMemo, useState } from "react";
-import { AppHeader } from "@/components/layout/app-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { HudPanel } from "@/components/ui/hud-panel";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock, AlertTriangle, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -41,24 +40,24 @@ const COUNTRY_FLAGS: Record<string, string> = {
 };
 
 const IMPACT_COLORS: Record<string, string> = {
-  high: "bg-red-500",
-  medium: "bg-yellow-500",
-  low: "bg-green-500",
+  high: "bg-hud-red",
+  medium: "bg-hud-amber",
+  low: "bg-hud-green",
 };
 
 const IMPACT_TEXT: Record<string, string> = {
-  high: "text-red-400",
-  medium: "text-yellow-400",
-  low: "text-green-400",
+  high: "text-hud-red",
+  medium: "text-hud-amber",
+  low: "text-hud-green",
 };
 
 const CATEGORY_STYLES: Record<string, string> = {
   "Interest Rates": "bg-purple-500/15 text-purple-400 border-purple-500/30",
-  Employment: "bg-blue-500/15 text-blue-400 border-blue-500/30",
-  Inflation: "bg-red-500/15 text-red-400 border-red-500/30",
-  GDP: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
-  Earnings: "bg-amber-500/15 text-amber-400 border-amber-500/30",
-  "Consumer Data": "bg-cyan-500/15 text-cyan-400 border-cyan-500/30",
+  Employment: "bg-hud-cyan/15 text-hud-cyan border-hud-cyan/30",
+  Inflation: "bg-hud-red/15 text-hud-red border-hud-red/30",
+  GDP: "bg-hud-green/15 text-hud-green border-hud-green/30",
+  Earnings: "bg-hud-amber/15 text-hud-amber border-hud-amber/30",
+  "Consumer Data": "bg-hud-cyan/15 text-hud-cyan border-hud-cyan/30",
 };
 
 function dayOffset(base: Date, days: number): Date {
@@ -102,232 +101,34 @@ function generateEvents(): EconomicEvent[] {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  // Find last Monday to anchor the week
   const dayOfWeek = today.getDay();
   const monday = dayOffset(today, dayOfWeek === 0 ? -6 : 1 - dayOfWeek);
 
   const events: EconomicEvent[] = [
-    // This week
-    {
-      id: "1",
-      date: toISO(monday),
-      time: "10:00 UTC",
-      title: "EU Consumer Confidence",
-      country: "EU",
-      impact: "low",
-      category: "Consumer Data",
-      previous: "-14.5",
-      forecast: "-14.2",
-      actual: "-13.8",
-    },
-    {
-      id: "2",
-      date: toISO(dayOffset(monday, 1)),
-      time: "07:00 UTC",
-      title: "UK Unemployment Rate",
-      country: "UK",
-      impact: "medium",
-      category: "Employment",
-      previous: "4.0%",
-      forecast: "4.1%",
-      actual: "4.0%",
-    },
-    {
-      id: "3",
-      date: toISO(dayOffset(monday, 1)),
-      time: "13:30 UTC",
-      title: "US CPI (YoY)",
-      country: "US",
-      impact: "high",
-      category: "Inflation",
-      previous: "3.1%",
-      forecast: "2.9%",
-      actual: "3.0%",
-    },
-    {
-      id: "4",
-      date: toISO(dayOffset(monday, 1)),
-      time: "21:00 UTC",
-      title: "AAPL Earnings Q1 2026",
-      country: "US",
-      impact: "high",
-      category: "Earnings",
-      previous: "$2.18 EPS",
-      forecast: "$2.36 EPS",
-      actual: "$2.41 EPS",
-    },
-    {
-      id: "5",
-      date: toISO(dayOffset(monday, 2)),
-      time: "13:30 UTC",
-      title: "US Core PPI (MoM)",
-      country: "US",
-      impact: "medium",
-      category: "Inflation",
-      previous: "0.0%",
-      forecast: "0.2%",
-      actual: "0.1%",
-    },
-    {
-      id: "6",
-      date: toISO(dayOffset(monday, 2)),
-      time: "19:00 UTC",
-      title: "Fed Interest Rate Decision",
-      country: "US",
-      impact: "high",
-      category: "Interest Rates",
-      previous: "4.50%",
-      forecast: "4.50%",
-    },
-    {
-      id: "7",
-      date: toISO(dayOffset(monday, 2)),
-      time: "19:30 UTC",
-      title: "FOMC Press Conference",
-      country: "US",
-      impact: "high",
-      category: "Interest Rates",
-    },
-    {
-      id: "8",
-      date: toISO(dayOffset(monday, 3)),
-      time: "13:30 UTC",
-      title: "Initial Jobless Claims",
-      country: "US",
-      impact: "medium",
-      category: "Employment",
-      previous: "219K",
-      forecast: "215K",
-    },
-    {
-      id: "9",
-      date: toISO(dayOffset(monday, 3)),
-      time: "00:30 UTC",
-      title: "Japan GDP Growth Rate (QoQ)",
-      country: "JP",
-      impact: "medium",
-      category: "GDP",
-      previous: "0.3%",
-      forecast: "0.4%",
-    },
-    {
-      id: "10",
-      date: toISO(dayOffset(monday, 3)),
-      time: "21:00 UTC",
-      title: "NVDA Earnings Q4 2026",
-      country: "US",
-      impact: "high",
-      category: "Earnings",
-      previous: "$5.16 EPS",
-      forecast: "$5.78 EPS",
-    },
-    {
-      id: "11",
-      date: toISO(dayOffset(monday, 4)),
-      time: "13:30 UTC",
-      title: "US Retail Sales (MoM)",
-      country: "US",
-      impact: "medium",
-      category: "Consumer Data",
-      previous: "0.6%",
-      forecast: "0.3%",
-    },
-    {
-      id: "12",
-      date: toISO(dayOffset(monday, 4)),
-      time: "10:00 UTC",
-      title: "Eurozone GDP Growth Rate (QoQ)",
-      country: "EU",
-      impact: "medium",
-      category: "GDP",
-      previous: "0.0%",
-      forecast: "0.1%",
-    },
-    // Next week
-    {
-      id: "13",
-      date: toISO(dayOffset(monday, 7)),
-      time: "02:00 UTC",
-      title: "China Industrial Production (YoY)",
-      country: "CN",
-      impact: "medium",
-      category: "GDP",
-      previous: "6.8%",
-      forecast: "5.5%",
-    },
-    {
-      id: "14",
-      date: toISO(dayOffset(monday, 8)),
-      time: "13:30 UTC",
-      title: "US Non-Farm Payrolls",
-      country: "US",
-      impact: "high",
-      category: "Employment",
-      previous: "256K",
-      forecast: "200K",
-    },
-    {
-      id: "15",
-      date: toISO(dayOffset(monday, 8)),
-      time: "13:30 UTC",
-      title: "US Unemployment Rate",
-      country: "US",
-      impact: "high",
-      category: "Employment",
-      previous: "4.1%",
-      forecast: "4.1%",
-    },
-    {
-      id: "16",
-      date: toISO(dayOffset(monday, 9)),
-      time: "13:30 UTC",
-      title: "Core PCE Price Index (MoM)",
-      country: "US",
-      impact: "high",
-      category: "Inflation",
-      previous: "0.2%",
-      forecast: "0.3%",
-    },
-    {
-      id: "17",
-      date: toISO(dayOffset(monday, 9)),
-      time: "21:00 UTC",
-      title: "TSLA Earnings Q1 2026",
-      country: "US",
-      impact: "high",
-      category: "Earnings",
-      previous: "$0.71 EPS",
-      forecast: "$0.78 EPS",
-    },
-    {
-      id: "18",
-      date: toISO(dayOffset(monday, 10)),
-      time: "19:00 UTC",
-      title: "FOMC Meeting Minutes",
-      country: "US",
-      impact: "medium",
-      category: "Interest Rates",
-    },
-    {
-      id: "19",
-      date: toISO(dayOffset(monday, 11)),
-      time: "21:00 UTC",
-      title: "GOOG Earnings Q1 2026",
-      country: "US",
-      impact: "high",
-      category: "Earnings",
-      previous: "$2.12 EPS",
-      forecast: "$2.28 EPS",
-    },
+    { id: "1", date: toISO(monday), time: "10:00 UTC", title: "EU Consumer Confidence", country: "EU", impact: "low", category: "Consumer Data", previous: "-14.5", forecast: "-14.2", actual: "-13.8" },
+    { id: "2", date: toISO(dayOffset(monday, 1)), time: "07:00 UTC", title: "UK Unemployment Rate", country: "UK", impact: "medium", category: "Employment", previous: "4.0%", forecast: "4.1%", actual: "4.0%" },
+    { id: "3", date: toISO(dayOffset(monday, 1)), time: "13:30 UTC", title: "US CPI (YoY)", country: "US", impact: "high", category: "Inflation", previous: "3.1%", forecast: "2.9%", actual: "3.0%" },
+    { id: "4", date: toISO(dayOffset(monday, 1)), time: "21:00 UTC", title: "AAPL Earnings Q1 2026", country: "US", impact: "high", category: "Earnings", previous: "$2.18 EPS", forecast: "$2.36 EPS", actual: "$2.41 EPS" },
+    { id: "5", date: toISO(dayOffset(monday, 2)), time: "13:30 UTC", title: "US Core PPI (MoM)", country: "US", impact: "medium", category: "Inflation", previous: "0.0%", forecast: "0.2%", actual: "0.1%" },
+    { id: "6", date: toISO(dayOffset(monday, 2)), time: "19:00 UTC", title: "Fed Interest Rate Decision", country: "US", impact: "high", category: "Interest Rates", previous: "4.50%", forecast: "4.50%" },
+    { id: "7", date: toISO(dayOffset(monday, 2)), time: "19:30 UTC", title: "FOMC Press Conference", country: "US", impact: "high", category: "Interest Rates" },
+    { id: "8", date: toISO(dayOffset(monday, 3)), time: "13:30 UTC", title: "Initial Jobless Claims", country: "US", impact: "medium", category: "Employment", previous: "219K", forecast: "215K" },
+    { id: "9", date: toISO(dayOffset(monday, 3)), time: "00:30 UTC", title: "Japan GDP Growth Rate (QoQ)", country: "JP", impact: "medium", category: "GDP", previous: "0.3%", forecast: "0.4%" },
+    { id: "10", date: toISO(dayOffset(monday, 3)), time: "21:00 UTC", title: "NVDA Earnings Q4 2026", country: "US", impact: "high", category: "Earnings", previous: "$5.16 EPS", forecast: "$5.78 EPS" },
+    { id: "11", date: toISO(dayOffset(monday, 4)), time: "13:30 UTC", title: "US Retail Sales (MoM)", country: "US", impact: "medium", category: "Consumer Data", previous: "0.6%", forecast: "0.3%" },
+    { id: "12", date: toISO(dayOffset(monday, 4)), time: "10:00 UTC", title: "Eurozone GDP Growth Rate (QoQ)", country: "EU", impact: "medium", category: "GDP", previous: "0.0%", forecast: "0.1%" },
+    { id: "13", date: toISO(dayOffset(monday, 7)), time: "02:00 UTC", title: "China Industrial Production (YoY)", country: "CN", impact: "medium", category: "GDP", previous: "6.8%", forecast: "5.5%" },
+    { id: "14", date: toISO(dayOffset(monday, 8)), time: "13:30 UTC", title: "US Non-Farm Payrolls", country: "US", impact: "high", category: "Employment", previous: "256K", forecast: "200K" },
+    { id: "15", date: toISO(dayOffset(monday, 8)), time: "13:30 UTC", title: "US Unemployment Rate", country: "US", impact: "high", category: "Employment", previous: "4.1%", forecast: "4.1%" },
+    { id: "16", date: toISO(dayOffset(monday, 9)), time: "13:30 UTC", title: "Core PCE Price Index (MoM)", country: "US", impact: "high", category: "Inflation", previous: "0.2%", forecast: "0.3%" },
+    { id: "17", date: toISO(dayOffset(monday, 9)), time: "21:00 UTC", title: "TSLA Earnings Q1 2026", country: "US", impact: "high", category: "Earnings", previous: "$0.71 EPS", forecast: "$0.78 EPS" },
+    { id: "18", date: toISO(dayOffset(monday, 10)), time: "19:00 UTC", title: "FOMC Meeting Minutes", country: "US", impact: "medium", category: "Interest Rates" },
+    { id: "19", date: toISO(dayOffset(monday, 11)), time: "21:00 UTC", title: "GOOG Earnings Q1 2026", country: "US", impact: "high", category: "Earnings", previous: "$2.12 EPS", forecast: "$2.28 EPS" },
   ];
 
-  // For past events, ensure actuals are set; for future events, strip actuals
   return events.map((e) => {
     if (isPast(e, now)) {
-      return {
-        ...e,
-        actual: e.actual ?? e.forecast,
-      };
+      return { ...e, actual: e.actual ?? e.forecast };
     }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { actual, ...rest } = e;
@@ -339,10 +140,7 @@ function generateEvents(): EconomicEvent[] {
 // Countdown helper
 // ---------------------------------------------------------------------------
 
-function getNextEventCountdown(
-  events: EconomicEvent[],
-  now: Date
-): string {
+function getNextEventCountdown(events: EconomicEvent[], now: Date): string {
   const todayStr = toISO(now);
   const future = events.filter((e) => e.date >= todayStr).sort((a, b) => {
     if (a.date !== b.date) return a.date.localeCompare(b.date);
@@ -376,15 +174,12 @@ function getNextEventCountdown(
 // ---------------------------------------------------------------------------
 
 export default function CalendarPage() {
-  const [impactFilter, setImpactFilter] = useState<
-    "all" | "high" | "medium" | "low"
-  >("all");
+  const [impactFilter, setImpactFilter] = useState<"all" | "high" | "medium" | "low">("all");
   const [countryFilter, setCountryFilter] = useState<string>("all");
 
   const allEvents = useMemo(() => generateEvents(), []);
   const now = useMemo(() => new Date(), []);
 
-  // Filtered events
   const filtered = useMemo(() => {
     return allEvents.filter((e) => {
       if (impactFilter !== "all" && e.impact !== impactFilter) return false;
@@ -393,7 +188,6 @@ export default function CalendarPage() {
     });
   }, [allEvents, impactFilter, countryFilter]);
 
-  // Group by day
   const grouped = useMemo(() => {
     const map = new Map<string, EconomicEvent[]>();
     const sorted = [...filtered].sort((a, b) => {
@@ -408,15 +202,10 @@ export default function CalendarPage() {
     return Array.from(map.entries());
   }, [filtered]);
 
-  // Stats
   const todayStr = toISO(now);
   const endOfWeek = toISO(dayOffset(now, 7 - now.getDay()));
-  const thisWeekEvents = allEvents.filter(
-    (e) => e.date >= todayStr && e.date <= endOfWeek
-  );
-  const highImpactCount = thisWeekEvents.filter(
-    (e) => e.impact === "high"
-  ).length;
+  const thisWeekEvents = allEvents.filter((e) => e.date >= todayStr && e.date <= endOfWeek);
+  const highImpactCount = thisWeekEvents.filter((e) => e.impact === "high").length;
   const countdown = getNextEventCountdown(allEvents, now);
 
   const impactButtons: { label: string; value: typeof impactFilter }[] = [
@@ -436,296 +225,203 @@ export default function CalendarPage() {
   ];
 
   return (
-    <>
-      <AppHeader title="Economic Calendar" />
-      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
-        {/* Summary Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Card className="bg-card/50 border-border/50">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
-                <Calendar className="h-5 w-5 text-blue-400" />
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground">
-                  Events This Week
-                </div>
-                <div className="text-xl font-bold text-white">
-                  {thisWeekEvents.length}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border/50">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-500/10">
-                <AlertTriangle className="h-5 w-5 text-red-400" />
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground">
-                  High Impact
-                </div>
-                <div className="text-xl font-bold text-white">
-                  {highImpactCount}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border/50">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
-                <Clock className="h-5 w-5 text-emerald-400" />
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground">
-                  Next Event
-                </div>
-                <div className="text-xl font-bold text-white">{countdown}</div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+    <div className="p-2 sm:p-3 md:p-4 space-y-3">
+      {/* Summary Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <HudPanel>
+          <div className="p-2.5 flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded bg-hud-cyan/10">
+              <Calendar className="h-4 w-4 text-hud-cyan" />
+            </div>
+            <div>
+              <div className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider">Events This Week</div>
+              <div className="text-lg font-bold font-mono text-white">{thisWeekEvents.length}</div>
+            </div>
+          </div>
+        </HudPanel>
+        <HudPanel>
+          <div className="p-2.5 flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded bg-hud-red/10">
+              <AlertTriangle className="h-4 w-4 text-hud-red" />
+            </div>
+            <div>
+              <div className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider">High Impact</div>
+              <div className="text-lg font-bold font-mono text-white">{highImpactCount}</div>
+            </div>
+          </div>
+        </HudPanel>
+        <HudPanel>
+          <div className="p-2.5 flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded bg-hud-green/10">
+              <Clock className="h-4 w-4 text-hud-green" />
+            </div>
+            <div>
+              <div className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider">Next Event</div>
+              <div className="text-lg font-bold font-mono text-white">{countdown}</div>
+            </div>
+          </div>
+        </HudPanel>
+      </div>
 
-        {/* Filter Bar */}
-        <Card className="bg-card/50 border-border/50">
-          <CardContent className="p-4">
-            <div className="flex flex-col sm:flex-row gap-4">
-              {/* Impact filter */}
-              <div className="space-y-1.5">
-                <div className="text-xs text-muted-foreground font-medium">
-                  Impact
-                </div>
-                <div className="flex gap-1">
-                  {impactButtons.map((btn) => (
-                    <button
-                      key={btn.value}
-                      onClick={() => setImpactFilter(btn.value)}
-                      className={cn(
-                        "px-3 py-1.5 rounded-md text-xs font-medium transition-colors",
-                        impactFilter === btn.value
-                          ? "bg-blue-600/20 text-blue-400 border border-blue-500/30"
-                          : "text-muted-foreground hover:text-white hover:bg-muted border border-transparent"
-                      )}
-                    >
-                      {btn.value !== "all" && (
-                        <span
-                          className={cn(
-                            "inline-block h-1.5 w-1.5 rounded-full mr-1.5",
-                            IMPACT_COLORS[btn.value]
-                          )}
-                        />
-                      )}
-                      {btn.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Country filter */}
-              <div className="space-y-1.5">
-                <div className="text-xs text-muted-foreground font-medium">
-                  Country
-                </div>
-                <div className="flex gap-1">
-                  {countryButtons.map((btn) => (
-                    <button
-                      key={btn.value}
-                      onClick={() => setCountryFilter(btn.value)}
-                      className={cn(
-                        "px-3 py-1.5 rounded-md text-xs font-medium transition-colors",
-                        countryFilter === btn.value
-                          ? "bg-blue-600/20 text-blue-400 border border-blue-500/30"
-                          : "text-muted-foreground hover:text-white hover:bg-muted border border-transparent"
-                      )}
-                    >
-                      {btn.value !== "all" && (
-                        <span className="mr-1">
-                          {COUNTRY_FLAGS[btn.value]}
-                        </span>
-                      )}
-                      {btn.label}
-                    </button>
-                  ))}
-                </div>
+      {/* Filter Bar */}
+      <HudPanel title="FILTERS">
+        <div className="p-2.5">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="space-y-1">
+              <div className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider">Impact</div>
+              <div className="flex gap-1">
+                {impactButtons.map((btn) => (
+                  <button
+                    key={btn.value}
+                    onClick={() => setImpactFilter(btn.value)}
+                    className={cn(
+                      "px-2 py-1 rounded text-[10px] font-mono font-medium transition-colors",
+                      impactFilter === btn.value
+                        ? "bg-hud-cyan/15 text-hud-cyan border border-hud-cyan/30"
+                        : "text-muted-foreground hover:text-hud-cyan hover:bg-hud-cyan/5 border border-transparent"
+                    )}
+                  >
+                    {btn.value !== "all" && (
+                      <span className={cn("inline-block h-1.5 w-1.5 rounded-full mr-1", IMPACT_COLORS[btn.value])} />
+                    )}
+                    {btn.label}
+                  </button>
+                ))}
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Week View — Events grouped by day */}
-        {grouped.length === 0 ? (
-          <Card className="bg-card/50 border-border/50">
-            <CardContent className="py-12 text-center">
-              <Calendar className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-              <div className="text-sm text-muted-foreground">
-                No events match your filters.
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          grouped.map(([dateStr, events]) => {
-            const date = new Date(dateStr + "T00:00:00");
-            const isToday = dateStr === todayStr;
-
-            return (
-              <Card
-                key={dateStr}
-                className={cn(
-                  "bg-card/50 border-border/50",
-                  isToday && "border-blue-500/30"
-                )}
-              >
-                <CardHeader className="pb-2 pt-4 px-4">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className={cn(isToday ? "text-blue-400" : "text-white")}>
-                      {formatDayHeader(date, now)}
-                    </span>
-                    {isToday && (
-                      <Badge className="bg-blue-500/15 text-blue-400 border-blue-500/30 text-[10px]">
-                        Today
-                      </Badge>
+            <div className="space-y-1">
+              <div className="text-[9px] font-mono text-muted-foreground/60 uppercase tracking-wider">Country</div>
+              <div className="flex gap-1">
+                {countryButtons.map((btn) => (
+                  <button
+                    key={btn.value}
+                    onClick={() => setCountryFilter(btn.value)}
+                    className={cn(
+                      "px-2 py-1 rounded text-[10px] font-mono font-medium transition-colors",
+                      countryFilter === btn.value
+                        ? "bg-hud-cyan/15 text-hud-cyan border border-hud-cyan/30"
+                        : "text-muted-foreground hover:text-hud-cyan hover:bg-hud-cyan/5 border border-transparent"
                     )}
-                    <span className="ml-auto text-xs text-muted-foreground font-normal">
-                      {events.length} event{events.length !== 1 ? "s" : ""}
-                    </span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="px-4 pb-4">
-                  <div className="space-y-2">
-                    {events.map((event) => {
-                      const past = isPast(event, now);
-                      return (
-                        <div
-                          key={event.id}
-                          className={cn(
-                            "flex items-start gap-3 rounded-lg p-3 transition-colors",
-                            past
-                              ? "bg-background/30"
-                              : "bg-background/50 hover:bg-background/70"
-                          )}
-                        >
-                          {/* Time column */}
-                          <div className="w-16 shrink-0 pt-0.5">
-                            <div className="text-xs font-mono text-muted-foreground">
-                              {event.time}
-                            </div>
+                  >
+                    {btn.value !== "all" && <span className="mr-1">{COUNTRY_FLAGS[btn.value]}</span>}
+                    {btn.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </HudPanel>
+
+      {/* Week View — Events grouped by day */}
+      {grouped.length === 0 ? (
+        <HudPanel>
+          <div className="py-8 text-center">
+            <Calendar className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
+            <div className="text-[10px] font-mono text-muted-foreground">No events match your filters.</div>
+          </div>
+        </HudPanel>
+      ) : (
+        grouped.map(([dateStr, events]) => {
+          const date = new Date(dateStr + "T00:00:00");
+          const isToday = dateStr === todayStr;
+
+          return (
+            <HudPanel
+              key={dateStr}
+              title={formatDayHeader(date, now).toUpperCase()}
+              className={cn(isToday && "border-hud-cyan/30")}
+            >
+              <div className="p-2.5">
+                <div className="flex items-center gap-2 mb-2">
+                  {isToday && (
+                    <Badge className="bg-hud-cyan/15 text-hud-cyan border-hud-cyan/30 text-[9px]">Today</Badge>
+                  )}
+                  <span className="ml-auto text-[9px] font-mono text-muted-foreground">
+                    {events.length} event{events.length !== 1 ? "s" : ""}
+                  </span>
+                </div>
+                <div className="space-y-1.5">
+                  {events.map((event) => {
+                    const past = isPast(event, now);
+                    return (
+                      <div
+                        key={event.id}
+                        className={cn(
+                          "flex items-start gap-2.5 rounded p-2 transition-colors",
+                          past ? "bg-hud-bg/30" : "bg-hud-bg/60 border border-hud-border/20 hover:border-hud-border/40"
+                        )}
+                      >
+                        {/* Time */}
+                        <div className="w-14 shrink-0 pt-0.5">
+                          <div className="text-[10px] font-mono text-muted-foreground">{event.time}</div>
+                        </div>
+
+                        {/* Impact dot */}
+                        <div className="pt-1 shrink-0">
+                          <div className={cn("h-2 w-2 rounded-full", IMPACT_COLORS[event.impact])} />
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className={cn("font-medium text-[11px]", past ? "text-muted-foreground" : "text-white")}>
+                              {event.title}
+                            </span>
+                            <span className="text-[11px]">{COUNTRY_FLAGS[event.country]}</span>
+                            <Badge variant="outline" className={cn("text-[8px] px-1 py-0", CATEGORY_STYLES[event.category] ?? "text-muted-foreground")}>
+                              {event.category}
+                            </Badge>
+                            <Badge variant="outline" className={cn("text-[8px] px-1 py-0", IMPACT_TEXT[event.impact])}>
+                              {event.impact}
+                            </Badge>
                           </div>
 
-                          {/* Impact dot */}
-                          <div className="pt-1.5 shrink-0">
-                            <div
-                              className={cn(
-                                "h-2.5 w-2.5 rounded-full",
-                                IMPACT_COLORS[event.impact]
+                          {(event.previous || event.forecast || event.actual) && (
+                            <div className="flex items-center gap-2.5 mt-1 flex-wrap">
+                              {event.previous && (
+                                <div className="flex items-center gap-0.5">
+                                  <span className="text-[9px] font-mono text-muted-foreground/60">Prev:</span>
+                                  <span className="text-[10px] font-mono text-muted-foreground">{event.previous}</span>
+                                </div>
                               )}
-                            />
-                          </div>
-
-                          {/* Content */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span
-                                className={cn(
-                                  "font-medium text-sm",
-                                  past
-                                    ? "text-muted-foreground"
-                                    : "text-white"
-                                )}
-                              >
-                                {event.title}
-                              </span>
-                              <span className="text-sm">
-                                {COUNTRY_FLAGS[event.country]}
-                              </span>
-                              <Badge
-                                variant="outline"
-                                className={cn(
-                                  "text-[10px] px-1.5 py-0",
-                                  CATEGORY_STYLES[event.category] ??
-                                    "text-muted-foreground"
-                                )}
-                              >
-                                {event.category}
-                              </Badge>
-                              <Badge
-                                variant="outline"
-                                className={cn(
-                                  "text-[10px] px-1.5 py-0",
-                                  IMPACT_TEXT[event.impact]
-                                )}
-                              >
-                                {event.impact}
-                              </Badge>
-                            </div>
-
-                            {/* Values row */}
-                            {(event.previous ||
-                              event.forecast ||
-                              event.actual) && (
-                              <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                                {event.previous && (
-                                  <div className="flex items-center gap-1">
-                                    <span className="text-[10px] text-muted-foreground">
-                                      Prev:
-                                    </span>
-                                    <span className="text-[11px] font-mono text-muted-foreground">
-                                      {event.previous}
-                                    </span>
-                                  </div>
-                                )}
-                                {event.forecast && (
-                                  <div className="flex items-center gap-1">
-                                    <span className="text-[10px] text-muted-foreground">
-                                      Fcst:
-                                    </span>
-                                    <span className="text-[11px] font-mono text-yellow-400/80">
-                                      {event.forecast}
-                                    </span>
-                                  </div>
-                                )}
-                                {event.actual && (
-                                  <div className="flex items-center gap-1">
-                                    <span className="text-[10px] text-muted-foreground">
-                                      Act:
-                                    </span>
-                                    <span className="text-[11px] font-mono text-emerald-400 font-semibold">
-                                      {event.actual}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Trend icon for high impact */}
-                          {event.impact === "high" && !past && (
-                            <div className="pt-0.5 shrink-0">
-                              <TrendingUp className="h-4 w-4 text-red-400/50" />
+                              {event.forecast && (
+                                <div className="flex items-center gap-0.5">
+                                  <span className="text-[9px] font-mono text-muted-foreground/60">Fcst:</span>
+                                  <span className="text-[10px] font-mono text-hud-amber">{event.forecast}</span>
+                                </div>
+                              )}
+                              {event.actual && (
+                                <div className="flex items-center gap-0.5">
+                                  <span className="text-[9px] font-mono text-muted-foreground/60">Act:</span>
+                                  <span className="text-[10px] font-mono text-hud-green font-semibold">{event.actual}</span>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })
-        )}
 
-        {/* Footer */}
-        <div className="text-xs text-muted-foreground space-y-1 pb-4">
-          <p>
-            Economic calendar data is simulated for demonstration purposes.
-            Events are anchored to the current week and next week.
-          </p>
-          <p>
-            High-impact events (Fed decisions, NFP, CPI) typically cause
-            significant market volatility. Plan your trades accordingly.
-          </p>
-        </div>
+                        {event.impact === "high" && !past && (
+                          <div className="pt-0.5 shrink-0">
+                            <TrendingUp className="h-3.5 w-3.5 text-hud-red/50" />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </HudPanel>
+          );
+        })
+      )}
+
+      {/* Footer */}
+      <div className="text-[9px] font-mono text-muted-foreground/50 space-y-0.5 pb-2">
+        <p>Economic calendar data is simulated for demonstration. Events are anchored to the current week.</p>
+        <p>High-impact events (Fed decisions, NFP, CPI) typically cause significant market volatility.</p>
       </div>
-    </>
+    </div>
   );
 }
