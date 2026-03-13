@@ -15,12 +15,16 @@
 
 from __future__ import annotations
 
+import json
+from datetime import datetime, timezone
+
 from fastapi import WebSocket, WebSocketDisconnect
 
 __all__ = [
     "StreamManager",
     "stream_manager",
     "websocket_stream",
+    "broadcast_prediction",
 ]
 
 
@@ -74,13 +78,34 @@ async def websocket_stream(websocket: WebSocket, symbol: str) -> None:
     """
     WebSocket endpoint handler for /stream/{symbol}.
 
-    Accepts the connection, then loops receiving messages and
-    echoing back acknowledgments until the client disconnects.
+    Accepts the connection, then loops receiving messages.
+    Supports ping/pong keep-alive and subscribe acknowledgments.
+    Predictions are pushed via broadcast_prediction() after /predict calls.
     """
     await stream_manager.connect(websocket, symbol)
     try:
         while True:
             data = await websocket.receive_text()
-            await websocket.send_json({"status": "received", "symbol": symbol})
+            msg = json.loads(data)
+            if msg.get("type") == "ping":
+                await websocket.send_json({"type": "pong"})
+            elif msg.get("type") == "subscribe":
+                await websocket.send_json({"type": "subscribed", "symbol": symbol})
+            else:
+                await websocket.send_json({"type": "received", "symbol": symbol})
     except WebSocketDisconnect:
         await stream_manager.disconnect(websocket, symbol)
+
+
+# =============================================================================
+# SECTION 3 -- BROADCAST HELPERS
+# =============================================================================
+
+async def broadcast_prediction(symbol: str, prediction_data: dict) -> None:
+    """Called by routes.py after a successful prediction to push to WS clients."""
+    await stream_manager.broadcast(symbol, {
+        "type": "signal",
+        "symbol": symbol,
+        "data": prediction_data,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    })

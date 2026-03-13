@@ -49,6 +49,17 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={cn("min-h-screen bg-background antialiased", inter.variable, inter.className)}>
         {children}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').catch(function() {});
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );

@@ -100,3 +100,58 @@ $$ language plpgsql security definer;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- =============================================================================
+-- Price Alerts
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS price_alerts (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  symbol TEXT NOT NULL,
+  target_price NUMERIC NOT NULL,
+  condition TEXT CHECK (condition IN ('above', 'below')) NOT NULL,
+  name TEXT DEFAULT '',
+  active BOOLEAN DEFAULT true,
+  triggered_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE price_alerts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own alerts" ON price_alerts FOR ALL USING (auth.uid() = user_id);
+
+-- =============================================================================
+-- Trade Notes
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS trade_notes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  trade_id TEXT NOT NULL,
+  note TEXT DEFAULT '',
+  tags TEXT[] DEFAULT '{}',
+  rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE trade_notes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own notes" ON trade_notes FOR ALL USING (auth.uid() = user_id);
+
+-- =============================================================================
+-- User Preferences
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS user_preferences (
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+  risk_profile TEXT CHECK (risk_profile IN ('conservative', 'moderate', 'aggressive')) DEFAULT 'moderate',
+  default_strategy TEXT DEFAULT 'combined',
+  locale TEXT CHECK (locale IN ('de', 'en')) DEFAULT 'de',
+  notifications_push BOOLEAN DEFAULT true,
+  notifications_email BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE user_preferences ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own preferences" ON user_preferences FOR ALL USING (auth.uid() = user_id);
