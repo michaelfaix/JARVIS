@@ -31,7 +31,7 @@ import { Watchlist } from "@/components/dashboard/watchlist";
 import { PnlTicker } from "@/components/dashboard/pnl-ticker";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { StrategyControl } from "@/components/dashboard/strategy-control";
-import { JarvisTips } from "@/components/dashboard/jarvis-tips";
+import type { JarvisTipsContext } from "@/components/chart/asset-chart";
 import { useStrategy } from "@/hooks/use-strategy";
 import { MetricTooltip } from "@/components/ui/metric-tooltip";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -182,6 +182,19 @@ export default function DashboardPage() {
       strategy.state.params.emaFast,
       strategy.state.params.emaSlow,
     ]
+  );
+
+  // Memoize JARVIS tips context for the chart
+  const jarvisTipsCtx: JarvisTipsContext = useMemo(
+    () => ({
+      regime: regime,
+      ece: status?.ece ?? 0,
+      oodScore: status?.ood_score ?? 0,
+      metaUncertainty: status?.meta_unsicherheit ?? 0,
+      sentiment: sentimentData ? sentimentData.crypto.momentum.score / 100 : null,
+      strategy: strategy.state.selectedStrategy,
+    }),
+    [regime, status?.ece, status?.ood_score, status?.meta_unsicherheit, sentimentData, strategy.state.selectedStrategy]
   );
 
   const totalPnl = portfolio.realizedPnl + unrealizedPnl;
@@ -435,20 +448,11 @@ export default function DashboardPage() {
                 interval={chartInterval}
                 onPriceChange={handlePriceChange}
                 strategyOverlay={strategyOverlay}
+                jarvisTips={jarvisTipsCtx}
               />
             </div>
           </CardContent>
         </Card>
-
-        {/* JARVIS Tips — FAS-based contextual recommendations */}
-        <JarvisTips
-          regime={regime}
-          ece={status?.ece ?? 0}
-          oodScore={status?.ood_score ?? 0}
-          metaUncertainty={status?.meta_unsicherheit ?? 0}
-          sentiment={sentimentData ? (sentimentData.crypto.momentum.score / 100) : null}
-          strategy={strategy.state.selectedStrategy}
-        />
 
         {/* Portfolio Summary + Top Signals */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

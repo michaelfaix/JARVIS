@@ -8,7 +8,7 @@
 
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createChart,
   type IChartApi,
@@ -400,6 +400,127 @@ export interface StrategyOverlay {
   emaSlow: number;
 }
 
+export interface JarvisTipsContext {
+  regime: RegimeState;
+  ece: number;
+  oodScore: number;
+  metaUncertainty: number;
+  sentiment: number | null; // -1 to 1
+  strategy: string;
+}
+
+interface ChartTip {
+  text: string;
+  type: "positive" | "warning" | "danger";
+}
+
+function generateChartTips(
+  ctx: JarvisTipsContext,
+  symbol: string,
+  interval: string,
+): ChartTip[] {
+  const tips: ChartTip[] = [];
+  const tf = interval === "1m" || interval === "5m" ? "kurzem" : interval === "1d" || interval === "1w" ? "langem" : "mittlerem";
+  const strategyLabels: Record<string, string> = {
+    momentum: "Momentum",
+    mean_reversion: "Mean Reversion",
+    combined: "Combined",
+    breakout: "Breakout",
+    trend_following: "Trend Following",
+    scalping: "Scalping",
+    swing_trading: "Swing Trading",
+    custom: "Custom",
+  };
+  const stratLabel = strategyLabels[ctx.strategy] ?? ctx.strategy;
+
+  // Regime-based
+  if (ctx.regime === "RISK_ON") {
+    tips.push({
+      text: `${stratLabel} Strategie passt gut zum aktuellen Risk-On Markt — Long-Signale bevorzugen`,
+      type: "positive",
+    });
+  } else if (ctx.regime === "RISK_OFF") {
+    tips.push({
+      text: `Risk-Off Markt erkannt — defensive Positionen und engere Stop-Losses empfohlen`,
+      type: "warning",
+    });
+  } else if (ctx.regime === "CRISIS") {
+    tips.push({
+      text: `Krisenmodus aktiv — Positionsgroessen um 50% reduzieren oder absichern`,
+      type: "danger",
+    });
+  } else if (ctx.regime === "TRANSITION") {
+    tips.push({
+      text: `Markt im Uebergang — auf Regime-Bestaetigung warten, bevor neue Positionen eroeffnet werden`,
+      type: "warning",
+    });
+  }
+
+  // ECE/OOD
+  if (ctx.ece > 0.05) {
+    tips.push({
+      text: `Modell-Kalibrierung eingeschraenkt (${(ctx.ece * 100).toFixed(1)}%) — Konfidenzwerte mit Vorsicht interpretieren`,
+      type: "warning",
+    });
+  }
+  if (ctx.oodScore > 0.5) {
+    tips.push({
+      text: `Ungewoehnliche Marktbedingungen erkannt — Vorhersagen koennen unzuverlaessig sein`,
+      type: ctx.oodScore > 0.8 ? "danger" : "warning",
+    });
+  }
+
+  // Meta-uncertainty
+  if (ctx.metaUncertainty > 0.3) {
+    tips.push({
+      text: `Hohe Unsicherheit erkannt — kleinere Positionen empfohlen`,
+      type: "warning",
+    });
+  }
+
+  // Strategy-sentiment alignment
+  if (ctx.sentiment !== null) {
+    if (ctx.sentiment < -0.3 && (ctx.strategy === "momentum" || ctx.strategy === "trend_following")) {
+      tips.push({
+        text: `Baerische Stimmung passt nicht zur ${stratLabel}-Strategie — Mean Reversion oder Exposure reduzieren`,
+        type: "warning",
+      });
+    }
+    if (ctx.sentiment > 0.3 && ctx.regime === "RISK_ON") {
+      tips.push({
+        text: `${symbol} zeigt starken Aufwaertstrend auf ${tf} Timeframe — Long-Signale bevorzugen`,
+        type: "positive",
+      });
+    }
+  }
+
+  // Asset-specific
+  if (symbol === "BTC" || symbol === "ETH" || symbol === "SOL") {
+    if (ctx.regime === "RISK_ON") {
+      tips.push({
+        text: `Crypto profitiert ueberproportional im Risk-On — ${symbol} bietet gutes Momentum-Potential`,
+        type: "positive",
+      });
+    }
+  }
+  if (symbol === "GLD" && ctx.regime === "CRISIS") {
+    tips.push({
+      text: `Gold als Safe Haven im Krisenmodus — GLD-Positionen koennen als Absicherung dienen`,
+      type: "positive",
+    });
+  }
+
+  // Default if no tips
+  if (tips.length === 0) {
+    tips.push({
+      text: `Alle Systeme nominal — ${stratLabel} auf ${symbol} laeuft optimal`,
+      type: "positive",
+    });
+  }
+
+  return tips.slice(0, 3);
+}
+
 interface AssetChartProps {
   symbol: string;
   name: string;
@@ -414,6 +535,7 @@ interface AssetChartProps {
   activeTool?: DrawingTool;
   onDrawingComplete?: (drawing: ChartDrawing) => void;
   strategyOverlay?: StrategyOverlay;
+  jarvisTips?: JarvisTipsContext;
 }
 
 export function AssetChart({
@@ -430,9 +552,12 @@ export function AssetChart({
   activeTool = "none",
   onDrawingComplete,
   strategyOverlay,
+  jarvisTips,
 }: AssetChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
+  const [tipsOpen, setTipsOpen] = useState(false);
+  const tipsRef = useRef<HTMLDivElement>(null);
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
   const [lastPrice, setLastPrice] = useState<number>(0);
@@ -1049,6 +1174,25 @@ export function AssetChart({
     pendingPointRef.current = null;
   }, [activeTool]);
 
+  // --- JARVIS Tips: click-outside handler ---
+  useEffect(() => {
+    if (!tipsOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (tipsRef.current && !tipsRef.current.contains(e.target as Node)) {
+        setTipsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [tipsOpen]);
+
+  const tips = useMemo(() => {
+    if (!jarvisTips) return [];
+    return generateChartTips(jarvisTips, symbol, interval);
+  }, [jarvisTips, symbol, interval]);
+
+  const toggleTips = useCallback(() => setTipsOpen((p) => !p), []);
+
   const displayPrice = livePrice ?? lastPrice;
   const isPositive = priceChange >= 0;
 
@@ -1088,6 +1232,19 @@ export function AssetChart({
           {isPositive ? "+" : ""}
           {priceChange.toFixed(2)}%
         </span>
+        {/* JARVIS Tips Button */}
+        {jarvisTips && (
+          <button
+            onClick={toggleTips}
+            className={`ml-auto px-2 py-0.5 rounded-md text-[11px] font-medium transition-all ${
+              tipsOpen
+                ? "bg-blue-600/30 text-blue-300 border border-blue-500/40"
+                : "bg-blue-600/10 text-blue-400 border border-blue-500/20 hover:bg-blue-600/20"
+            }`}
+          >
+            JARVIS ?
+          </button>
+        )}
       </div>
 
       {/* Chart */}
@@ -1097,6 +1254,43 @@ export function AssetChart({
           <div className="absolute top-2 right-2 flex items-center gap-1.5 rounded bg-background/80 border border-border/50 px-2 py-1 text-[10px] text-blue-400 animate-pulse">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping" />
             Recalculating signals...
+          </div>
+        )}
+        {/* JARVIS Tips Overlay */}
+        {tipsOpen && tips.length > 0 && (
+          <div
+            ref={tipsRef}
+            className="absolute top-2 right-2 z-10 w-72 rounded-xl
+              bg-black/60 backdrop-blur-xl border border-white/10
+              shadow-2xl shadow-black/40
+              animate-in fade-in slide-in-from-top-2 duration-200"
+          >
+            <div className="px-3.5 py-2.5 border-b border-white/10 flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-white/90">JARVIS Tipps</span>
+              <button
+                onClick={toggleTips}
+                className="text-white/40 hover:text-white/80 transition-colors text-xs"
+              >
+                &times;
+              </button>
+            </div>
+            <div className="p-3 space-y-2">
+              {tips.map((tip, i) => (
+                <div
+                  key={i}
+                  className="flex items-start gap-2 rounded-lg bg-white/5 px-2.5 py-2"
+                >
+                  <span className={`mt-0.5 shrink-0 w-1.5 h-1.5 rounded-full ${
+                    tip.type === "positive" ? "bg-green-400" :
+                    tip.type === "warning" ? "bg-yellow-400" :
+                    "bg-red-400"
+                  }`} />
+                  <span className="text-[11px] leading-relaxed text-white/80">
+                    {tip.text}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
