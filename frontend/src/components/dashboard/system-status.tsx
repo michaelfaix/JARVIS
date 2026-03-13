@@ -12,10 +12,8 @@ import { MODUS_COLORS } from "@/lib/types";
 import type { MetricsResponse } from "@/lib/api";
 import type { Signal } from "@/lib/types";
 
-const F = "'Courier New', Courier, monospace";
-
-function L({ children }: { children: React.ReactNode }) {
-  return <span style={{ fontFamily: F }} className="text-[7px] tracking-[2px] text-[#2a3a52] uppercase block">{children}</span>;
+function HudLabel({ children }: { children: React.ReactNode }) {
+  return <span className="font-mono text-[7px] tracking-[2px] text-[#2a3a52] uppercase block">{children}</span>;
 }
 
 function Bar({ value, color, h = 3 }: { value: number; color: string; h?: number }) {
@@ -30,13 +28,26 @@ function bc(v: number): string {
   return v >= 0.8 ? "#00e5a0" : v >= 0.6 ? "#ffaa00" : "#ff4466";
 }
 
+function SubBar({ label, value }: { label: string; value: number }) {
+  const col = bc(value / 100);
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-0.5">
+        <span className="font-mono text-[6px] tracking-[1.5px] text-[#2a3a52] uppercase">{label}</span>
+        <span className="font-mono text-[8px] font-bold" style={{ color: col }}>{value.toFixed(0)}</span>
+      </div>
+      <Bar value={value} color={col} h={2} />
+    </div>
+  );
+}
+
 const STRATEGY_LABELS: Record<string, string> = {
   momentum: "MOMENTUM", mean_reversion: "MEAN REV", combined: "COMBINED",
   scalping: "SCALPING", custom: "CUSTOM",
 };
 
 // ---------------------------------------------------------------------------
-// SystemModeCard — The unified left-column widget
+// SystemModeCard
 // ---------------------------------------------------------------------------
 
 interface SystemModeCardProps {
@@ -49,7 +60,6 @@ interface SystemModeCardProps {
   metaUncertainty: number;
   loading?: boolean;
   backendOnline?: boolean;
-  // New props for trade readiness
   selectedAsset?: string;
   selectedStrategy?: string;
   signals?: Signal[];
@@ -63,12 +73,10 @@ export const SystemModeCard = React.memo(function SystemModeCard({
 }: SystemModeCardProps) {
   const color = MODUS_COLORS[modus] || "#6b7280";
 
-  // Find signal for selected asset
   const assetSignal = selectedAsset
     ? signals.find((s) => s.asset === selectedAsset) ?? signals[0]
     : signals[0];
 
-  // Compute trade readiness
   const signalStrength = assetSignal ? assetSignal.confidence * 100 : 0;
   const riskLevel = oodScore > 0.5 || ece > 0.15 ? "HIGH" : oodScore > 0.3 || ece > 0.08 ? "MEDIUM" : "LOW";
   const riskColor = riskLevel === "LOW" ? "#00e5a0" : riskLevel === "MEDIUM" ? "#ffaa00" : "#ff4466";
@@ -78,7 +86,7 @@ export const SystemModeCard = React.memo(function SystemModeCard({
 
   return (
     <HudPanel>
-      <div className="p-2 space-y-2" style={{ fontFamily: F }}>
+      <div className="p-2 space-y-2 font-mono">
         {loading ? (
           <div className="space-y-2">
             <Skeleton className="h-4 w-24" />
@@ -88,7 +96,7 @@ export const SystemModeCard = React.memo(function SystemModeCard({
           <>
             {/* 1. HEADER */}
             <div className="flex items-center justify-between">
-              <L>SYSTEM MODE</L>
+              <HudLabel>SYSTEM MODE</HudLabel>
               <div className="flex items-center gap-1">
                 <div className="w-1.5 h-1.5 rounded-full animate-pulse-live" style={{ backgroundColor: backendOnline ? "#00e5a0" : "#ff4466" }} />
                 <span className="text-[7px] tracking-[1px]" style={{ color: backendOnline ? "#00e5a0" : "#ff4466" }}>
@@ -101,13 +109,13 @@ export const SystemModeCard = React.memo(function SystemModeCard({
 
             {/* 3. DECISION QUALITY */}
             <div>
-              <L>DECISION QUALITY</L>
+              <HudLabel>DECISION QUALITY</HudLabel>
               <div className="flex items-center justify-between mt-1">
                 <div className="flex items-baseline gap-0.5">
                   <span className="text-lg font-bold text-hud-cyan">{(konfidenzMultiplikator * 93.8).toFixed(1)}</span>
                   <span className="text-[8px] text-[#2a3a52]">/100</span>
                 </div>
-                <span className="text-[7px] px-1.5 py-0.5 rounded border text-[#2a3a52]" style={{ borderColor: color, color }}>
+                <span className="text-[7px] px-1.5 py-0.5 rounded border" style={{ borderColor: color, color }}>
                   {modus === "NORMAL" ? "NORMAL" : modus.replace(/_/g, " ")}
                 </span>
               </div>
@@ -128,7 +136,7 @@ export const SystemModeCard = React.memo(function SystemModeCard({
 
             {/* 6. ML METRIKEN */}
             <div>
-              <L>ML METRIKEN</L>
+              <HudLabel>ML METRIKEN</HudLabel>
               <div className="grid grid-cols-2 gap-x-2 gap-y-1 mt-1">
                 <MetricTooltip term="ECE">
                   <div>
@@ -157,10 +165,10 @@ export const SystemModeCard = React.memo(function SystemModeCard({
 
             <div className="border-t border-[#0d1a2d]" />
 
-            {/* 8. AKTIVES ASSET & STRATEGIE */}
+            {/* 8. AKTIVES ASSET */}
             {selectedAsset && (
               <div>
-                <L>AKTIVES ASSET</L>
+                <HudLabel>AKTIVES ASSET</HudLabel>
                 <div className="flex items-center justify-between mt-1">
                   <span className="text-[10px] font-bold text-white">{selectedAsset}</span>
                   <span className="text-[7px] px-1 py-0.5 rounded bg-hud-cyan/10 text-hud-cyan border border-hud-cyan/30">
@@ -213,21 +221,8 @@ export const SystemModeCard = React.memo(function SystemModeCard({
   );
 });
 
-function SubBar({ label, value }: { label: string; value: number }) {
-  const col = bc(value / 100);
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-0.5">
-        <span className="text-[6px] tracking-[1.5px] text-[#2a3a52] uppercase">{label}</span>
-        <span className="text-[8px] font-bold" style={{ color: col }}>{value.toFixed(0)}</span>
-      </div>
-      <Bar value={value} color={col} h={2} />
-    </div>
-  );
-}
-
 // ---------------------------------------------------------------------------
-// Quality Score Card (kept for right column)
+// QualityScoreCard (right column)
 // ---------------------------------------------------------------------------
 
 interface QualityScoreCardProps {
@@ -239,8 +234,8 @@ export const QualityScoreCard = React.memo(function QualityScoreCard({ metrics, 
   if (!metrics || loading) {
     return (
       <HudPanel>
-        <div className="p-2 space-y-2" style={{ fontFamily: F }}>
-          <L>DECISION QUALITY</L>
+        <div className="p-2 space-y-2 font-mono">
+          <HudLabel>DECISION QUALITY</HudLabel>
           <Skeleton className="h-7 w-20" />
           <Skeleton className="h-[2px] w-full" />
           {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-3 w-full" />)}
@@ -262,8 +257,8 @@ export const QualityScoreCard = React.memo(function QualityScoreCard({ metrics, 
 
   return (
     <HudPanel>
-      <div className="p-2 space-y-2" style={{ fontFamily: F }}>
-        <L>DECISION QUALITY</L>
+      <div className="p-2 space-y-2 font-mono">
+        <HudLabel>DECISION QUALITY</HudLabel>
         <div className="flex items-baseline gap-0.5 mt-1">
           <span className="text-xl font-bold text-hud-cyan">{(score * 100).toFixed(1)}</span>
           <span className="text-[9px] text-[#2a3a52]">/100</span>
