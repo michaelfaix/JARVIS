@@ -5,8 +5,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AppHeader } from "@/components/layout/app-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { HudPanel } from "@/components/ui/hud-panel";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -188,108 +187,95 @@ export default function SignalsPage() {
 
   return (
     <>
-      <AppHeader title="Signals" subtitle="Live Signal Feed" />
-      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="p-2 sm:p-3 md:p-4 space-y-3">
         {(error || statusError) && <ApiOfflineBanner />}
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <Card className="bg-card/50 border-border/50">
-            <CardContent className="pt-4 pb-3 px-4">
-              <div className="text-xs text-muted-foreground mb-1">
-                Active Signals
-              </div>
-              <div className="text-2xl font-bold font-mono text-white">
-                {signals.length}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border/50">
-            <CardContent className="pt-4 pb-3 px-4">
-              <div className="text-xs text-muted-foreground mb-1">
-                Long / Short
-              </div>
-              <div className="text-xl font-bold font-mono">
-                <span className="text-green-400">{activeLongs}</span>
-                <span className="text-muted-foreground mx-1">/</span>
-                <span className="text-red-400">{activeShorts}</span>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border/50">
-            <CardContent className="pt-4 pb-3 px-4">
-              <div className="text-xs text-muted-foreground mb-1">
-                Avg Confidence
-              </div>
-              <div className="text-xl font-bold font-mono text-white">
-                {(avgConfidence * 100).toFixed(1)}%
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border/50">
-            <CardContent className="pt-4 pb-3 px-4">
-              <div className="text-xs text-muted-foreground mb-1">
-                Open Trades
-              </div>
-              <div className="text-xl font-bold font-mono text-blue-400">
-                {portfolio.positions.length}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border/50">
-            <CardContent className="pt-4 pb-3 px-4">
-              <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
-                {binanceConnected ? (
-                  <Wifi className="h-3 w-3 text-green-400" />
-                ) : (
-                  <WifiOff className="h-3 w-3 text-yellow-500" />
-                )}
-                Price Feed
-              </div>
-              <div className="text-sm font-mono text-white">
-                {wsConnected ? (
-                  <span className="text-green-400">WS Live</span>
-                ) : binanceConnected ? (
-                  <span className="text-green-400">REST Live</span>
-                ) : (
-                  <span className="text-yellow-400">Synthetic</span>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="bg-hud-bg/60 border border-hud-border/30 rounded p-2.5">
+            <div className="text-[10px] text-hud-cyan/70 font-mono mb-1">
+              ACTIVE SIGNALS
+            </div>
+            <div className="text-2xl font-bold font-mono text-hud-cyan">
+              {signals.length}
+            </div>
+          </div>
+          <div className="bg-hud-bg/60 border border-hud-border/30 rounded p-2.5">
+            <div className="text-[10px] text-hud-cyan/70 font-mono mb-1">
+              LONG / SHORT
+            </div>
+            <div className="text-xl font-bold font-mono">
+              <span className="text-hud-green">{activeLongs}</span>
+              <span className="text-hud-border mx-1">/</span>
+              <span className="text-hud-red">{activeShorts}</span>
+            </div>
+          </div>
+          <div className="bg-hud-bg/60 border border-hud-border/30 rounded p-2.5">
+            <div className="text-[10px] text-hud-cyan/70 font-mono mb-1">
+              AVG CONFIDENCE
+            </div>
+            <div className="text-xl font-bold font-mono text-hud-cyan">
+              {(avgConfidence * 100).toFixed(1)}%
+            </div>
+          </div>
+          <div className="bg-hud-bg/60 border border-hud-border/30 rounded p-2.5">
+            <div className="text-[10px] text-hud-cyan/70 font-mono mb-1">
+              OPEN TRADES
+            </div>
+            <div className="text-xl font-bold font-mono text-hud-cyan">
+              {portfolio.positions.length}
+            </div>
+          </div>
+          <div className="bg-hud-bg/60 border border-hud-border/30 rounded p-2.5">
+            <div className="text-[10px] text-hud-cyan/70 font-mono mb-1 flex items-center gap-1">
+              {binanceConnected ? (
+                <Wifi className="h-3 w-3 text-hud-green" />
+              ) : (
+                <WifiOff className="h-3 w-3 text-hud-amber" />
+              )}
+              PRICE FEED
+            </div>
+            <div className="text-sm font-mono">
+              {wsConnected ? (
+                <span className="text-hud-green">WS Live</span>
+              ) : binanceConnected ? (
+                <span className="text-hud-green">REST Live</span>
+              ) : (
+                <span className="text-hud-amber">Synthetic</span>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Signal Feed Table */}
-        <Card className="bg-card/50 border-border/50">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Radio className="h-4 w-4" />
-                Signal Feed
+        <HudPanel title="SIGNAL FEED" scanLine>
+          <div className="p-2.5">
+            <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+              <div className="flex items-center gap-2">
                 {loading && (
-                  <RefreshCw className="h-3 w-3 animate-spin text-blue-400" />
+                  <RefreshCw className="h-3 w-3 animate-spin text-hud-cyan" />
                 )}
                 {!isPro && (
-                  <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-[10px] gap-1">
+                  <Badge className="bg-hud-amber/15 text-hud-amber border-hud-amber/30 text-[10px] gap-1">
                     <Clock className="h-2.5 w-2.5" />
                     {limits.signalDelayMinutes}min delay
                   </Badge>
                 )}
                 {!isPro && allSignals.length > signals.length && (
-                  <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-[10px] gap-1">
+                  <Badge className="bg-hud-cyan/15 text-hud-cyan border-hud-cyan/30 text-[10px] gap-1">
                     <Lock className="h-2.5 w-2.5" />
                     {signals.length}/{allSignals.length} assets
                   </Badge>
                 )}
                 {pendingOrders.length > 0 && (
-                  <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-[10px] gap-1">
+                  <Badge className="bg-hud-amber/15 text-hud-amber border-hud-amber/30 text-[10px] gap-1">
                     <ListOrdered className="h-2.5 w-2.5" />
                     {pendingOrders.length} pending
                   </Badge>
                 )}
-              </CardTitle>
+              </div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] text-muted-foreground">
+                <span className="text-[10px] text-hud-cyan/60 font-mono">
                   Available: $
                   {portfolio.availableCapital.toLocaleString("en-US", {
                     maximumFractionDigits: 0,
@@ -299,17 +285,16 @@ export default function SignalsPage() {
                   variant="outline"
                   size="sm"
                   onClick={refresh}
-                  className="h-7 text-xs"
+                  className="h-7 text-xs bg-hud-cyan/15 text-hud-cyan border-hud-cyan/30 hover:bg-hud-cyan/25"
                 >
                   <RefreshCw className="h-3 w-3 mr-1" />
                   Refresh
                 </Button>
               </div>
             </div>
-          </CardHeader>
-          <CardContent>
+
             {error && (
-              <div className="mb-4 rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">
+              <div className="mb-4 rounded bg-hud-red/10 border border-hud-red/20 p-3 text-sm text-hud-red font-mono">
                 {error}. Backend may be offline.
               </div>
             )}
@@ -317,37 +302,37 @@ export default function SignalsPage() {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Asset</TableHead>
-                    <TableHead>Direction</TableHead>
-                    <TableHead className="text-right">Live Price</TableHead>
-                    <TableHead className="text-right">Stop Loss</TableHead>
-                    <TableHead className="text-right">Take Profit</TableHead>
-                    <TableHead>Confidence</TableHead>
-                    <TableHead className="text-right">Quality</TableHead>
-                    <TableHead>OOD</TableHead>
-                    <TableHead className="text-center">Action</TableHead>
+                  <TableRow className="border-hud-border/30">
+                    <TableHead className="text-[10px] text-hud-cyan/70 font-mono">Asset</TableHead>
+                    <TableHead className="text-[10px] text-hud-cyan/70 font-mono">Direction</TableHead>
+                    <TableHead className="text-[10px] text-hud-cyan/70 font-mono text-right">Live Price</TableHead>
+                    <TableHead className="text-[10px] text-hud-cyan/70 font-mono text-right">Stop Loss</TableHead>
+                    <TableHead className="text-[10px] text-hud-cyan/70 font-mono text-right">Take Profit</TableHead>
+                    <TableHead className="text-[10px] text-hud-cyan/70 font-mono">Confidence</TableHead>
+                    <TableHead className="text-[10px] text-hud-cyan/70 font-mono text-right">Quality</TableHead>
+                    <TableHead className="text-[10px] text-hud-cyan/70 font-mono">OOD</TableHead>
+                    <TableHead className="text-[10px] text-hud-cyan/70 font-mono text-center">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {signals.length === 0 && !loading ? (
-                    <TableRow>
+                    <TableRow className="border-hud-border/20">
                       <TableCell colSpan={9} className="py-12">
-                        <div className="flex flex-col items-center justify-center gap-3 text-muted-foreground">
+                        <div className="flex flex-col items-center justify-center gap-3 text-hud-cyan/50">
                           {error ? (
                             <>
-                              <WifiOff className="h-8 w-8 text-yellow-500/60" />
-                              <div className="text-sm font-medium text-yellow-400">
+                              <WifiOff className="h-8 w-8 text-hud-amber/60" />
+                              <div className="text-sm font-medium font-mono text-hud-amber">
                                 Unable to fetch signals
                               </div>
-                              <div className="text-xs text-muted-foreground">
+                              <div className="text-[10px] text-hud-cyan/40 font-mono">
                                 Connect the JARVIS backend to generate live signals
                               </div>
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={refresh}
-                                className="mt-1 h-7 text-xs"
+                                className="mt-1 h-7 text-xs bg-hud-cyan/15 text-hud-cyan border-hud-cyan/30 hover:bg-hud-cyan/25"
                               >
                                 <RefreshCw className="h-3 w-3 mr-1" />
                                 Retry
@@ -355,11 +340,11 @@ export default function SignalsPage() {
                             </>
                           ) : (
                             <>
-                              <Radio className="h-8 w-8 text-muted-foreground/40" />
-                              <div className="text-sm font-medium">
+                              <Radio className="h-8 w-8 text-hud-cyan/30" />
+                              <div className="text-sm font-medium font-mono">
                                 No signals available
                               </div>
-                              <div className="text-xs">
+                              <div className="text-[10px] font-mono">
                                 Signals will appear here when the model generates predictions
                               </div>
                             </>
@@ -376,13 +361,13 @@ export default function SignalsPage() {
                       const hasPosition = openAssets.has(signal.asset);
 
                       return (
-                        <TableRow key={signal.id}>
+                        <TableRow key={signal.id} className="border-hud-border/20">
                           <TableCell>
                             <div>
-                              <div className="font-medium text-white">
+                              <div className="font-medium font-mono text-hud-cyan">
                                 {signal.asset}
                               </div>
-                              <div className="text-[10px] text-muted-foreground">
+                              <div className="text-[10px] text-hud-cyan/50 font-mono">
                                 {asset?.name}
                               </div>
                             </div>
@@ -391,28 +376,28 @@ export default function SignalsPage() {
                             <Badge
                               className={
                                 signal.direction === "LONG"
-                                  ? "bg-green-500/20 text-green-400 border-green-500/30"
-                                  : "bg-red-500/20 text-red-400 border-red-500/30"
+                                  ? "bg-hud-green/15 text-hud-green border-hud-green/30"
+                                  : "bg-hud-red/15 text-hud-red border-hud-red/30"
                               }
                             >
                               {signal.direction}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right font-mono text-white">
+                          <TableCell className="text-right font-mono text-hud-cyan">
                             $
                             {livePrice.toLocaleString("en-US", {
                               minimumFractionDigits: 2,
                               maximumFractionDigits: 2,
                             })}
                           </TableCell>
-                          <TableCell className="text-right font-mono text-red-400 text-xs">
+                          <TableCell className="text-right font-mono text-hud-red text-xs">
                             $
                             {signal.stopLoss.toLocaleString("en-US", {
                               minimumFractionDigits: 2,
                               maximumFractionDigits: 2,
                             })}
                           </TableCell>
-                          <TableCell className="text-right font-mono text-green-400 text-xs">
+                          <TableCell className="text-right font-mono text-hud-green text-xs">
                             $
                             {signal.takeProfit.toLocaleString("en-US", {
                               minimumFractionDigits: 2,
@@ -426,13 +411,13 @@ export default function SignalsPage() {
                                 className="h-1.5"
                                 indicatorClassName={
                                   signal.confidence > 0.7
-                                    ? "bg-green-500"
+                                    ? "bg-hud-green"
                                     : signal.confidence > 0.4
-                                    ? "bg-yellow-500"
-                                    : "bg-red-500"
+                                    ? "bg-hud-amber"
+                                    : "bg-hud-red"
                                 }
                               />
-                              <span className="text-xs font-mono text-muted-foreground w-10 text-right">
+                              <span className="text-xs font-mono text-hud-cyan/60 w-10 text-right">
                                 {(signal.confidence * 100).toFixed(0)}%
                               </span>
                             </div>
@@ -441,10 +426,10 @@ export default function SignalsPage() {
                             <span
                               className={
                                 signal.qualityScore > 0.7
-                                  ? "text-green-400"
+                                  ? "text-hud-green"
                                   : signal.qualityScore > 0.4
-                                  ? "text-yellow-400"
-                                  : "text-red-400"
+                                  ? "text-hud-amber"
+                                  : "text-hud-red"
                               }
                             >
                               {(signal.qualityScore * 100).toFixed(0)}
@@ -454,14 +439,14 @@ export default function SignalsPage() {
                             {isPro ? (
                               signal.isOod ? (
                                 <div className="flex items-center gap-1">
-                                  <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                                  <span className="text-[10px] text-yellow-400">OOD</span>
+                                  <AlertTriangle className="h-4 w-4 text-hud-amber" />
+                                  <span className="text-[10px] text-hud-amber font-mono">OOD</span>
                                 </div>
                               ) : (
-                                <span className="text-[10px] text-green-400">OK</span>
+                                <span className="text-[10px] text-hud-green font-mono">OK</span>
                               )
                             ) : (
-                              <Lock className="h-3 w-3 text-muted-foreground" />
+                              <Lock className="h-3 w-3 text-hud-cyan/40" />
                             )}
                           </TableCell>
                           <TableCell className="text-center">
@@ -469,7 +454,7 @@ export default function SignalsPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-7 text-xs border-red-500/30 text-red-400 hover:bg-red-500/10 gap-1"
+                                className="h-7 text-xs border-hud-red/30 text-hud-red hover:bg-hud-red/10 gap-1"
                                 onClick={() => handleClose(signal.asset)}
                               >
                                 <X className="h-3 w-3" />
@@ -479,7 +464,7 @@ export default function SignalsPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-7 text-xs border-blue-500/30 text-blue-400 hover:bg-blue-500/10 gap-1"
+                                className="h-7 text-xs bg-hud-cyan/15 text-hud-cyan border-hud-cyan/30 hover:bg-hud-cyan/25 gap-1"
                                 onClick={() => handleTrade(signal)}
                                 disabled={portfolio.availableCapital < 1}
                               >
@@ -495,57 +480,51 @@ export default function SignalsPage() {
                 </TableBody>
               </Table>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </HudPanel>
 
         {/* Pending Orders Section */}
         {pendingOrders.length > 0 && (
-          <Card className="bg-card/50 border-border/50">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <ListOrdered className="h-4 w-4" />
-                Pending Orders ({pendingOrders.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+          <HudPanel title={`PENDING ORDERS (${pendingOrders.length})`}>
+            <div className="p-2.5">
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Asset</TableHead>
-                      <TableHead>Direction</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead className="text-right">Limit Price</TableHead>
-                      <TableHead className="text-right">Stop Price</TableHead>
-                      <TableHead className="text-right">Size</TableHead>
-                      <TableHead className="text-right">Capital</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead className="text-center">Action</TableHead>
+                    <TableRow className="border-hud-border/30">
+                      <TableHead className="text-[10px] text-hud-cyan/70 font-mono">Asset</TableHead>
+                      <TableHead className="text-[10px] text-hud-cyan/70 font-mono">Direction</TableHead>
+                      <TableHead className="text-[10px] text-hud-cyan/70 font-mono">Type</TableHead>
+                      <TableHead className="text-[10px] text-hud-cyan/70 font-mono text-right">Limit Price</TableHead>
+                      <TableHead className="text-[10px] text-hud-cyan/70 font-mono text-right">Stop Price</TableHead>
+                      <TableHead className="text-[10px] text-hud-cyan/70 font-mono text-right">Size</TableHead>
+                      <TableHead className="text-[10px] text-hud-cyan/70 font-mono text-right">Capital</TableHead>
+                      <TableHead className="text-[10px] text-hud-cyan/70 font-mono">Created</TableHead>
+                      <TableHead className="text-[10px] text-hud-cyan/70 font-mono text-center">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {pendingOrders.map((order) => (
-                      <TableRow key={order.id}>
-                        <TableCell className="font-medium text-white">
+                      <TableRow key={order.id} className="border-hud-border/20">
+                        <TableCell className="font-medium font-mono text-hud-cyan">
                           {order.asset}
                         </TableCell>
                         <TableCell>
                           <Badge
                             className={
                               order.direction === "LONG"
-                                ? "bg-green-500/20 text-green-400 border-green-500/30"
-                                : "bg-red-500/20 text-red-400 border-red-500/30"
+                                ? "bg-hud-green/15 text-hud-green border-hud-green/30"
+                                : "bg-hud-red/15 text-hud-red border-hud-red/30"
                             }
                           >
                             {order.direction}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-[10px]">
+                          <Badge className="bg-hud-amber/15 text-hud-amber border-hud-amber/30 text-[10px]">
                             {order.type === "stop_limit" ? "Stop Limit" : "Limit"}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right font-mono text-xs text-white">
+                        <TableCell className="text-right font-mono text-xs text-hud-cyan">
                           {order.limitPrice != null
                             ? `$${order.limitPrice.toLocaleString("en-US", {
                                 minimumFractionDigits: 2,
@@ -553,7 +532,7 @@ export default function SignalsPage() {
                               })}`
                             : "—"}
                         </TableCell>
-                        <TableCell className="text-right font-mono text-xs text-muted-foreground">
+                        <TableCell className="text-right font-mono text-xs text-hud-cyan/60">
                           {order.stopPrice != null
                             ? `$${order.stopPrice.toLocaleString("en-US", {
                                 minimumFractionDigits: 2,
@@ -561,13 +540,13 @@ export default function SignalsPage() {
                               })}`
                             : "—"}
                         </TableCell>
-                        <TableCell className="text-right font-mono text-xs text-white">
+                        <TableCell className="text-right font-mono text-xs text-hud-cyan">
                           {order.size.toFixed(4)}
                         </TableCell>
-                        <TableCell className="text-right font-mono text-xs text-muted-foreground">
+                        <TableCell className="text-right font-mono text-xs text-hud-cyan/60">
                           ${order.capitalAllocated.toFixed(0)}
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
+                        <TableCell className="text-xs text-hud-cyan/60 font-mono">
                           {new Date(order.createdAt).toLocaleTimeString("en-US", {
                             hour: "2-digit",
                             minute: "2-digit",
@@ -577,7 +556,7 @@ export default function SignalsPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-7 text-xs border-red-500/30 text-red-400 hover:bg-red-500/10 gap-1"
+                            className="h-7 text-xs border-hud-red/30 text-hud-red hover:bg-hud-red/10 gap-1"
                             onClick={() => {
                               cancelOrder(order.id);
                               toast("warning", `Cancelled ${order.type} order for ${order.asset}`);
@@ -592,8 +571,8 @@ export default function SignalsPage() {
                   </TableBody>
                 </Table>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </HudPanel>
         )}
       </div>
 

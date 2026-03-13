@@ -5,8 +5,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { AppHeader } from "@/components/layout/app-header";
-import { Card, CardContent } from "@/components/ui/card";
+import { HudPanel } from "@/components/ui/hud-panel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useSystemStatus } from "@/hooks/use-jarvis";
@@ -137,146 +136,143 @@ function ChatContent() {
   };
 
   return (
-    <>
-      <AppHeader title="AI Chat" subtitle="Ask JARVIS" />
-      <div className="flex flex-col h-[calc(100vh-3.5rem-2.5rem)] p-3 sm:p-4 md:p-6 gap-3">
-        {statusError && <ApiOfflineBanner />}
-        {/* Chat Area */}
-        <Card className="bg-card/50 border-border/50 flex-1 flex flex-col overflow-hidden">
-          <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
-            {messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600/20">
-                  <Sparkles className="h-8 w-8 text-blue-400" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-white mb-1">
-                    JARVIS AI Assistant
-                  </h3>
-                  <p className="text-sm text-muted-foreground max-w-md">
-                    Ask questions about markets, signals, risk management, or
-                    trading strategies. JARVIS has context about your current
-                    portfolio and market regime.
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2 justify-center max-w-lg">
-                  {QUICK_PROMPTS.map((prompt) => (
-                    <button
-                      key={prompt}
-                      onClick={() => sendMessage(prompt)}
-                      className="text-xs px-3 py-1.5 rounded-full bg-background/50 border border-border/50 text-muted-foreground hover:text-white hover:border-blue-500/30 transition-colors"
-                    >
-                      {prompt}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  <Badge variant="outline" className="text-[10px]">
-                    Regime: {regime.replace("_", " ")}
-                  </Badge>
-                  <Badge variant="outline" className="text-[10px]">
-                    Positions: {portfolio.positions.length}
-                  </Badge>
-                  <Badge variant="outline" className="text-[10px]">
-                    Portfolio: ${totalValue.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-                  </Badge>
-                </div>
+    <div className="flex flex-col h-[calc(100vh-3.5rem-2.5rem)] p-2 sm:p-3 md:p-4 gap-3">
+      {statusError && <ApiOfflineBanner />}
+      {/* Chat Area */}
+      <HudPanel title="JARVIS COMMS" scanLine className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4">
+          {messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-hud-cyan/20">
+                <Sparkles className="h-8 w-8 text-hud-cyan" />
               </div>
-            ) : (
-              <>
-                {messages.map((msg) => (
+              <div>
+                <h3 className="text-lg font-bold text-white mb-1 font-mono">
+                  JARVIS AI Assistant
+                </h3>
+                <p className="text-sm text-muted-foreground max-w-md">
+                  Ask questions about markets, signals, risk management, or
+                  trading strategies. JARVIS has context about your current
+                  portfolio and market regime.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2 justify-center max-w-lg">
+                {QUICK_PROMPTS.map((prompt) => (
+                  <button
+                    key={prompt}
+                    onClick={() => sendMessage(prompt)}
+                    className="text-xs px-3 py-1.5 rounded-full bg-hud-bg/60 border border-hud-border/30 text-muted-foreground hover:text-hud-cyan hover:border-hud-cyan/30 transition-colors"
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <Badge variant="outline" className="text-[10px] border-hud-border/30 text-hud-cyan">
+                  Regime: {regime.replace("_", " ")}
+                </Badge>
+                <Badge variant="outline" className="text-[10px] border-hud-border/30 text-hud-cyan">
+                  Positions: {portfolio.positions.length}
+                </Badge>
+                <Badge variant="outline" className="text-[10px] border-hud-border/30 text-hud-cyan">
+                  Portfolio: ${totalValue.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                </Badge>
+              </div>
+            </div>
+          ) : (
+            <>
+              {messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={`flex gap-3 ${
+                    msg.role === "user" ? "justify-end" : "justify-start"
+                  }`}
+                >
+                  {msg.role === "assistant" && (
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-hud-cyan/20">
+                      <Bot className="h-4 w-4 text-hud-cyan" />
+                    </div>
+                  )}
                   <div
-                    key={msg.id}
-                    className={`flex gap-3 ${
-                      msg.role === "user" ? "justify-end" : "justify-start"
+                    className={`max-w-[75%] rounded-lg px-4 py-3 text-sm ${
+                      msg.role === "user"
+                        ? "bg-hud-cyan/15 text-white border border-hud-cyan/20"
+                        : "bg-hud-bg/60 text-foreground border border-hud-border/30"
                     }`}
                   >
-                    {msg.role === "assistant" && (
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600/20">
-                        <Bot className="h-4 w-4 text-blue-400" />
-                      </div>
-                    )}
-                    <div
-                      className={`max-w-[75%] rounded-lg px-4 py-3 text-sm ${
-                        msg.role === "user"
-                          ? "bg-blue-600/20 text-white"
-                          : "bg-background/50 text-foreground"
-                      }`}
-                    >
-                      {msg.role === "assistant" ? (
-                        <div
-                          className="prose prose-sm prose-invert max-w-none [&_table]:text-xs [&_th]:px-2 [&_td]:px-2 [&_h2]:text-base [&_h2]:mt-0 [&_h3]:text-sm [&_p]:text-sm [&_li]:text-sm [&_code]:text-xs"
-                          dangerouslySetInnerHTML={{
-                            __html: simpleMarkdown(msg.content),
-                          }}
-                        />
-                      ) : (
-                        <p className="whitespace-pre-wrap">{msg.content}</p>
-                      )}
-                    </div>
-                    {msg.role === "user" && (
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                      </div>
+                    {msg.role === "assistant" ? (
+                      <div
+                        className="prose prose-sm prose-invert max-w-none [&_table]:text-xs [&_th]:px-2 [&_td]:px-2 [&_h2]:text-base [&_h2]:mt-0 [&_h3]:text-sm [&_p]:text-sm [&_li]:text-sm [&_code]:text-xs"
+                        dangerouslySetInnerHTML={{
+                          __html: simpleMarkdown(msg.content),
+                        }}
+                      />
+                    ) : (
+                      <p className="whitespace-pre-wrap">{msg.content}</p>
                     )}
                   </div>
-                ))}
-                {loading && (
-                  <div className="flex gap-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600/20">
-                      <Bot className="h-4 w-4 text-blue-400" />
+                  {msg.role === "user" && (
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-hud-bg/60 border border-hud-border/30">
+                      <User className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    <div className="rounded-lg bg-background/50 px-4 py-3">
-                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                    </div>
+                  )}
+                </div>
+              ))}
+              {loading && (
+                <div className="flex gap-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-hud-cyan/20">
+                    <Bot className="h-4 w-4 text-hud-cyan" />
                   </div>
-                )}
-                <div ref={messagesEndRef} />
-              </>
-            )}
-          </CardContent>
-
-          {/* Input Area */}
-          <div className="border-t border-border/50 p-4">
-            <div className="flex gap-2">
-              {messages.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="shrink-0 h-10 w-10 p-0 text-muted-foreground hover:text-red-400"
-                  onClick={() => setMessages([])}
-                  title="Clear chat"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                  <div className="rounded-lg bg-hud-bg/60 border border-hud-border/30 px-4 py-3">
+                    <Loader2 className="h-4 w-4 animate-spin text-hud-cyan" />
+                  </div>
+                </div>
               )}
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Ask JARVIS about markets, signals, or risk..."
-                rows={1}
-                className="flex-1 resize-none rounded-lg border border-border/50 bg-background/50 px-4 py-2.5 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-blue-500/50"
-              />
+              <div ref={messagesEndRef} />
+            </>
+          )}
+        </div>
+
+        {/* Input Area */}
+        <div className="border-t border-hud-border p-3 sm:p-4">
+          <div className="flex gap-2">
+            {messages.length > 0 && (
               <Button
-                onClick={() => sendMessage(input)}
-                disabled={!input.trim() || loading}
-                className="shrink-0 h-10 bg-blue-600 hover:bg-blue-700 text-white"
+                variant="ghost"
+                size="sm"
+                className="shrink-0 h-10 w-10 p-0 text-muted-foreground hover:text-hud-red"
+                onClick={() => setMessages([])}
+                title="Clear chat"
               >
-                {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
+                <Trash2 className="h-4 w-4" />
               </Button>
-            </div>
-            <div className="mt-2 text-[10px] text-muted-foreground text-center">
-              JARVIS AI — Research & Analysis Tool. Not financial advice.
-            </div>
+            )}
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask JARVIS about markets, signals, or risk..."
+              rows={1}
+              className="flex-1 resize-none rounded-lg border border-hud-border/50 bg-hud-bg/60 px-4 py-2.5 text-sm text-white font-mono placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-hud-cyan/50"
+            />
+            <Button
+              onClick={() => sendMessage(input)}
+              disabled={!input.trim() || loading}
+              className="shrink-0 h-10 bg-hud-cyan/20 hover:bg-hud-cyan/30 text-hud-cyan border border-hud-cyan/30"
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
           </div>
-        </Card>
-      </div>
-    </>
+          <div className="mt-2 text-[10px] text-muted-foreground text-center font-mono">
+            JARVIS AI — Research & Analysis Tool. Not financial advice.
+          </div>
+        </div>
+      </HudPanel>
+    </div>
   );
 }
