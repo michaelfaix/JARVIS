@@ -35,13 +35,21 @@ function barColor(v: number): string {
 }
 
 function HudLabel({ children }: { children: React.ReactNode }) {
-  return <span className="font-mono text-[7px] tracking-[2px] text-[#2a3a52] uppercase">{children}</span>;
+  return <span style={{ fontFamily: "'Courier New', monospace" }} className="text-[7px] tracking-[2px] text-[#2a3a52] uppercase block">{children}</span>;
 }
 
 function ThinBar({ value, color }: { value: number; color: string }) {
   return (
-    <div className="w-full h-[2px] bg-[#0a1528] rounded-full overflow-hidden">
-      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(100, value)}%`, backgroundColor: color }} />
+    <div className="w-full h-[3px] rounded-full overflow-hidden" style={{ backgroundColor: "#0d1a2d" }}>
+      <div
+        className="h-full rounded-full"
+        style={{
+          width: `${Math.min(100, Math.max(1, value))}%`,
+          backgroundColor: color,
+          boxShadow: `0 0 4px ${color}60`,
+          transition: "width 0.5s ease",
+        }}
+      />
     </div>
   );
 }
@@ -72,7 +80,7 @@ export const SystemModeCard = React.memo(function SystemModeCard({
 
   return (
     <HudPanel>
-      <div className="p-2 space-y-2.5">
+      <div className="p-2 space-y-2.5" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
         {loading ? (
           <div className="space-y-2">
             <Skeleton className="h-4 w-24" />
@@ -90,7 +98,7 @@ export const SystemModeCard = React.memo(function SystemModeCard({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <div className="w-1.5 h-1.5 rounded-full animate-pulse-live" style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}` }} />
-                <span className="font-mono text-[10px] font-bold" style={{ color }}>
+                <span className="text-[10px] font-bold" style={{ color }}>
                   {backendOnline ? (modus === "NORMAL" ? "RISK ON" : label) : "OFFLINE"}
                 </span>
               </div>
@@ -105,14 +113,14 @@ export const SystemModeCard = React.memo(function SystemModeCard({
               <div className="mt-1.5 space-y-1.5">
                 <div className="flex items-center justify-between">
                   <MetricTooltip term="ECE"><span className="font-mono text-[8px] text-muted-foreground">ECE CALIBRATION</span></MetricTooltip>
-                  <span className={`font-mono text-[10px] font-bold ${ece > 0.08 ? "text-hud-amber" : "text-hud-green"}`}>
+                  <span className={`text-[10px] font-bold ${ece > 0.08 ? "text-hud-amber" : "text-hud-green"}`}>
                     {ece.toFixed(4)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <MetricTooltip term="OOD Score"><span className="font-mono text-[8px] text-muted-foreground">OOD SCORE</span></MetricTooltip>
                   <div className="flex items-center gap-1.5">
-                    <span className={`font-mono text-[10px] font-bold ${oodScore > 0.5 ? "text-hud-red" : oodScore > 0.3 ? "text-hud-amber" : "text-hud-green"}`}>
+                    <span className={`text-[10px] font-bold ${oodScore > 0.5 ? "text-hud-red" : oodScore > 0.3 ? "text-hud-amber" : "text-hud-green"}`}>
                       {oodScore.toFixed(3)}
                     </span>
                     <span className={`font-mono text-[7px] ${oodScore < 0.5 ? "text-hud-green" : "text-hud-red"}`}>
@@ -123,7 +131,7 @@ export const SystemModeCard = React.memo(function SystemModeCard({
                 <div className="flex items-center justify-between">
                   <MetricTooltip term="Meta Uncertainty"><span className="font-mono text-[8px] text-muted-foreground">META-U</span></MetricTooltip>
                   <div className="flex items-center gap-1.5">
-                    <span className="font-mono text-[10px] font-bold text-white">
+                    <span className="text-[10px] font-bold text-white">
                       {metaUncertainty.toFixed(3)}
                     </span>
                     <span className="font-mono text-[7px] text-muted-foreground">
@@ -162,7 +170,7 @@ function InfoRow({ label, value, color }: { label: string; value: string; color?
   return (
     <div className="flex items-center justify-between">
       <span className="font-mono text-[8px] text-muted-foreground">{label}</span>
-      <span className="font-mono text-[10px] font-bold" style={color ? { color } : undefined}>
+      <span className="text-[10px] font-bold" style={color ? { color } : undefined}>
         {value}
       </span>
     </div>
@@ -205,31 +213,33 @@ export const QualityScoreCard = React.memo(function QualityScoreCard({ metrics, 
 
   return (
     <HudPanel>
-      <div className="p-2 space-y-2.5">
-        {/* SECTION 2: Score */}
+      <div className="p-2 space-y-2.5" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+        {/* SECTION 2: Decision Quality Score */}
         <HudLabel>DECISION QUALITY</HudLabel>
-        <div className="flex items-baseline gap-1">
-          <span className="text-xl font-bold font-mono" style={{ color: scoreColor }}>
+        <div className="flex items-baseline gap-1 mt-1">
+          <span className="text-2xl font-bold text-hud-cyan" style={{ fontFamily: "'Courier New', monospace" }}>
             {(score * 100).toFixed(1)}
           </span>
-          <span className="font-mono text-[9px] text-muted-foreground/50">/ 100</span>
+          <span className="text-sm text-[#2a3a52]" style={{ fontFamily: "'Courier New', monospace" }}>/100</span>
         </div>
-        <ThinBar value={score * 100} color={scoreColor} />
+        <div className="mt-1">
+          <ThinBar value={score * 100} color={scoreColor} />
+        </div>
 
-        <div className="border-t border-hud-border/20" />
+        <div className="border-t border-hud-border/20 mt-2.5 mb-1" />
 
         {/* SECTION 3: Component Bars */}
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           {components.map((c) => {
             const pct = c.value * 100;
             const col = barColor(c.value);
             return (
               <div key={c.label}>
-                <div className="flex items-center justify-between mb-0.5">
+                <div className="flex items-center justify-between mb-1">
                   <MetricTooltip term={c.label}>
-                    <span className="font-mono text-[7px] tracking-[1px] text-muted-foreground">{c.label}</span>
+                    <span className="text-[7px] tracking-[1.5px] text-[#2a3a52] uppercase" style={{ fontFamily: "'Courier New', monospace" }}>{c.label}</span>
                   </MetricTooltip>
-                  <span className="font-mono text-[9px] font-bold" style={{ color: col }}>
+                  <span className="text-[10px] font-bold" style={{ fontFamily: "'Courier New', monospace", color: col }}>
                     {pct.toFixed(0)}
                   </span>
                 </div>
