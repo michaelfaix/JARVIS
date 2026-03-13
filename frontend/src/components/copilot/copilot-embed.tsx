@@ -10,6 +10,7 @@
 import { useRef, useState } from "react";
 import { ArrowRight, Zap, Shield, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { simpleMarkdown } from "@/lib/markdown";
 import type { CoPilotState } from "@/hooks/use-copilot";
 
 interface CoPilotEmbedProps {
@@ -79,9 +80,10 @@ export function CoPilotEmbed({ state, sendMessage, onExpand }: CoPilotEmbedProps
 
           {/* Last analysis text */}
           {lastAnalysis && (
-            <p className="text-[10px] text-muted-foreground line-clamp-2 leading-relaxed">
-              {lastAnalysis.content}
-            </p>
+            <div
+              className="text-[10px] text-muted-foreground line-clamp-2 leading-relaxed prose prose-sm prose-invert max-w-none [&_h2]:text-[10px] [&_h2]:font-bold [&_h2]:m-0 [&_h3]:text-[10px] [&_h3]:font-bold [&_p]:text-[10px] [&_strong]:text-white [&_br]:hidden"
+              dangerouslySetInnerHTML={{ __html: simpleMarkdown(lastAnalysis.content) }}
+            />
           )}
 
           {/* Tip cards */}
@@ -123,7 +125,11 @@ export function CoPilotEmbed({ state, sendMessage, onExpand }: CoPilotEmbedProps
                   <span className="font-mono text-[8px] uppercase mr-1 opacity-50">
                     {msg.role === "user" ? "you" : "j"}:
                   </span>
-                  {msg.content}
+                  {msg.role === "assistant" ? (
+                    <span dangerouslySetInnerHTML={{ __html: simpleMarkdown(msg.content) }} />
+                  ) : (
+                    msg.content
+                  )}
                 </div>
               ))
             )}

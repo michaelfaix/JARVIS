@@ -129,12 +129,12 @@ export function HudTopbar({
       {/* Right: Badges & Controls */}
       <div className="flex items-center gap-1.5 shrink-0">
         {/* Paper Trading badge */}
-        <span className="font-mono text-[8px] uppercase tracking-wider text-hud-amber/80 border border-hud-amber/30 rounded px-1.5 py-0.5">
+        <span className="font-mono text-[8px] uppercase tracking-wider text-hud-amber/80 border border-hud-amber/30 rounded px-1.5 py-0.5" suppressHydrationWarning>
           {t("common_paper_trading")}
         </span>
 
         {/* Research Only badge */}
-        <span className="font-mono text-[8px] uppercase tracking-wider text-hud-green/80 border border-hud-green/30 rounded px-1.5 py-0.5">
+        <span className="font-mono text-[8px] uppercase tracking-wider text-hud-green/80 border border-hud-green/30 rounded px-1.5 py-0.5" suppressHydrationWarning>
           {t("common_research_only")}
         </span>
 
@@ -181,7 +181,7 @@ export function HudTopbar({
           {bellOpen && (
             <div className="absolute right-0 top-8 z-50 w-72 rounded border border-hud-border bg-hud-panel/95 backdrop-blur-md shadow-xl">
               <div className="flex items-center justify-between border-b border-hud-border px-3 py-1.5">
-                <span className="text-[10px] font-mono text-hud-cyan uppercase tracking-wider">
+                <span className="text-[10px] font-mono text-hud-cyan uppercase tracking-wider" suppressHydrationWarning>
                   {t("common_notifications")}
                 </span>
                 <div className="flex items-center gap-1">
@@ -240,6 +240,7 @@ export function HudTopbar({
               ? "border-hud-green/40 text-hud-green"
               : "border-hud-red/40 text-hud-red"
           )}
+          suppressHydrationWarning
         >
           <div
             className={cn(
@@ -260,12 +261,13 @@ export function HudTopbar({
                 ? "border-hud-red/30 text-hud-red"
                 : "border-hud-amber/30 text-hud-amber"
           )}
+          suppressHydrationWarning
         >
           {isRiskOn ? "RISK ON" : regime === "CRISIS" ? "CRISIS" : "RISK OFF"}
         </div>
 
         {/* Fear index */}
-        <div className="flex items-center gap-1 text-[9px] font-mono text-muted-foreground">
+        <div className="flex items-center gap-1 text-[9px] font-mono text-muted-foreground" suppressHydrationWarning>
           <span className="text-[8px] text-muted-foreground/60">FEAR</span>
           <span className={cn(
             sentimentValue >= 60 ? "text-hud-green" : sentimentValue >= 40 ? "text-hud-amber" : "text-hud-red"
@@ -276,7 +278,7 @@ export function HudTopbar({
 
         {/* API latency */}
         {apiLatencyMs !== null && (
-          <span className="text-[9px] font-mono text-muted-foreground">
+          <span className="text-[9px] font-mono text-muted-foreground" suppressHydrationWarning>
             {apiLatencyMs}ms
           </span>
         )}

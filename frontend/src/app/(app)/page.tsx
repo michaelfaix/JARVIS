@@ -412,7 +412,7 @@ export default function DashboardPage() {
                 <TimeframeSlider value={timeframeIdx} onChange={setTimeframeIdx} />
 
                 {/* Strategy Control */}
-                <div className="border-t border-hud-border/30 pt-2">
+                <div className="border-t border-hud-border/30 pt-1.5">
                   <StrategyControl
                     state={strategy.state}
                     backtestResult={strategy.backtestResult}
@@ -425,16 +425,6 @@ export default function DashboardPage() {
                     embedded
                   />
                 </div>
-
-                {/* Price Header */}
-                {(wsPrice ?? prices[asset.symbol]) && (
-                  <div className="flex items-center gap-2 border-t border-hud-border/30 pt-2">
-                    <span className="font-mono text-lg font-bold text-white">
-                      ${(wsPrice ?? prices[asset.symbol] ?? asset.basePrice).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                    <span className="font-mono text-xs text-muted-foreground">{asset.name}</span>
-                  </div>
-                )}
 
                 {/* Chart */}
                 <div className="relative">
@@ -464,12 +454,71 @@ export default function DashboardPage() {
               onExpand={() => setCopilotOpen(true)}
             />
 
+            {/* Portfolio + Watchlist (below chart) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              <HudPanel title="Portfolio" scanLine>
+                <div className="p-2.5">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded bg-hud-bg/60 border border-hud-border/30 p-2.5">
+                      <div className="text-[9px] font-mono text-muted-foreground/60 mb-0.5">Total Value</div>
+                      <div className="text-lg font-bold font-mono text-white">
+                        ${totalValue.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                      </div>
+                    </div>
+                    <div className="rounded bg-hud-bg/60 border border-hud-border/30 p-2.5">
+                      <div className="text-[9px] font-mono text-muted-foreground/60 mb-0.5 flex items-center gap-1">
+                        {totalPnl >= 0 ? <TrendingUp className="h-2.5 w-2.5 text-hud-green" /> : <TrendingDown className="h-2.5 w-2.5 text-hud-red" />}
+                        Total P&L
+                      </div>
+                      <div className={`text-lg font-bold font-mono ${totalPnl >= 0 ? "text-hud-green" : "text-hud-red"}`}>
+                        {totalPnl >= 0 ? "+" : ""}${Math.abs(totalPnl).toFixed(0)}
+                      </div>
+                    </div>
+                    <div className="rounded bg-hud-bg/60 border border-hud-border/30 p-2.5">
+                      <div className="text-[9px] font-mono text-muted-foreground/60 mb-0.5">Positions</div>
+                      <div className="text-lg font-bold font-mono text-hud-cyan">{portfolio.positions.length}</div>
+                    </div>
+                    <div className="rounded bg-hud-bg/60 border border-hud-border/30 p-2.5">
+                      <div className="text-[9px] font-mono text-muted-foreground/60 mb-0.5 flex items-center gap-1">
+                        <MetricTooltip term="Drawdown">
+                          <ShieldAlert className="h-2.5 w-2.5" />
+                          Drawdown
+                        </MetricTooltip>
+                      </div>
+                      <div className={`text-lg font-bold font-mono ${drawdown > 5 ? "text-hud-red" : drawdown > 0 ? "text-hud-amber" : "text-hud-green"}`}>
+                        {drawdown.toFixed(2)}%
+                      </div>
+                    </div>
+                  </div>
+                  {portfolio.closedTrades.length > 0 && (
+                    <div className="mt-2 flex items-center gap-4 text-[9px] font-mono text-muted-foreground">
+                      <MetricTooltip term="Win Rate">
+                        <span>Win Rate: <span className={winRate >= 50 ? "text-hud-green" : "text-hud-red"}>{winRate.toFixed(0)}%</span></span>
+                      </MetricTooltip>
+                      <span>Trades: <span className="text-white">{portfolio.closedTrades.length}</span></span>
+                    </div>
+                  )}
+                </div>
+              </HudPanel>
+              <div className="space-y-3">
+                <Watchlist
+                  prices={prices}
+                  priceHistory={priceHistory}
+                  signals={signals.map((s) => ({ asset: s.asset, direction: s.direction, confidence: s.confidence }))}
+                />
+                <ActivityFeed
+                  closedTrades={portfolio.closedTrades.map((t) => ({ id: t.id, asset: t.asset, direction: t.direction, pnl: t.pnl, closedAt: t.closedAt }))}
+                  openPositions={portfolio.positions.map((p) => ({ asset: p.asset, direction: p.direction, openedAt: p.openedAt }))}
+                />
+              </div>
+            </div>
+
             {/* Status footer row */}
-            <div className="flex items-center justify-end gap-3 text-[8px] font-mono text-muted-foreground/50">
-              {statusUpdated && <span>Status: {relativeTime(statusUpdated)}</span>}
-              {metricsUpdated && <span>Metrics: {relativeTime(metricsUpdated)}</span>}
+            <div className="flex items-center justify-end gap-3 text-[8px] font-mono text-muted-foreground/50" suppressHydrationWarning>
+              {statusUpdated && <span suppressHydrationWarning>Status: {relativeTime(statusUpdated)}</span>}
+              {metricsUpdated && <span suppressHydrationWarning>Metrics: {relativeTime(metricsUpdated)}</span>}
               {apiLatencyMs !== null && (
-                <span className="flex items-center gap-0.5">
+                <span className="flex items-center gap-0.5" suppressHydrationWarning>
                   <Activity className="h-2 w-2" /> {apiLatencyMs}ms
                 </span>
               )}
@@ -494,70 +543,6 @@ export default function DashboardPage() {
               backendOnline={backendOnline}
             />
             <QualityScoreCard metrics={metrics} loading={metricsLoading} />
-          </div>
-        </div>
-
-        {/* ============================================================= */}
-        {/* BOTTOM ROW: Portfolio + Activity/Watchlist                     */}
-        {/* ============================================================= */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          {/* Portfolio Summary */}
-          <HudPanel title="Portfolio" scanLine>
-            <div className="p-2.5">
-              <div className="grid grid-cols-2 gap-2">
-                <div className="rounded bg-hud-bg/60 border border-hud-border/30 p-2.5">
-                  <div className="text-[9px] font-mono text-muted-foreground/60 mb-0.5">Total Value</div>
-                  <div className="text-lg font-bold font-mono text-white">
-                    ${totalValue.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-                  </div>
-                </div>
-                <div className="rounded bg-hud-bg/60 border border-hud-border/30 p-2.5">
-                  <div className="text-[9px] font-mono text-muted-foreground/60 mb-0.5 flex items-center gap-1">
-                    {totalPnl >= 0 ? <TrendingUp className="h-2.5 w-2.5 text-hud-green" /> : <TrendingDown className="h-2.5 w-2.5 text-hud-red" />}
-                    Total P&L
-                  </div>
-                  <div className={`text-lg font-bold font-mono ${totalPnl >= 0 ? "text-hud-green" : "text-hud-red"}`}>
-                    {totalPnl >= 0 ? "+" : ""}${Math.abs(totalPnl).toFixed(0)}
-                  </div>
-                </div>
-                <div className="rounded bg-hud-bg/60 border border-hud-border/30 p-2.5">
-                  <div className="text-[9px] font-mono text-muted-foreground/60 mb-0.5">Positions</div>
-                  <div className="text-lg font-bold font-mono text-hud-cyan">{portfolio.positions.length}</div>
-                </div>
-                <div className="rounded bg-hud-bg/60 border border-hud-border/30 p-2.5">
-                  <div className="text-[9px] font-mono text-muted-foreground/60 mb-0.5 flex items-center gap-1">
-                    <MetricTooltip term="Drawdown">
-                      <ShieldAlert className="h-2.5 w-2.5" />
-                      Drawdown
-                    </MetricTooltip>
-                  </div>
-                  <div className={`text-lg font-bold font-mono ${drawdown > 5 ? "text-hud-red" : drawdown > 0 ? "text-hud-amber" : "text-hud-green"}`}>
-                    {drawdown.toFixed(2)}%
-                  </div>
-                </div>
-              </div>
-              {portfolio.closedTrades.length > 0 && (
-                <div className="mt-2 flex items-center gap-4 text-[9px] font-mono text-muted-foreground">
-                  <MetricTooltip term="Win Rate">
-                    <span>Win Rate: <span className={winRate >= 50 ? "text-hud-green" : "text-hud-red"}>{winRate.toFixed(0)}%</span></span>
-                  </MetricTooltip>
-                  <span>Trades: <span className="text-white">{portfolio.closedTrades.length}</span></span>
-                </div>
-              )}
-            </div>
-          </HudPanel>
-
-          {/* Watchlist + Activity */}
-          <div className="space-y-3">
-            <Watchlist
-              prices={prices}
-              priceHistory={priceHistory}
-              signals={signals.map((s) => ({ asset: s.asset, direction: s.direction, confidence: s.confidence }))}
-            />
-            <ActivityFeed
-              closedTrades={portfolio.closedTrades.map((t) => ({ id: t.id, asset: t.asset, direction: t.direction, pnl: t.pnl, closedAt: t.closedAt }))}
-              openPositions={portfolio.positions.map((p) => ({ asset: p.asset, direction: p.direction, openedAt: p.openedAt }))}
-            />
           </div>
         </div>
 

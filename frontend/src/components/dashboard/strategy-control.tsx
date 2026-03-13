@@ -380,13 +380,13 @@ export function StrategyControl({
   }, [executeBacktest]);
 
   const content = (
-    <div className={embedded ? "space-y-3" : "space-y-3 pb-4"}>
+    <div className={embedded ? "space-y-2" : "space-y-3 pb-4"}>
       {/* Header row */}
       <div className="flex items-center gap-2">
-        <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
-        <span className="text-[11px] font-medium text-muted-foreground">Strategy</span>
+        <Settings2 className="h-3 w-3 text-muted-foreground" />
+        <span className="text-[10px] font-medium text-muted-foreground">Strategy</span>
         {currentPreset && (
-          <Badge className="text-[9px] bg-blue-500/20 text-blue-400 border-blue-500/30">
+          <Badge className="text-[8px] bg-blue-500/20 text-blue-400 border-blue-500/30 px-1 py-0">
             {currentPreset.label}
           </Badge>
         )}
@@ -395,9 +395,9 @@ export function StrategyControl({
           className="ml-auto text-muted-foreground hover:text-white transition-colors"
         >
           {expanded ? (
-            <ChevronUp className="h-3.5 w-3.5" />
+            <ChevronUp className="h-3 w-3" />
           ) : (
-            <ChevronDown className="h-3.5 w-3.5" />
+            <ChevronDown className="h-3 w-3" />
           )}
         </button>
       </div>
@@ -408,7 +408,7 @@ export function StrategyControl({
           <button
             key={preset.id}
             onClick={() => selectStrategy(preset.id)}
-            className={`px-2 py-1 rounded-md text-[11px] font-medium transition-colors ${
+            className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${
               state.selectedStrategy === preset.id
                 ? "bg-hud-cyan/15 text-hud-cyan border border-blue-500/30"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent"
@@ -420,8 +420,8 @@ export function StrategyControl({
         ))}
       </div>
 
-      {/* Description */}
-      {currentPreset && (
+      {/* Description — only in non-embedded mode */}
+      {!embedded && currentPreset && (
         <p className="text-[10px] text-muted-foreground leading-relaxed">
           {currentPreset.description}
         </p>
