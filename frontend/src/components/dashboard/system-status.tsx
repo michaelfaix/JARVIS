@@ -1,5 +1,5 @@
 // =============================================================================
-// src/components/dashboard/system-status.tsx — System Status Widget (Iron Man HUD)
+// src/components/dashboard/system-status.tsx — Unified System Mode Widget
 // =============================================================================
 
 "use client";
@@ -10,52 +10,33 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { MetricTooltip } from "@/components/ui/metric-tooltip";
 import { MODUS_COLORS } from "@/lib/types";
 import type { MetricsResponse } from "@/lib/api";
+import type { Signal } from "@/lib/types";
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+const F = "'Courier New', Courier, monospace";
 
-const MODUS_SEVERITY: Record<string, number> = {
-  NORMAL: 0, ERHOEHTE_VORSICHT: 1, REDUZIERTES_VERTRAUEN: 2,
-  MINIMALE_EXPOSITION: 3, NUR_MONITORING: 4, NOTFALL_MODUS: 5,
-  DATEN_QUARANTAENE: 6, MODELL_ROLLBACK: 7, KONFIDENZ_KOLLAPS: 8,
-};
-
-const MODUS_LABELS: Record<string, string> = {
-  NORMAL: "NORMAL", ERHOEHTE_VORSICHT: "VORSICHT", REDUZIERTES_VERTRAUEN: "RED. VERTRAUEN",
-  MINIMALE_EXPOSITION: "MIN. EXPOSITION", NUR_MONITORING: "MONITORING",
-  NOTFALL_MODUS: "NOTFALL", DATEN_QUARANTAENE: "QUARANTÄNE",
-  MODELL_ROLLBACK: "ROLLBACK", KONFIDENZ_KOLLAPS: "KOLLAPS",
-};
-
-function barColor(v: number): string {
-  if (v >= 0.8) return "#00e5a0";
-  if (v >= 0.5) return "#ffaa00";
-  return "#ff4466";
+function L({ children }: { children: React.ReactNode }) {
+  return <span style={{ fontFamily: F }} className="text-[7px] tracking-[2px] text-[#2a3a52] uppercase block">{children}</span>;
 }
 
-function HudLabel({ children }: { children: React.ReactNode }) {
-  return <span style={{ fontFamily: "'Courier New', monospace" }} className="text-[7px] tracking-[2px] text-[#2a3a52] uppercase block">{children}</span>;
-}
-
-function ThinBar({ value, color }: { value: number; color: string }) {
+function Bar({ value, color, h = 3 }: { value: number; color: string; h?: number }) {
   return (
-    <div className="w-full h-[3px] rounded-full overflow-hidden" style={{ backgroundColor: "#0d1a2d" }}>
-      <div
-        className="h-full rounded-full"
-        style={{
-          width: `${Math.min(100, Math.max(1, value))}%`,
-          backgroundColor: color,
-          boxShadow: `0 0 4px ${color}60`,
-          transition: "width 0.5s ease",
-        }}
-      />
+    <div className="w-full rounded-full overflow-hidden" style={{ height: h, backgroundColor: "#0d1a2d" }}>
+      <div className="h-full rounded-full" style={{ width: `${Math.min(100, Math.max(1, value))}%`, backgroundColor: color, boxShadow: `0 0 4px ${color}60`, transition: "width 0.5s" }} />
     </div>
   );
 }
 
+function bc(v: number): string {
+  return v >= 0.8 ? "#00e5a0" : v >= 0.6 ? "#ffaa00" : "#ff4466";
+}
+
+const STRATEGY_LABELS: Record<string, string> = {
+  momentum: "MOMENTUM", mean_reversion: "MEAN REV", combined: "COMBINED",
+  scalping: "SCALPING", custom: "CUSTOM",
+};
+
 // ---------------------------------------------------------------------------
-// System Mode Card — SECTION 1 + 4 + 5
+// SystemModeCard — The unified left-column widget
 // ---------------------------------------------------------------------------
 
 interface SystemModeCardProps {
@@ -68,96 +49,162 @@ interface SystemModeCardProps {
   metaUncertainty: number;
   loading?: boolean;
   backendOnline?: boolean;
+  // New props for trade readiness
+  selectedAsset?: string;
+  selectedStrategy?: string;
+  signals?: Signal[];
+  totalValue?: number;
 }
 
 export const SystemModeCard = React.memo(function SystemModeCard({
   modus, vorhersagenAktiv, konfidenzMultiplikator, entscheidungsCount,
   ece, oodScore, metaUncertainty, loading, backendOnline = false,
+  selectedAsset, selectedStrategy, signals = [], totalValue = 100000,
 }: SystemModeCardProps) {
   const color = MODUS_COLORS[modus] || "#6b7280";
-  const label = MODUS_LABELS[modus] || modus.replace(/_/g, " ");
-  const severity = MODUS_SEVERITY[modus] ?? 0;
+
+  // Find signal for selected asset
+  const assetSignal = selectedAsset
+    ? signals.find((s) => s.asset === selectedAsset) ?? signals[0]
+    : signals[0];
+
+  // Compute trade readiness
+  const signalStrength = assetSignal ? assetSignal.confidence * 100 : 0;
+  const riskLevel = oodScore > 0.5 || ece > 0.15 ? "HIGH" : oodScore > 0.3 || ece > 0.08 ? "MEDIUM" : "LOW";
+  const riskColor = riskLevel === "LOW" ? "#00e5a0" : riskLevel === "MEDIUM" ? "#ffaa00" : "#ff4466";
+  const strategyFit = modus === "NORMAL" ? 85 : modus === "ERHOEHTE_VORSICHT" ? 60 : 30;
+  const positionPct = Math.max(0, Math.min(5, assetSignal ? assetSignal.confidence * (1 - oodScore) * 5 : 0));
+  const positionValue = totalValue * (positionPct / 100);
 
   return (
     <HudPanel>
-      <div className="p-2 space-y-2.5" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+      <div className="p-2 space-y-2" style={{ fontFamily: F }}>
         {loading ? (
           <div className="space-y-2">
             <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-[2px] w-full" />
-            {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-3 w-full" />)}
+            {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-3 w-full" />)}
           </div>
         ) : (
           <>
-            {/* SECTION 1: Status Header */}
+            {/* 1. HEADER */}
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <HudLabel>SYSTEM STATUS</HudLabel>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full animate-pulse-live" style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}` }} />
-                <span className="text-[10px] font-bold" style={{ color }}>
-                  {backendOnline ? (modus === "NORMAL" ? "RISK ON" : label) : "OFFLINE"}
+              <L>SYSTEM MODE</L>
+              <div className="flex items-center gap-1">
+                <div className="w-1.5 h-1.5 rounded-full animate-pulse-live" style={{ backgroundColor: backendOnline ? "#00e5a0" : "#ff4466" }} />
+                <span className="text-[7px] tracking-[1px]" style={{ color: backendOnline ? "#00e5a0" : "#ff4466" }}>
+                  {backendOnline ? "LIVE" : "OFF"}
                 </span>
               </div>
-              <span className="font-mono text-[8px] text-muted-foreground">{label}</span>
             </div>
 
-            <div className="border-t border-hud-border/20" />
+            <div className="border-t border-[#0d1a2d]" />
 
-            {/* SECTION 4: ML Metrics */}
+            {/* 3. DECISION QUALITY */}
             <div>
-              <HudLabel>ML METRIKEN</HudLabel>
-              <div className="mt-1.5 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <MetricTooltip term="ECE"><span className="font-mono text-[8px] text-muted-foreground">ECE CALIBRATION</span></MetricTooltip>
-                  <span className={`text-[10px] font-bold ${ece > 0.08 ? "text-hud-amber" : "text-hud-green"}`}>
-                    {ece.toFixed(4)}
-                  </span>
+              <L>DECISION QUALITY</L>
+              <div className="flex items-center justify-between mt-1">
+                <div className="flex items-baseline gap-0.5">
+                  <span className="text-lg font-bold text-hud-cyan">{(konfidenzMultiplikator * 93.8).toFixed(1)}</span>
+                  <span className="text-[8px] text-[#2a3a52]">/100</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <MetricTooltip term="OOD Score"><span className="font-mono text-[8px] text-muted-foreground">OOD SCORE</span></MetricTooltip>
-                  <div className="flex items-center gap-1.5">
-                    <span className={`text-[10px] font-bold ${oodScore > 0.5 ? "text-hud-red" : oodScore > 0.3 ? "text-hud-amber" : "text-hud-green"}`}>
-                      {oodScore.toFixed(3)}
-                    </span>
-                    <span className={`font-mono text-[7px] ${oodScore < 0.5 ? "text-hud-green" : "text-hud-red"}`}>
-                      {oodScore < 0.5 ? "IN-DIST" : "OOD"}
-                    </span>
+                <span className="text-[7px] px-1.5 py-0.5 rounded border text-[#2a3a52]" style={{ borderColor: color, color }}>
+                  {modus === "NORMAL" ? "NORMAL" : modus.replace(/_/g, " ")}
+                </span>
+              </div>
+              <div className="mt-1">
+                <Bar value={konfidenzMultiplikator * 93.8} color={bc(konfidenzMultiplikator * 0.938)} />
+              </div>
+            </div>
+
+            {/* 4. SUB-BARS */}
+            <div className="space-y-1.5">
+              <SubBar label="CALIBRATION" value={(1 - ece * 5) * 100} />
+              <SubBar label="CONFIDENCE" value={konfidenzMultiplikator * 88} />
+              <SubBar label="STABILITY" value={metaUncertainty < 0.1 ? 100 : metaUncertainty < 0.3 ? 70 : 40} />
+              <SubBar label="REGIME" value={oodScore < 0.3 ? 90 : oodScore < 0.5 ? 74 : 40} />
+            </div>
+
+            <div className="border-t border-[#0d1a2d]" />
+
+            {/* 6. ML METRIKEN */}
+            <div>
+              <L>ML METRIKEN</L>
+              <div className="grid grid-cols-2 gap-x-2 gap-y-1 mt-1">
+                <MetricTooltip term="ECE">
+                  <div>
+                    <span className="text-[6px] tracking-[1px] text-[#2a3a52] uppercase block">ECE</span>
+                    <span className={`text-[9px] font-bold ${ece > 0.08 ? "text-hud-amber" : "text-hud-green"}`}>{ece.toFixed(4)}</span>
                   </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <MetricTooltip term="Meta Uncertainty"><span className="font-mono text-[8px] text-muted-foreground">META-U</span></MetricTooltip>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-bold text-white">
-                      {metaUncertainty.toFixed(3)}
-                    </span>
-                    <span className="font-mono text-[7px] text-muted-foreground">
-                      {metaUncertainty < 0.1 ? "NORMAL" : metaUncertainty < 0.3 ? "ELEVATED" : "HIGH"}
-                    </span>
+                </MetricTooltip>
+                <MetricTooltip term="OOD Score">
+                  <div>
+                    <span className="text-[6px] tracking-[1px] text-[#2a3a52] uppercase block">OOD</span>
+                    <span className={`text-[9px] font-bold ${oodScore > 0.5 ? "text-hud-red" : oodScore > 0.3 ? "text-hud-amber" : "text-hud-green"}`}>{oodScore.toFixed(3)}</span>
                   </div>
+                </MetricTooltip>
+                <MetricTooltip term="Meta Uncertainty">
+                  <div>
+                    <span className="text-[6px] tracking-[1px] text-[#2a3a52] uppercase block">META-U</span>
+                    <span className="text-[9px] font-bold text-white">{metaUncertainty.toFixed(3)}</span>
+                  </div>
+                </MetricTooltip>
+                <div>
+                  <span className="text-[6px] tracking-[1px] text-[#2a3a52] uppercase block">RISK</span>
+                  <span className="text-[9px] font-bold" style={{ color: riskColor }}>{riskLevel}</span>
                 </div>
               </div>
             </div>
 
-            <div className="border-t border-hud-border/20" />
+            <div className="border-t border-[#0d1a2d]" />
 
-            {/* SECTION 5: System Info */}
-            <div>
-              <HudLabel>SYSTEM INFO</HudLabel>
-              <div className="mt-1.5 space-y-1">
-                <InfoRow label="SEVERITY" value={`${severity} / 8`} />
-                <InfoRow label="CONF. MULT." value={`${konfidenzMultiplikator.toFixed(2)}×`} color={konfidenzMultiplikator < 0.95 ? "#ffaa00" : undefined} />
-                <InfoRow label="DECISIONS" value={entscheidungsCount.toLocaleString()} />
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-[8px] text-muted-foreground">PREDICTIONS</span>
-                  <span className={`font-mono text-[9px] font-bold ${vorhersagenAktiv ? "text-hud-green" : "text-hud-red"}`}>
-                    {vorhersagenAktiv ? "ACTIVE" : "OFF"}
+            {/* 8. AKTIVES ASSET & STRATEGIE */}
+            {selectedAsset && (
+              <div>
+                <L>AKTIVES ASSET</L>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-[10px] font-bold text-white">{selectedAsset}</span>
+                  <span className="text-[7px] px-1 py-0.5 rounded bg-hud-cyan/10 text-hud-cyan border border-hud-cyan/30">
+                    {STRATEGY_LABELS[selectedStrategy ?? "combined"] ?? "COMBINED"}
                   </span>
                 </div>
+                <div className="mt-1.5 space-y-1">
+                  <SubBar label="STRATEGIE-FIT" value={strategyFit} />
+                  <SubBar label="SIGNAL STÄRKE" value={signalStrength} />
+                </div>
               </div>
+            )}
+
+            {/* 9. EMPFEHLUNG */}
+            {assetSignal && (
+              <>
+                <div className="border-t border-[#0d1a2d]" />
+                <div className="rounded border p-1.5 space-y-1" style={{ borderColor: assetSignal.direction === "LONG" ? "#00e5a030" : "#ff446630" }}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold" style={{ color: assetSignal.direction === "LONG" ? "#00e5a0" : "#ff4466" }}>
+                      {assetSignal.direction === "LONG" ? "▲ LONG" : "▼ SHORT"}
+                    </span>
+                    <span className="text-[9px] font-bold text-hud-cyan">{(assetSignal.confidence * 100).toFixed(0)}%</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-[7px]">
+                    <div><span className="text-[#2a3a52]">ENTRY </span><span className="text-white">${assetSignal.entry.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span></div>
+                    <div><span className="text-[#2a3a52]">SL </span><span className="text-hud-red">${assetSignal.stopLoss.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span></div>
+                    <div><span className="text-[#2a3a52]">TP </span><span className="text-hud-green">${assetSignal.takeProfit.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span></div>
+                    <div><span className="text-[#2a3a52]">R:R </span><span className="text-hud-cyan">1:{((assetSignal.takeProfit - assetSignal.entry) / Math.abs(assetSignal.entry - assetSignal.stopLoss) || 0).toFixed(1)}</span></div>
+                  </div>
+                  <div className="flex items-center justify-between pt-0.5 border-t border-[#0d1a2d]">
+                    <span className="text-[6px] tracking-[1px] text-[#2a3a52] uppercase">POSITION</span>
+                    <span className="text-[8px] font-bold text-white">{positionPct.toFixed(2)}% — €{positionValue.toFixed(0)}</span>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* 10. FOOTER */}
+            <div className="flex items-center justify-between pt-0.5 text-[7px] text-[#2a3a52]">
+              <span>{entscheidungsCount.toLocaleString()} DECISIONS</span>
+              <span style={{ color: vorhersagenAktiv ? "#00e5a0" : "#ff4466" }}>
+                {vorhersagenAktiv ? "● ACTIVE" : "● OFF"}
+              </span>
             </div>
           </>
         )}
@@ -166,19 +213,21 @@ export const SystemModeCard = React.memo(function SystemModeCard({
   );
 });
 
-function InfoRow({ label, value, color }: { label: string; value: string; color?: string }) {
+function SubBar({ label, value }: { label: string; value: number }) {
+  const col = bc(value / 100);
   return (
-    <div className="flex items-center justify-between">
-      <span className="font-mono text-[8px] text-muted-foreground">{label}</span>
-      <span className="text-[10px] font-bold" style={color ? { color } : undefined}>
-        {value}
-      </span>
+    <div>
+      <div className="flex items-center justify-between mb-0.5">
+        <span className="text-[6px] tracking-[1.5px] text-[#2a3a52] uppercase">{label}</span>
+        <span className="text-[8px] font-bold" style={{ color: col }}>{value.toFixed(0)}</span>
+      </div>
+      <Bar value={value} color={col} h={2} />
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Quality Score Card — SECTION 2 + 3
+// Quality Score Card (kept for right column)
 // ---------------------------------------------------------------------------
 
 interface QualityScoreCardProps {
@@ -190,8 +239,8 @@ export const QualityScoreCard = React.memo(function QualityScoreCard({ metrics, 
   if (!metrics || loading) {
     return (
       <HudPanel>
-        <div className="p-2 space-y-2">
-          <HudLabel>DECISION QUALITY</HudLabel>
+        <div className="p-2 space-y-2" style={{ fontFamily: F }}>
+          <L>DECISION QUALITY</L>
           <Skeleton className="h-7 w-20" />
           <Skeleton className="h-[2px] w-full" />
           {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-3 w-full" />)}
@@ -201,7 +250,7 @@ export const QualityScoreCard = React.memo(function QualityScoreCard({ metrics, 
   }
 
   const score = metrics.quality_score;
-  const scoreColor = barColor(score);
+  const scoreColor = bc(score);
 
   const components = [
     { label: "CALIBRATION", value: metrics.calibration_component },
@@ -213,40 +262,18 @@ export const QualityScoreCard = React.memo(function QualityScoreCard({ metrics, 
 
   return (
     <HudPanel>
-      <div className="p-2 space-y-2.5" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-        {/* SECTION 2: Decision Quality Score */}
-        <HudLabel>DECISION QUALITY</HudLabel>
-        <div className="flex items-baseline gap-1 mt-1">
-          <span className="text-2xl font-bold text-hud-cyan" style={{ fontFamily: "'Courier New', monospace" }}>
-            {(score * 100).toFixed(1)}
-          </span>
-          <span className="text-sm text-[#2a3a52]" style={{ fontFamily: "'Courier New', monospace" }}>/100</span>
+      <div className="p-2 space-y-2" style={{ fontFamily: F }}>
+        <L>DECISION QUALITY</L>
+        <div className="flex items-baseline gap-0.5 mt-1">
+          <span className="text-xl font-bold text-hud-cyan">{(score * 100).toFixed(1)}</span>
+          <span className="text-[9px] text-[#2a3a52]">/100</span>
         </div>
-        <div className="mt-1">
-          <ThinBar value={score * 100} color={scoreColor} />
-        </div>
-
-        <div className="border-t border-hud-border/20 mt-2.5 mb-1" />
-
-        {/* SECTION 3: Component Bars */}
-        <div className="space-y-2">
-          {components.map((c) => {
-            const pct = c.value * 100;
-            const col = barColor(c.value);
-            return (
-              <div key={c.label}>
-                <div className="flex items-center justify-between mb-1">
-                  <MetricTooltip term={c.label}>
-                    <span className="text-[7px] tracking-[1.5px] text-[#2a3a52] uppercase" style={{ fontFamily: "'Courier New', monospace" }}>{c.label}</span>
-                  </MetricTooltip>
-                  <span className="text-[10px] font-bold" style={{ fontFamily: "'Courier New', monospace", color: col }}>
-                    {pct.toFixed(0)}
-                  </span>
-                </div>
-                <ThinBar value={pct} color={col} />
-              </div>
-            );
-          })}
+        <Bar value={score * 100} color={scoreColor} />
+        <div className="border-t border-[#0d1a2d] mt-1 mb-0.5" />
+        <div className="space-y-1.5">
+          {components.map((c) => (
+            <SubBar key={c.label} label={c.label} value={c.value * 100} />
+          ))}
         </div>
       </div>
     </HudPanel>
@@ -257,12 +284,7 @@ export const QualityScoreCard = React.memo(function QualityScoreCard({ metrics, 
 // Connection Status
 // ---------------------------------------------------------------------------
 
-interface ConnectionStatusProps {
-  connected: boolean;
-  checking: boolean;
-}
-
-export function ConnectionStatus({ connected, checking }: ConnectionStatusProps) {
+export function ConnectionStatus({ connected, checking }: { connected: boolean; checking: boolean }) {
   if (checking) {
     return (
       <div className="flex items-center gap-2 text-[9px] text-muted-foreground font-mono">

@@ -333,6 +333,10 @@ export default function DashboardPage() {
               metaUncertainty={status?.meta_unsicherheit ?? 0}
               loading={statusLoading}
               backendOnline={backendOnline}
+              selectedAsset={asset.symbol}
+              selectedStrategy={strategy.state.selectedStrategy}
+              signals={signals}
+              totalValue={totalValue}
             />
             <MarketPulse data={sentimentData} />
             <RegimeDisplay
