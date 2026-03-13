@@ -4,6 +4,7 @@
 
 "use client";
 
+import React from "react";
 import { HudPanel } from "@/components/ui/hud-panel";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -17,7 +18,7 @@ interface TopSignalsHudProps {
   loading: boolean;
 }
 
-export function TopSignalsHud({
+export const TopSignalsHud = React.memo(function TopSignalsHud({
   signals,
   portfolio,
   acceptSignal,
@@ -137,4 +138,4 @@ export function TopSignalsHud({
       </div>
     </HudPanel>
   );
-}
+});

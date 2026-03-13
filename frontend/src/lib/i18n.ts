@@ -117,6 +117,41 @@ export type TranslationKey =
   | 'regime_crisis'
   | 'regime_neutral'
   | 'regime_caution'
+  // Dashboard (additional)
+  | 'dashboard_positions'
+  | 'dashboard_equity_curve'
+  | 'dashboard_daily_pnl'
+  | 'dashboard_sharpe_ratio'
+  | 'dashboard_total_trades'
+  // Signals (additional)
+  | 'signals_sl'
+  | 'signals_tp'
+  | 'signals_open'
+  // Portfolio (additional)
+  | 'portfolio_open_positions'
+  | 'portfolio_trade_history'
+  | 'portfolio_equity_curve'
+  | 'portfolio_total_pnl'
+  | 'portfolio_unrealized_pnl'
+  | 'portfolio_realized_pnl'
+  | 'portfolio_win_rate'
+  // Common (additional)
+  | 'common_refresh'
+  | 'common_export'
+  | 'common_edit'
+  | 'common_done'
+  | 'common_send'
+  | 'common_delete'
+  | 'common_close'
+  | 'common_open'
+  | 'common_search'
+  | 'common_filter'
+  | 'common_sort'
+  | 'common_back'
+  | 'common_next'
+  | 'common_previous'
+  | 'common_yes'
+  | 'common_no'
   // Welcome interpolation
   | 'welcome_user';
 
@@ -235,6 +270,41 @@ const en: TranslationDictionary = {
   regime_crisis: 'Crisis',
   regime_neutral: 'Neutral',
   regime_caution: 'Caution',
+  // Dashboard (additional)
+  dashboard_positions: 'Positions',
+  dashboard_equity_curve: 'Equity Curve',
+  dashboard_daily_pnl: 'Daily P&L',
+  dashboard_sharpe_ratio: 'Sharpe Ratio',
+  dashboard_total_trades: 'Total Trades',
+  // Signals (additional)
+  signals_sl: 'SL',
+  signals_tp: 'TP',
+  signals_open: 'OPEN',
+  // Portfolio (additional)
+  portfolio_open_positions: 'Open Positions',
+  portfolio_trade_history: 'Trade History',
+  portfolio_equity_curve: 'Equity Curve',
+  portfolio_total_pnl: 'Total P&L',
+  portfolio_unrealized_pnl: 'Unrealized P&L',
+  portfolio_realized_pnl: 'Realized P&L',
+  portfolio_win_rate: 'Win Rate',
+  // Common (additional)
+  common_refresh: 'Refresh',
+  common_export: 'Export',
+  common_edit: 'Edit',
+  common_done: 'Done',
+  common_send: 'Send',
+  common_delete: 'Delete',
+  common_close: 'Close',
+  common_open: 'Open',
+  common_search: 'Search',
+  common_filter: 'Filter',
+  common_sort: 'Sort',
+  common_back: 'Back',
+  common_next: 'Next',
+  common_previous: 'Previous',
+  common_yes: 'Yes',
+  common_no: 'No',
   // Welcome
   welcome_user: 'Welcome, {name}!',
 };
@@ -352,6 +422,41 @@ const de: TranslationDictionary = {
   regime_crisis: 'Krise',
   regime_neutral: 'Neutral',
   regime_caution: 'Vorsicht',
+  // Dashboard (additional)
+  dashboard_positions: 'Positionen',
+  dashboard_equity_curve: 'Eigenkapitalkurve',
+  dashboard_daily_pnl: 'Tages-GuV',
+  dashboard_sharpe_ratio: 'Sharpe Ratio',
+  dashboard_total_trades: 'Gesamtanzahl Trades',
+  // Signals (additional)
+  signals_sl: 'SL',
+  signals_tp: 'TP',
+  signals_open: 'OFFEN',
+  // Portfolio (additional)
+  portfolio_open_positions: 'Offene Positionen',
+  portfolio_trade_history: 'Handelshistorie',
+  portfolio_equity_curve: 'Eigenkapitalkurve',
+  portfolio_total_pnl: 'Gesamt-GuV',
+  portfolio_unrealized_pnl: 'Unrealisierte GuV',
+  portfolio_realized_pnl: 'Realisierte GuV',
+  portfolio_win_rate: 'Gewinnquote',
+  // Common (additional)
+  common_refresh: 'Aktualisieren',
+  common_export: 'Exportieren',
+  common_edit: 'Bearbeiten',
+  common_done: 'Fertig',
+  common_send: 'Senden',
+  common_delete: 'L\u00f6schen',
+  common_close: 'Schlie\u00dfen',
+  common_open: '\u00d6ffnen',
+  common_search: 'Suchen',
+  common_filter: 'Filtern',
+  common_sort: 'Sortieren',
+  common_back: 'Zur\u00fcck',
+  common_next: 'Weiter',
+  common_previous: 'Zur\u00fcck',
+  common_yes: 'Ja',
+  common_no: 'Nein',
   // Welcome
   welcome_user: 'Willkommen, {name}!',
 };
@@ -377,4 +482,58 @@ export function t(
     }
   }
   return text;
+}
+
+/**
+ * Format a number according to locale conventions.
+ *
+ * Usage:
+ *   formatNumber(1234.56, 'de')          // "1.234,56"
+ *   formatNumber(1234.56, 'en')          // "1,234.56"
+ *   formatNumber(0.75, 'en', { style: 'percent' })  // "75%"
+ */
+export function formatNumber(
+  n: number,
+  locale: Locale,
+  opts?: Intl.NumberFormatOptions,
+): string {
+  return n.toLocaleString(locale === 'de' ? 'de-DE' : 'en-US', opts);
+}
+
+/**
+ * Format a date according to locale conventions.
+ *
+ * Usage:
+ *   formatDate(new Date(), 'de')   // "13. Mär. 2026"
+ *   formatDate('2026-03-13', 'en') // "Mar 13, 2026"
+ */
+export function formatDate(
+  d: Date | string,
+  locale: Locale,
+): string {
+  const date = typeof d === 'string' ? new Date(d) : d;
+  return date.toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+/**
+ * Format a number as currency according to locale conventions.
+ *
+ * Usage:
+ *   formatCurrency(1234.56, 'de')          // "1.234,56 $"
+ *   formatCurrency(1234.56, 'en')          // "$1,234.56"
+ *   formatCurrency(1234.56, 'en', 'EUR')   // "€1,234.56"
+ */
+export function formatCurrency(
+  n: number,
+  locale: Locale,
+  currency = 'USD',
+): string {
+  return n.toLocaleString(locale === 'de' ? 'de-DE' : 'en-US', {
+    style: 'currency',
+    currency,
+  });
 }

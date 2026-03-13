@@ -4,7 +4,7 @@
 
 "use client";
 
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 import { HudPanel } from "@/components/ui/hud-panel";
 import { TrendingUp, TrendingDown, ArrowRightCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -49,7 +49,7 @@ function formatPnl(pnl: number): string {
   return `${sign}$${Math.abs(pnl).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export function ActivityFeed({ closedTrades, openPositions }: ActivityFeedProps) {
+export const ActivityFeed = React.memo(function ActivityFeed({ closedTrades, openPositions }: ActivityFeedProps) {
   const activities = useMemo<ActivityItem[]>(() => {
     const items: ActivityItem[] = [];
 
@@ -110,4 +110,4 @@ export function ActivityFeed({ closedTrades, openPositions }: ActivityFeedProps)
       </div>
     </HudPanel>
   );
-}
+});

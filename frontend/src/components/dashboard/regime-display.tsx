@@ -4,6 +4,7 @@
 
 "use client";
 
+import React from "react";
 import { HudPanel } from "@/components/ui/hud-panel";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,7 +28,7 @@ interface RegimeDisplayProps {
   loading?: boolean;
 }
 
-export function RegimeDisplay({ regime, metaUncertainty, ece, oodScore, loading }: RegimeDisplayProps) {
+export const RegimeDisplay = React.memo(function RegimeDisplay({ regime, metaUncertainty, ece, oodScore, loading }: RegimeDisplayProps) {
   const color = REGIME_COLORS[regime];
   const label = REGIME_LABELS[regime];
 
@@ -66,7 +67,7 @@ export function RegimeDisplay({ regime, metaUncertainty, ece, oodScore, loading 
       </div>
     </HudPanel>
   );
-}
+});
 
 function MetricBox({ label, tooltipTerm, value, subLabel, color }: { label: string; tooltipTerm: string; value: string | null; subLabel: string | null; color: string }) {
   return (
