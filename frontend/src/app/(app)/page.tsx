@@ -5,10 +5,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 const AssetChart = dynamic(() => import("@/components/chart/asset-chart").then((m) => m.AssetChart), { ssr: false });
-import { TimeframeSlider, TIMEFRAMES } from "@/components/dashboard/timeframe-slider";
+import { JarvisChart } from "@/components/chart/jarvis-chart";
+import { TIMEFRAMES } from "@/components/dashboard/timeframe-slider";
 import { RegimeDisplay } from "@/components/dashboard/regime-display";
 import {
   QualityScoreCard,
@@ -32,7 +32,6 @@ import { TopSignalsHud } from "@/components/dashboard/top-signals-hud";
 import { Watchlist } from "@/components/dashboard/watchlist";
 import { PnlTicker } from "@/components/dashboard/pnl-ticker";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
-import { StrategyControl } from "@/components/dashboard/strategy-control";
 import type { JarvisTipsContext } from "@/components/chart/asset-chart";
 const CoPilotPanel = dynamic(() => import("@/components/copilot/copilot-panel").then((m) => m.CoPilotPanel), { ssr: false });
 const CoPilotTrigger = dynamic(() => import("@/components/copilot/copilot-trigger").then((m) => m.CoPilotTrigger), { ssr: false });
@@ -41,19 +40,15 @@ import { useCoPilot } from "@/hooks/use-copilot";
 import { useProactiveWarnings } from "@/hooks/use-proactive-warnings";
 import { useStrategy } from "@/hooks/use-strategy";
 import { MetricTooltip } from "@/components/ui/metric-tooltip";
-import { Badge } from "@/components/ui/badge";
 import { ApiOfflineBanner } from "@/components/ui/api-offline-banner";
 import { loadJSON, saveJSON } from "@/lib/storage";
 import {
   TrendingUp,
   TrendingDown,
   ShieldAlert,
-  Zap,
   RefreshCw,
   Bell,
-  ArrowRight,
   Activity,
-  Star,
 } from "lucide-react";
 
 const CHART_ASSETS = [
@@ -78,7 +73,6 @@ function relativeTime(ts: number | null): string {
 }
 
 export default function DashboardPage() {
-  const router = useRouter();
   const {
     status,
     regime,
@@ -95,7 +89,7 @@ export default function DashboardPage() {
     lastUpdated: metricsUpdated,
     refresh: refreshMetrics,
   } = useMetrics(5000);
-  const { prices, priceHistory, wsConnected, binanceConnected } = usePrices(5000);
+  const { prices, priceHistory, wsConnected } = usePrices(5000);
 
   const {
     signals,
@@ -350,94 +344,41 @@ export default function DashboardPage() {
 
           {/* CENTER COLUMN: Chart + Controls */}
           <div className="space-y-3 md:order-2 order-1">
-            {/* Asset tabs + Status badges */}
-            <HudPanel>
-              <div className="p-2.5 space-y-3">
-                {/* Asset Selector */}
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex flex-wrap gap-1 items-center">
-                    {CHART_ASSETS.map((a, i) => (
-                      <button
-                        key={a.symbol}
-                        onClick={() => { setSelectedAsset(i); setWsPrice(null); }}
-                        className={`px-2 py-0.5 rounded text-[10px] font-mono font-medium transition-colors ${
-                          selectedAsset === i
-                            ? "bg-hud-cyan/15 text-hud-cyan border border-hud-cyan/30"
-                            : "text-muted-foreground hover:text-hud-cyan hover:bg-hud-cyan/5"
-                        }`}
-                        suppressHydrationWarning
-                      >
-                        {a.symbol}
-                      </button>
-                    ))}
-                    <button
-                      onClick={saveFavorite}
-                      className={`ml-0.5 p-0.5 rounded transition-colors ${
-                        isCurrentFavorite ? "text-hud-amber" : "text-muted-foreground hover:text-hud-amber"
-                      }`}
-                      title={isCurrentFavorite ? "Current favorite" : "Set as favorite"}
-                      suppressHydrationWarning
-                    >
-                      <Star className={`h-3 w-3 ${isCurrentFavorite ? "fill-hud-amber" : ""}`} />
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-[8px] font-mono border-hud-border text-muted-foreground">
-                      {TIMEFRAMES[timeframeIdx].label} / {TIMEFRAMES[timeframeIdx].strategyLabel}
-                    </Badge>
-                    <div className="flex items-center gap-1" suppressHydrationWarning>
-                      <Zap className={`h-2.5 w-2.5 ${wsConnected ? "text-hud-green" : binanceConnected ? "text-hud-cyan" : "text-hud-amber"}`} />
-                      <span className="text-[8px] font-mono text-muted-foreground" suppressHydrationWarning>
-                        {wsConnected ? "WS" : binanceConnected ? "REST" : "Sim"}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => router.push("/charts")}
-                      className="flex items-center gap-0.5 text-[9px] font-mono text-muted-foreground hover:text-hud-cyan transition-colors"
-                    >
-                      Expand <ArrowRight className="h-2.5 w-2.5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Timeframe Slider */}
-                <TimeframeSlider value={timeframeIdx} onChange={setTimeframeIdx} />
-
-                {/* Strategy Control */}
-                <div className="border-t border-hud-border/30 pt-1.5">
-                  <StrategyControl
-                    state={strategy.state}
-                    backtestResult={strategy.backtestResult}
-                    backtesting={strategy.backtesting}
-                    selectStrategy={strategy.selectStrategy}
-                    updateParam={strategy.updateParam}
-                    addRule={strategy.addRule}
-                    removeRule={strategy.removeRule}
-                    executeBacktest={strategy.executeBacktest}
-                    embedded
-                  />
-                </div>
-
-                {/* Chart */}
-                <div className="relative">
-                  <AssetChart
-                    key={`${asset.symbol}-${chartInterval}`}
-                    symbol={asset.symbol}
-                    name={asset.name}
-                    basePrice={asset.basePrice}
-                    livePrice={wsPrice ?? prices[asset.symbol]}
-                    regime={regime}
-                    height={380}
-                    interval={chartInterval}
-                    onPriceChange={handlePriceChange}
-                    strategyOverlay={strategyOverlay}
-                    jarvisTips={jarvisTipsCtx}
-                  />
-                  {/* Scan line overlay */}
-                  <div className="hud-scan-line" />
-                </div>
-              </div>
-            </HudPanel>
+            {/* JarvisChart: Asset Header + Tabs + Toolbar + Chart + Range Bar + Markets */}
+            <JarvisChart
+              selectedAsset={asset.symbol}
+              assetName={asset.name}
+              price={wsPrice ?? prices[asset.symbol] ?? asset.basePrice}
+              priceChange={(wsPrice ?? prices[asset.symbol] ?? asset.basePrice) - asset.basePrice}
+              priceChangePct={(((wsPrice ?? prices[asset.symbol] ?? asset.basePrice) - asset.basePrice) / asset.basePrice) * 100}
+              wsConnected={wsConnected}
+              topSignal={topSig}
+              selectedStrategy={strategy.state.selectedStrategy}
+              timeframeIdx={timeframeIdx}
+              onTimeframeChange={setTimeframeIdx}
+              onAssetChange={(symbol) => {
+                const idx = CHART_ASSETS.findIndex((a) => a.symbol === symbol);
+                if (idx >= 0) { setSelectedAsset(idx); setWsPrice(null); }
+              }}
+              allAssets={[...CHART_ASSETS]}
+              prices={prices}
+              isFavorite={isCurrentFavorite}
+              onSaveFavorite={saveFavorite}
+            >
+              <AssetChart
+                key={`${asset.symbol}-${chartInterval}`}
+                symbol={asset.symbol}
+                name={asset.name}
+                basePrice={asset.basePrice}
+                livePrice={wsPrice ?? prices[asset.symbol]}
+                regime={regime}
+                height={380}
+                interval={chartInterval}
+                onPriceChange={handlePriceChange}
+                strategyOverlay={strategyOverlay}
+                jarvisTips={jarvisTipsCtx}
+              />
+            </JarvisChart>
 
             {/* CoPilot Embed */}
             <CoPilotEmbed
