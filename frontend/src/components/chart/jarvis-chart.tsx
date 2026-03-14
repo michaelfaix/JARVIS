@@ -6,7 +6,7 @@
 
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Camera, ChevronDown, Search, Star } from "lucide-react";
+import { Camera, ChevronDown, Star } from "lucide-react";
 import type { Signal } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
@@ -40,7 +40,7 @@ const RANGE_TABS = [
   { key: "1Y", label: "1 Jahr" }, { key: "5Y", label: "5 Jahre" }, { key: "ALL", label: "Allzeit" },
 ];
 const RANGE_PERF: Record<string, number> = {
-  "1D": -0.02, "1W": 4.0, "1M": 5.8, "6M": -38.51, "YTD": -19.07, "1Y": -12.61, "5Y": 18.07, "ALL": 916,
+  "1D": -0.02, "1W": 4.0, "1M": 5.8, "6M": -38.51, "YTD": -19.07, "1Y": -12.61, "5Y": 18.07, "ALL": 916.51,
 };
 const STRATEGY_OPTIONS = ["Combined", "Swing Trading", "Scalping", "Day Trading", "Trend Following", "Breakout", "Mean Reversion", "Custom"];
 const CHART_TYPE_LABELS: Record<string, string> = {
@@ -122,7 +122,6 @@ export const JarvisChart = React.memo(function JarvisChart({
   const [priceMode, setPriceMode] = useState<"price" | "mcap">("price");
   const [showExtTypes, setShowExtTypes] = useState(false);
   const [showIndicators, setShowIndicators] = useState(false);
-  const [assetSearch, setAssetSearch] = useState("");
   const extRef = useRef<HTMLDivElement>(null);
   const indRef = useRef<HTMLDivElement>(null);
 
@@ -136,13 +135,7 @@ export const JarvisChart = React.memo(function JarvisChart({
     return g;
   }, [allAssets]);
 
-  const filteredAssets = useMemo(() => {
-    if (!assetSearch) return allAssets;
-    const q = assetSearch.toLowerCase();
-    return allAssets.filter((a) => a.symbol.toLowerCase().includes(q) || a.name.toLowerCase().includes(q));
-  }, [allAssets, assetSearch]);
-
-  const handleAssetClick = useCallback((symbol: string) => { onAssetChange(symbol); setActiveTab("overview"); setAssetSearch(""); }, [onAssetChange]);
+  const handleAssetClick = useCallback((symbol: string) => { onAssetChange(symbol); setActiveTab("overview"); }, [onAssetChange]);
 
   const now = new Date();
   const dateStr = `Ab heute, ${now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })} GMT+1`;
@@ -166,11 +159,12 @@ export const JarvisChart = React.memo(function JarvisChart({
             <div className="h-2.5 w-2.5 rounded-full bg-hud-green animate-pulse-live" />
           </div>
           <div className="flex items-baseline gap-3 mt-1">
-            <span className="text-3xl font-bold text-white tracking-tight">
+            <span className="text-[32px] font-bold text-white tracking-tight leading-none">
               ${price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
-            <span className={cn("text-sm font-semibold", isPositive ? "text-hud-green" : "text-hud-red")}>
-              {isPositive ? "+" : "-"}{Math.abs(priceChange).toFixed(2)} {isPositive ? "+" : "-"}{Math.abs(priceChangePct).toFixed(2)}%
+            <span className={cn("text-sm font-semibold", isPositive ? "text-[#00e676]" : "text-[#ff3d57]")}>
+              {isPositive ? "+" : ""}{priceChange.toFixed(2)}{" "}
+              {isPositive ? "+" : ""}{priceChangePct.toFixed(2)}%
             </span>
           </div>
           <div className="text-[10px] text-muted-foreground/60 mt-0.5">{dateStr}</div>
@@ -230,51 +224,37 @@ export const JarvisChart = React.memo(function JarvisChart({
         </div>
       ) : (
         <>
-          {/* ══ TOOLBAR ROW 1: Search + ChartType + ExtTypes + Indicators + Screenshot ══ */}
-          <div className="flex items-center gap-1 px-3 py-1.5 border-b border-[#181c2a] bg-[#0d0f18] overflow-x-auto scrollbar-hide">
-            {/* Asset Quick Search */}
-            <div className="flex items-center gap-1 border border-[#1a2030] rounded px-1.5 py-0.5 shrink-0">
-              <Search className="h-3 w-3 text-[#4a5270]" />
-              <input
-                value={assetSearch}
-                onChange={(e) => setAssetSearch(e.target.value)}
-                placeholder={selectedAsset}
-                className="bg-transparent text-[9px] text-white w-12 focus:w-20 transition-all focus:outline-none placeholder:text-[#4a5270]"
-              />
+          {/* ══ UNIFIED TOOLBAR — one row, no scroll ══ */}
+          <div
+            className="relative flex items-center gap-1 px-3 py-1.5 border-b border-[#1e2335] bg-[#0d0f18]"
+            style={{ flexWrap: "nowrap", overflow: "visible", zIndex: 100 }}
+          >
+            {/* Price/MCap */}
+            <div className="flex rounded border border-[#1a2030] overflow-hidden shrink-0">
+              <button onClick={() => setPriceMode("price")} className={cn("px-1.5 py-1 text-[9px] whitespace-nowrap", priceMode === "price" ? "bg-[#181c2a] text-white" : "text-[#4a5270]")}>Preis</button>
+              <button onClick={() => setPriceMode("mcap")} className={cn("px-1.5 py-1 text-[9px] whitespace-nowrap", priceMode === "mcap" ? "bg-[#181c2a] text-white" : "text-[#4a5270]")}>Mkt.</button>
             </div>
-            {/* Quick results */}
-            {assetSearch && filteredAssets.length > 0 && (
-              <div className="absolute top-[calc(100%+2px)] left-3 z-50 bg-[#0d0f18] border border-[#1e2335] rounded shadow-xl p-1 min-w-[120px]">
-                {filteredAssets.slice(0, 5).map((a) => (
-                  <button key={a.symbol} onClick={() => handleAssetClick(a.symbol)} className="flex items-center gap-2 w-full px-2 py-1 text-[9px] text-muted-foreground hover:text-white hover:bg-[#181c2a] rounded">
-                    {a.symbol} <span className="text-[8px] text-[#4a5270]">{a.name}</span>
-                  </button>
-                ))}
-              </div>
-            )}
 
-            <div className="w-px h-4 bg-[#181c2a] shrink-0" />
+            <div className="w-px h-4 bg-[#1e2335] shrink-0" />
 
-            {/* Chart Type: 3 main */}
+            {/* Chart Types: 3 main + extended dropdown */}
             {(["line", "candle", "bar"] as const).map((t) => (
               <button key={t} onClick={() => onChartTypeChange(t)} title={CHART_TYPE_LABELS[t]}
-                className={cn("w-[26px] h-[26px] rounded text-[10px] border transition-all shrink-0", chartType === t ? "bg-[#181c2a] border-[#4a9eff] text-[#4a9eff]" : "border-transparent text-[#4a5270] hover:bg-[#181c2a] hover:text-[#8892b0]")}>
+                className={cn("w-[26px] h-[26px] rounded text-[10px] border shrink-0", chartType === t ? "bg-[#181c2a] border-[#4a9eff] text-[#4a9eff]" : "border-transparent text-[#4a5270] hover:bg-[#181c2a] hover:text-[#8892b0]")}>
                 {t === "line" ? "〜" : t === "candle" ? "|||" : "▤"}
               </button>
             ))}
-
-            {/* Extended chart types dropdown */}
             <div className="relative shrink-0" ref={extRef}>
               <button onClick={() => { setShowExtTypes(!showExtTypes); setShowIndicators(false); }}
-                className={cn("w-[26px] h-[26px] rounded text-[10px] border transition-all flex items-center justify-center gap-0", ["heikin", "hollow", "linebreak", "baseline"].includes(chartType) ? "bg-[#181c2a] border-[#4a9eff] text-[#4a9eff]" : "border-transparent text-[#4a5270] hover:bg-[#181c2a]")}>
-                ≋<ChevronDown className="h-2 w-2" />
+                className={cn("w-[26px] h-[26px] rounded text-[10px] border flex items-center justify-center shrink-0", ["heikin", "hollow", "linebreak", "baseline"].includes(chartType) ? "bg-[#181c2a] border-[#4a9eff] text-[#4a9eff]" : "border-transparent text-[#4a5270] hover:bg-[#181c2a]")}>
+                ≋
               </button>
               {showExtTypes && (
-                <div className="absolute top-8 left-0 z-50 bg-[#0d0f18] border border-[#1e2335] rounded-md p-2 shadow-xl min-w-[160px]">
+                <div className="absolute top-8 left-0 z-[9999] bg-[#0d0f18] border border-[#1e2335] rounded-md p-2 shadow-2xl min-w-[160px]">
                   <div className="text-[8px] text-[#4a5270] tracking-[1px] uppercase mb-1">ERWEITERTE TYPEN</div>
-                  {([["heikin", "≋ Heikin Ashi"], ["hollow", "⊡ Hollow Candles"], ["linebreak", "▭ Line Break [3]"], ["baseline", "◨ Baseline"]] as const).map(([id, label]) => (
+                  {([["heikin", "≋ Heikin Ashi"], ["hollow", "⊡ Hollow Candles"], ["linebreak", "▭ Line Break"], ["baseline", "◨ Baseline"]] as const).map(([id, label]) => (
                     <button key={id} onClick={() => { onChartTypeChange(id as ChartType); setShowExtTypes(false); }}
-                      className={cn("flex items-center gap-2 w-full px-2 py-1.5 rounded text-[10px] transition-colors", chartType === id ? "text-[#4a9eff] bg-[#181c2a]" : "text-[#8892b0] hover:bg-[#181c2a] hover:text-white")}>
+                      className={cn("flex items-center gap-2 w-full px-2 py-1.5 rounded text-[10px]", chartType === id ? "text-[#4a9eff] bg-[#181c2a]" : "text-[#8892b0] hover:bg-[#181c2a] hover:text-white")}>
                       {label}
                     </button>
                   ))}
@@ -282,16 +262,31 @@ export const JarvisChart = React.memo(function JarvisChart({
               )}
             </div>
 
-            <div className="w-px h-4 bg-[#181c2a] shrink-0" />
+            <div className="w-px h-4 bg-[#1e2335] shrink-0" />
 
-            {/* Indicators */}
+            {/* Timeframes */}
+            {TIMEFRAMES.map((tfv, i) => (
+              <button key={tfv} onClick={() => onTimeframeChange(i)}
+                className={cn("px-1.5 py-1 rounded text-[9px] shrink-0 whitespace-nowrap", timeframeIdx === i ? "bg-[#181c2a] text-white border border-[#4a9eff]" : "text-[#4a5270] border border-transparent hover:text-white")}>{tfv}</button>
+            ))}
+
+            <div className="w-px h-4 bg-[#1e2335] shrink-0" />
+
+            {/* Strategy select */}
+            <select defaultValue={selectedStrategy} className="appearance-none bg-[#181c2a] border border-[#1e2335] rounded px-1.5 py-1 text-[9px] text-[#8892b0] shrink-0 focus:outline-none max-w-[80px]">
+              {STRATEGY_OPTIONS.map((s) => (<option key={s} value={s}>{s}</option>))}
+            </select>
+
+            <div className="w-px h-4 bg-[#1e2335] shrink-0" />
+
+            {/* Indicators dropdown */}
             <div className="relative shrink-0" ref={indRef}>
               <button onClick={() => { setShowIndicators(!showIndicators); setShowExtTypes(false); }}
-                className={cn("flex items-center gap-1 px-2 py-1 rounded text-[9px] border transition-all", activeIndicators.length > 0 ? "border-[#4a9eff]/30 text-[#4a9eff] bg-[#4a9eff]/5" : "border-transparent text-[#4a5270] hover:bg-[#181c2a] hover:text-[#8892b0]")}>
-                📊 Indikatoren{activeIndicators.length > 0 && <span className="text-[7px] bg-[#4a9eff] text-white rounded-full w-3.5 h-3.5 flex items-center justify-center">{activeIndicators.length}</span>}
+                className={cn("flex items-center gap-1 px-1.5 py-1 rounded text-[9px] shrink-0 whitespace-nowrap", activeIndicators.length > 0 ? "text-[#4a9eff] bg-[#4a9eff]/5 border border-[#4a9eff]/30" : "text-[#4a5270] border border-transparent hover:bg-[#181c2a]")}>
+                📊{activeIndicators.length > 0 && <span className="text-[7px] bg-[#4a9eff] text-white rounded-full w-3.5 h-3.5 flex items-center justify-center">{activeIndicators.length}</span>}
               </button>
               {showIndicators && (
-                <div className="absolute top-8 left-0 z-50 bg-[#0d0f18] border border-[#1e2335] rounded-md p-2 shadow-xl min-w-[180px]">
+                <div className="absolute top-8 left-0 z-[9999] bg-[#0d0f18] border border-[#1e2335] rounded-md p-2 shadow-2xl min-w-[180px]">
                   {INDICATOR_GROUPS.map((group) => (
                     <div key={group.title}>
                       <div className="text-[8px] text-[#4a5270] tracking-[1px] uppercase mt-1 mb-1">{group.title}</div>
@@ -299,10 +294,8 @@ export const JarvisChart = React.memo(function JarvisChart({
                         const active = activeIndicators.includes(ind);
                         return (
                           <button key={ind} onClick={() => onToggleIndicator?.(ind)}
-                            className="flex items-center gap-2 w-full px-2 py-1.5 rounded text-[10px] text-[#8892b0] hover:bg-[#181c2a] hover:text-white transition-colors">
-                            <div className={cn("w-3 h-3 rounded-sm border flex items-center justify-center text-[7px]", active ? "bg-[#4a9eff] border-[#4a9eff] text-white" : "border-[#1e2335]")}>
-                              {active ? "✓" : ""}
-                            </div>
+                            className="flex items-center gap-2 w-full px-2 py-1.5 rounded text-[10px] text-[#8892b0] hover:bg-[#181c2a] hover:text-white">
+                            <div className={cn("w-3 h-3 rounded-sm border flex items-center justify-center text-[7px]", active ? "bg-[#4a9eff] border-[#4a9eff] text-white" : "border-[#1e2335]")}>{active ? "✓" : ""}</div>
                             {ind}
                           </button>
                         );
@@ -313,54 +306,30 @@ export const JarvisChart = React.memo(function JarvisChart({
               )}
             </div>
 
-            {/* Screenshot */}
-            <button onClick={onScreenshot} title="Screenshot" className="ml-auto w-[26px] h-[26px] rounded text-[#4a5270] hover:bg-[#181c2a] hover:text-[#8892b0] transition-all shrink-0 flex items-center justify-center">
+            {/* Spacer */}
+            <div className="flex-1" />
+
+            {/* Right badges */}
+            <span className="text-[8px] tracking-[1.5px] text-[#4a5270] uppercase shrink-0 whitespace-nowrap">{CHART_TYPE_LABELS[chartType]}</span>
+            <span className={cn("text-[8px] border rounded px-1.5 py-0.5 shrink-0 whitespace-nowrap", wsConnected ? "text-[#4a9eff] border-[#4a9eff]/30 bg-[#4a9eff]/5" : "text-[#4a5270] border-[#1e2335]")}>{wsConnected ? "SIM LIVE" : "OFFLINE"}</span>
+            <button onClick={onScreenshot} title="Screenshot" className="w-[26px] h-[26px] rounded text-[#4a5270] hover:bg-[#181c2a] hover:text-[#8892b0] shrink-0 flex items-center justify-center">
               <Camera className="h-3.5 w-3.5" />
             </button>
           </div>
 
-          {/* ══ TOOLBAR ROW 2: Price/MCap + TF + Strategy + Badges ══ */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-[#1a2030] overflow-x-auto scrollbar-hide">
-            <div className="flex rounded border border-[#1a2030] overflow-hidden shrink-0">
-              <button onClick={() => setPriceMode("price")} className={cn("px-2 py-1 text-[9px]", priceMode === "price" ? "bg-[#1a2030] text-white" : "text-muted-foreground")}>Preis</button>
-              <button onClick={() => setPriceMode("mcap")} className={cn("px-2 py-1 text-[9px]", priceMode === "mcap" ? "bg-[#1a2030] text-white" : "text-muted-foreground")}>Marktkapital.</button>
-            </div>
-            <div className="w-px h-4 bg-[#1a2030] shrink-0" />
-            {TIMEFRAMES.map((tfv, i) => (
-              <button key={tfv} onClick={() => onTimeframeChange(i)} className={cn("px-2 py-1 rounded border text-[9px] shrink-0 transition-colors", timeframeIdx === i ? "bg-[#1a2030] text-white border-[#2a3a52]" : "text-muted-foreground border-transparent hover:text-white")}>{tfv}</button>
-            ))}
-            <div className="w-px h-4 bg-[#1a2030] shrink-0" />
-            <div className="relative shrink-0">
-              <select defaultValue={selectedStrategy} className="appearance-none bg-[#0a0e14] border border-[#1a2030] rounded px-2 py-1 text-[9px] text-white pr-5 focus:outline-none">
-                {STRATEGY_OPTIONS.map((s) => (<option key={s} value={s}>{s}</option>))}
-              </select>
-              <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-2.5 w-2.5 text-muted-foreground pointer-events-none" />
-            </div>
-            <div className="ml-auto flex items-center gap-1.5 shrink-0">
-              <span className="text-[8px] tracking-[1px] text-muted-foreground uppercase">{CHART_TYPE_LABELS[chartType]}</span>
-              <span className={cn("text-[8px] border rounded px-1.5 py-0.5", wsConnected ? "text-[#4a9eff] border-[#4a9eff]/30" : "text-muted-foreground border-[#1a2030]")}>{wsConnected ? "SIM LIVE" : "OFFLINE"}</span>
-            </div>
-          </div>
-
-          {/* ══ OHLC SUB-HEADER ══ */}
-          <div className="flex items-center gap-2 px-3 py-1 border-b border-[#181c2a] bg-[#08090d] overflow-x-auto scrollbar-hide">
-            <div className="flex items-center gap-1.5 shrink-0">
-              <div className="w-4 h-4 rounded-full flex items-center justify-center text-[6px] font-bold text-white" style={{ backgroundColor: brand.color }}>{brand.icon.length > 2 ? brand.icon[0] : brand.icon}</div>
-              <span className="text-[9px] text-[#4a5270]">{assetName} · {tf} · {brand.exchange} · {CHART_TYPE_LABELS[chartType]}</span>
-            </div>
-            <span className="text-[#1e2335]">|</span>
+          {/* ══ OHLC SUB-HEADER (compact) ══ */}
+          <div className="flex items-center gap-1.5 px-3 py-1 border-b border-[#181c2a] bg-[#08090d]" style={{ overflow: "visible" }}>
+            <div className="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[5px] font-bold text-white shrink-0" style={{ backgroundColor: brand.color }}>{brand.icon.length > 2 ? brand.icon[0] : brand.icon}</div>
+            <span className="text-[9px] text-[#4a5270] shrink-0">{assetName} · {tf} · {CHART_TYPE_LABELS[chartType]}</span>
+            <span className="text-[#1e2335] shrink-0">|</span>
             <span className="text-[8px] text-[#4a5270]">O</span><span className="text-[9px] text-[#8892b0]">{price.toFixed(2)}</span>
             <span className="text-[8px] text-[#4a5270]">H</span><span className="text-[9px] text-[#00e676]">{(price * 1.002).toFixed(2)}</span>
             <span className="text-[8px] text-[#4a5270]">L</span><span className="text-[9px] text-[#ff3d57]">{(price * 0.998).toFixed(2)}</span>
             <span className="text-[8px] text-[#4a5270]">C</span><span className={cn("text-[9px] font-bold", isPositive ? "text-[#00e676]" : "text-[#ff3d57]")}>{price.toFixed(2)}</span>
             <span className={cn("text-[9px]", isPositive ? "text-[#00e676]" : "text-[#ff3d57]")}>{isPositive ? "+" : ""}{priceChangePct.toFixed(2)}%</span>
-            <span className="text-[#1e2335]">|</span>
-            <span className="text-[8px] text-[#4a5270]">Vol —</span>
-            {/* Active indicator chips */}
+            {activeIndicators.length > 0 && <span className="text-[#1e2335] shrink-0">|</span>}
             {activeIndicators.map((ind) => (
-              <button key={ind} onClick={() => onToggleIndicator?.(ind)} className="text-[7px] px-1.5 py-0.5 rounded border border-[#4a9eff]/30 text-[#4a9eff] bg-[#4a9eff]/5 hover:bg-[#4a9eff]/10 shrink-0">
-                {ind} ×
-              </button>
+              <button key={ind} onClick={() => onToggleIndicator?.(ind)} className="text-[7px] px-1 py-0.5 rounded border border-[#4a9eff]/30 text-[#4a9eff] bg-[#4a9eff]/5 shrink-0">{ind} ×</button>
             ))}
           </div>
 
