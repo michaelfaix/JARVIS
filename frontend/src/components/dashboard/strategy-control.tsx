@@ -50,7 +50,7 @@ interface ParamRowProps {
 function ParamRow({ label, value, min, max, step, suffix = "", onChange }: ParamRowProps) {
   return (
     <div className="flex items-center gap-3">
-      <span className="text-[11px] text-muted-foreground w-20 shrink-0">{label}</span>
+      <span className="text-[10px] font-mono text-muted-foreground w-20 shrink-0">{label}</span>
       <input
         type="range"
         min={min}
@@ -67,7 +67,7 @@ function ParamRow({ label, value, min, max, step, suffix = "", onChange }: Param
           [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-500
           [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-background"
       />
-      <span className="text-[11px] font-mono text-white w-12 text-right">
+      <span className="text-[10px] font-mono font-mono text-white w-12 text-right">
         {value}{suffix}
       </span>
     </div>
@@ -198,7 +198,7 @@ function BacktestResults({ result }: { result: BacktestResult }) {
           <div key={m.label} className="flex items-center gap-1.5 rounded-lg bg-hud-bg/60 px-2.5 py-1.5">
             <m.icon className={`h-3 w-3 ${m.color}`} />
             <span className="text-[10px] text-muted-foreground">{m.label}</span>
-            <span className={`text-[11px] font-mono font-bold ml-auto ${m.color}`}>
+            <span className={`text-[10px] font-mono font-mono font-bold ml-auto ${m.color}`}>
               {m.value}
             </span>
           </div>

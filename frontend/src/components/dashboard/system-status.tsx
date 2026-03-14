@@ -13,7 +13,7 @@ import type { MetricsResponse } from "@/lib/api";
 import type { Signal } from "@/lib/types";
 
 function HudLabel({ children }: { children: React.ReactNode }) {
-  return <span className="font-mono text-[7px] tracking-[2px] text-[#2a3a52] uppercase block">{children}</span>;
+  return <span className="font-mono text-[8px] tracking-[1.5px] text-muted-foreground/40 uppercase block">{children}</span>;
 }
 
 function Bar({ value, color, h = 3 }: { value: number; color: string; h?: number }) {
@@ -33,7 +33,7 @@ function SubBar({ label, value }: { label: string; value: number }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-0.5">
-        <span className="font-mono text-[6px] tracking-[1.5px] text-[#2a3a52] uppercase">{label}</span>
+        <span className="font-mono text-[8px] tracking-[1px] text-muted-foreground/50 uppercase">{label}</span>
         <span className="font-mono text-[8px] font-bold" style={{ color: col }}>{value.toFixed(0)}</span>
       </div>
       <Bar value={value} color={col} h={2} />
@@ -99,7 +99,7 @@ export const SystemModeCard = React.memo(function SystemModeCard({
               <HudLabel>SYSTEM MODE</HudLabel>
               <div className="flex items-center gap-1">
                 <div className="w-1.5 h-1.5 rounded-full animate-pulse-live" style={{ backgroundColor: backendOnline ? "#00e5a0" : "#ff4466" }} />
-                <span className="text-[7px] tracking-[1px]" style={{ color: backendOnline ? "#00e5a0" : "#ff4466" }}>
+                <span className="text-[8px] tracking-[1px]" style={{ color: backendOnline ? "#00e5a0" : "#ff4466" }}>
                   {backendOnline ? "LIVE" : "OFF"}
                 </span>
               </div>
@@ -113,7 +113,7 @@ export const SystemModeCard = React.memo(function SystemModeCard({
               <div className="flex items-center justify-between mt-1">
                 <div className="flex items-baseline gap-0.5">
                   <span className="text-lg font-bold text-hud-cyan">{(konfidenzMultiplikator * 93.8).toFixed(1)}</span>
-                  <span className="text-[8px] text-[#2a3a52]">/100</span>
+                  <span className="text-[8px] text-muted-foreground/50">/100</span>
                 </div>
                 <span className="text-[7px] px-1.5 py-0.5 rounded border" style={{ borderColor: color, color }}>
                   {modus === "NORMAL" ? "NORMAL" : modus.replace(/_/g, " ")}
@@ -140,24 +140,24 @@ export const SystemModeCard = React.memo(function SystemModeCard({
               <div className="grid grid-cols-2 gap-x-2 gap-y-1 mt-1">
                 <MetricTooltip term="ECE">
                   <div>
-                    <span className="text-[6px] tracking-[1px] text-[#2a3a52] uppercase block">ECE</span>
+                    <span className="text-[8px] tracking-[1px] text-muted-foreground/50 uppercase block">ECE</span>
                     <span className={`text-[9px] font-bold ${ece > 0.08 ? "text-hud-amber" : "text-hud-green"}`}>{ece.toFixed(4)}</span>
                   </div>
                 </MetricTooltip>
                 <MetricTooltip term="OOD Score">
                   <div>
-                    <span className="text-[6px] tracking-[1px] text-[#2a3a52] uppercase block">OOD</span>
+                    <span className="text-[8px] tracking-[1px] text-muted-foreground/50 uppercase block">OOD</span>
                     <span className={`text-[9px] font-bold ${oodScore > 0.5 ? "text-hud-red" : oodScore > 0.3 ? "text-hud-amber" : "text-hud-green"}`}>{oodScore.toFixed(3)}</span>
                   </div>
                 </MetricTooltip>
                 <MetricTooltip term="Meta Uncertainty">
                   <div>
-                    <span className="text-[6px] tracking-[1px] text-[#2a3a52] uppercase block">META-U</span>
+                    <span className="text-[8px] tracking-[1px] text-muted-foreground/50 uppercase block">META-U</span>
                     <span className="text-[9px] font-bold text-white">{metaUncertainty.toFixed(3)}</span>
                   </div>
                 </MetricTooltip>
                 <div>
-                  <span className="text-[6px] tracking-[1px] text-[#2a3a52] uppercase block">RISK</span>
+                  <span className="text-[8px] tracking-[1px] text-muted-foreground/50 uppercase block">RISK</span>
                   <span className="text-[9px] font-bold" style={{ color: riskColor }}>{riskLevel}</span>
                 </div>
               </div>
@@ -194,13 +194,13 @@ export const SystemModeCard = React.memo(function SystemModeCard({
                     <span className="text-[9px] font-bold text-hud-cyan">{(assetSignal.confidence * 100).toFixed(0)}%</span>
                   </div>
                   <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-[7px]">
-                    <div><span className="text-[#2a3a52]">ENTRY </span><span className="text-white">${assetSignal.entry.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span></div>
-                    <div><span className="text-[#2a3a52]">SL </span><span className="text-hud-red">${assetSignal.stopLoss.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span></div>
-                    <div><span className="text-[#2a3a52]">TP </span><span className="text-hud-green">${assetSignal.takeProfit.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span></div>
-                    <div><span className="text-[#2a3a52]">R:R </span><span className="text-hud-cyan">1:{((assetSignal.takeProfit - assetSignal.entry) / Math.abs(assetSignal.entry - assetSignal.stopLoss) || 0).toFixed(1)}</span></div>
+                    <div><span className="text-muted-foreground/50">ENTRY </span><span className="text-white">${assetSignal.entry.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span></div>
+                    <div><span className="text-muted-foreground/50">SL </span><span className="text-hud-red">${assetSignal.stopLoss.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span></div>
+                    <div><span className="text-muted-foreground/50">TP </span><span className="text-hud-green">${assetSignal.takeProfit.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span></div>
+                    <div><span className="text-muted-foreground/50">R:R </span><span className="text-hud-cyan">1:{((assetSignal.takeProfit - assetSignal.entry) / Math.abs(assetSignal.entry - assetSignal.stopLoss) || 0).toFixed(1)}</span></div>
                   </div>
                   <div className="flex items-center justify-between pt-0.5 border-t border-[#0d1a2d]">
-                    <span className="text-[6px] tracking-[1px] text-[#2a3a52] uppercase">POSITION</span>
+                    <span className="text-[8px] tracking-[1px] text-muted-foreground/50 uppercase">POSITION</span>
                     <span className="text-[8px] font-bold text-white">{positionPct.toFixed(2)}% — €{positionValue.toFixed(0)}</span>
                   </div>
                 </div>
@@ -208,7 +208,7 @@ export const SystemModeCard = React.memo(function SystemModeCard({
             )}
 
             {/* 10. FOOTER */}
-            <div className="flex items-center justify-between pt-0.5 text-[7px] text-[#2a3a52]">
+            <div className="flex items-center justify-between pt-0.5 text-[7px] text-muted-foreground/50">
               <span>{entscheidungsCount.toLocaleString()} DECISIONS</span>
               <span style={{ color: vorhersagenAktiv ? "#00e5a0" : "#ff4466" }}>
                 {vorhersagenAktiv ? "● ACTIVE" : "● OFF"}
@@ -261,7 +261,7 @@ export const QualityScoreCard = React.memo(function QualityScoreCard({ metrics, 
         <HudLabel>DECISION QUALITY</HudLabel>
         <div className="flex items-baseline gap-0.5 mt-1">
           <span className="text-xl font-bold text-hud-cyan">{(score * 100).toFixed(1)}</span>
-          <span className="text-[9px] text-[#2a3a52]">/100</span>
+          <span className="text-[9px] text-muted-foreground/50">/100</span>
         </div>
         <Bar value={score * 100} color={scoreColor} />
         <div className="border-t border-[#0d1a2d] mt-1 mb-0.5" />

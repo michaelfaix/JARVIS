@@ -653,17 +653,18 @@ export function AssetChart({
     });
     volumeSeriesRef.current = volumeSeries;
 
-    const handleResize = () => {
+    // ResizeObserver: responds to container size changes (sidebar toggle, window resize)
+    const ro = new ResizeObserver(() => {
       if (chartRef.current && containerRef.current) {
         chartRef.current.applyOptions({
           width: containerRef.current.clientWidth,
         });
       }
-    };
-    window.addEventListener("resize", handleResize);
+    });
+    ro.observe(containerRef.current);
 
     return () => {
-      window.removeEventListener("resize", handleResize);
+      ro.disconnect();
       chart.remove();
       chartRef.current = null;
       candleSeriesRef.current = null;
