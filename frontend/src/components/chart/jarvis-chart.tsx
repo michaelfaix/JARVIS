@@ -89,6 +89,8 @@ function AssetLogo({ symbol, size = 56 }: { symbol: string; size?: number }) {
 // Props
 // ---------------------------------------------------------------------------
 
+export type ChartType = "line" | "candle" | "bar";
+
 interface JarvisChartProps {
   selectedAsset: string;
   assetName: string;
@@ -100,6 +102,8 @@ interface JarvisChartProps {
   selectedStrategy: string;
   timeframeIdx: number;
   onTimeframeChange: (idx: number) => void;
+  chartType: ChartType;
+  onChartTypeChange: (t: ChartType) => void;
   onAssetChange: (symbol: string) => void;
   allAssets: { symbol: string; name: string; basePrice: number }[];
   prices: Record<string, number>;
@@ -115,7 +119,7 @@ interface JarvisChartProps {
 export const JarvisChart = React.memo(function JarvisChart({
   selectedAsset, assetName, price, priceChange, priceChangePct,
   wsConnected, topSignal, selectedStrategy,
-  timeframeIdx, onTimeframeChange, onAssetChange,
+  timeframeIdx, onTimeframeChange, chartType, onChartTypeChange, onAssetChange,
   allAssets, prices, isFavorite, onSaveFavorite,
   children,
 }: JarvisChartProps) {
@@ -251,6 +255,19 @@ export const JarvisChart = React.memo(function JarvisChart({
               </button>
               <button onClick={() => setPriceMode("mcap")} className={cn("px-2 py-1 text-[9px]", priceMode === "mcap" ? "bg-[#1a2030] text-white" : "text-muted-foreground")}>
                 Marktkapital.
+              </button>
+            </div>
+
+            {/* Chart type switcher */}
+            <div className="flex rounded border border-[#1a2030] overflow-hidden shrink-0">
+              <button onClick={() => onChartTypeChange("line")} title="Linie" className={cn("px-1.5 py-1 text-[10px]", chartType === "line" ? "bg-[#1a2030] text-[#4a9eff]" : "text-muted-foreground hover:text-white")}>
+                ~/
+              </button>
+              <button onClick={() => onChartTypeChange("candle")} title="Kerzen" className={cn("px-1.5 py-1 text-[10px]", chartType === "candle" ? "bg-[#1a2030] text-[#4a9eff]" : "text-muted-foreground hover:text-white")}>
+                |||
+              </button>
+              <button onClick={() => onChartTypeChange("bar")} title="Bars" className={cn("px-1.5 py-1 text-[10px]", chartType === "bar" ? "bg-[#1a2030] text-[#4a9eff]" : "text-muted-foreground hover:text-white")}>
+                ▤
               </button>
             </div>
 

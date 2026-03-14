@@ -535,6 +535,7 @@ interface AssetChartProps {
   onDrawingComplete?: (drawing: ChartDrawing) => void;
   strategyOverlay?: StrategyOverlay;
   jarvisTips?: JarvisTipsContext;
+  chartType?: "line" | "candle" | "bar";
 }
 
 export function AssetChart({
@@ -552,13 +553,15 @@ export function AssetChart({
   onDrawingComplete,
   strategyOverlay,
   jarvisTips,
+  chartType = "line",
 }: AssetChartProps) {
   void _name; void _livePrice; // Props kept for API compat, display moved to JarvisChart
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const [tipsOpen, setTipsOpen] = useState(false);
   const tipsRef = useRef<HTMLDivElement>(null);
-  const candleSeriesRef = useRef<ISeriesApi<"Area"> | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const candleSeriesRef = useRef<ISeriesApi<any> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
   const [lastPrice, setLastPrice] = useState<number>(0);
   const [, setPriceChange] = useState<number>(0);
@@ -634,15 +637,23 @@ export function AssetChart({
 
     chartRef.current = chart;
 
-    const candleSeries = chart.addAreaSeries({
-      lineColor: "#4a9eff",
-      lineWidth: 2,
-      topColor: "rgba(74,158,255,0.15)",
-      bottomColor: "rgba(8,9,13,0)",
-      crosshairMarkerRadius: 4,
-      crosshairMarkerBorderColor: "#4a9eff",
-      crosshairMarkerBackgroundColor: "#0d1117",
-    });
+    const candleSeries = chartType === "candle"
+      ? chart.addCandlestickSeries({
+          upColor: "#00e676", downColor: "#ff3d57",
+          borderUpColor: "#00e676", borderDownColor: "#ff3d57",
+          wickUpColor: "#00e67680", wickDownColor: "#ff3d5780",
+        })
+      : chartType === "bar"
+        ? chart.addBarSeries({
+            upColor: "#00e676", downColor: "#ff3d57",
+          })
+        : chart.addAreaSeries({
+            lineColor: "#4a9eff", lineWidth: 2,
+            topColor: "rgba(74,158,255,0.15)", bottomColor: "rgba(8,9,13,0)",
+            crosshairMarkerRadius: 4,
+            crosshairMarkerBorderColor: "#4a9eff",
+            crosshairMarkerBackgroundColor: "#0d1117",
+          });
     candleSeriesRef.current = candleSeries;
 
     const volumeSeries = chart.addHistogramSeries({
@@ -675,7 +686,7 @@ export function AssetChart({
       drawingSeriesRef.current = [];
       strategySeriesRef.current = [];
     };
-  }, [symbol, interval, height]);
+  }, [symbol, interval, height, chartType]);
 
   // Effect 2a: Load candle/volume data + indicator overlays (NOT strategy-dependent)
   useEffect(() => {
@@ -701,10 +712,16 @@ export function AssetChart({
 
     assetDataRef.current = assetData;
 
-    // Area series: map OHLC → { time, value: close }
-    candleSeriesRef.current.setData(
-      assetData.map((d) => ({ time: d.time as unknown as Time, value: d.close }))
-    );
+    // Line/area: { time, value }. Candle/bar: OHLC.
+    if (chartType === "line") {
+      candleSeriesRef.current.setData(
+        assetData.map((d) => ({ time: d.time as unknown as Time, value: d.close }))
+      );
+    } else {
+      candleSeriesRef.current.setData(
+        assetData.map((d) => ({ time: d.time as unknown as Time, open: d.open, high: d.high, low: d.low, close: d.close }))
+      );
+    }
 
     const volumeData = generateVolumeData(
       assetData,
@@ -879,11 +896,12 @@ export function AssetChart({
 
     setWsLive(wsKlineConnected);
 
-    // Update the last (forming) point for area series
-    candleSeriesRef.current.update({
-      time: tick.time as Time,
-      value: tick.close,
-    } as { time: Time; value: number });
+    // Update forming candle/point
+    if (chartType === "line") {
+      candleSeriesRef.current.update({ time: tick.time as Time, value: tick.close } as never);
+    } else {
+      candleSeriesRef.current.update({ time: tick.time as Time, open: tick.open, high: tick.high, low: tick.low, close: tick.close } as never);
+    }
 
     // Update volume bar for the live candle
     volumeSeriesRef.current.update({
@@ -972,10 +990,11 @@ export function AssetChart({
       sc.volume += 10000 + Math.random() * 50000;
 
       // Push to chart
-      candleSeriesRef.current!.update({
-        time: sc.time as Time,
-        value: sc.close,
-      });
+      if (chartType === "line") {
+        candleSeriesRef.current!.update({ time: sc.time as Time, value: sc.close } as never);
+      } else {
+        candleSeriesRef.current!.update({ time: sc.time as Time, open: sc.open, high: sc.high, low: sc.low, close: sc.close } as never);
+      }
 
       volumeSeriesRef.current!.update({
         time: sc.time as Time,

@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 const AssetChart = dynamic(() => import("@/components/chart/asset-chart").then((m) => m.AssetChart), { ssr: false });
-import { JarvisChart } from "@/components/chart/jarvis-chart";
+import { JarvisChart, type ChartType } from "@/components/chart/jarvis-chart";
 import { TIMEFRAMES } from "@/components/dashboard/timeframe-slider";
 import { RegimeDisplay } from "@/components/dashboard/regime-display";
 import {
@@ -132,6 +132,7 @@ export default function DashboardPage() {
   const FAV_DEFAULT: FavoriteChart = useMemo(() => ({ assetIdx: 0, timeframeIdx: 4 }), []);
   const [selectedAsset, setSelectedAsset] = useState(0);
   const [timeframeIdx, setTimeframeIdx] = useState(4);
+  const [chartType, setChartType] = useState<ChartType>("line");
   const [favLoaded, setFavLoaded] = useState(false);
 
   useEffect(() => {
@@ -356,6 +357,8 @@ export default function DashboardPage() {
               selectedStrategy={strategy.state.selectedStrategy}
               timeframeIdx={timeframeIdx}
               onTimeframeChange={setTimeframeIdx}
+              chartType={chartType}
+              onChartTypeChange={setChartType}
               onAssetChange={(symbol) => {
                 const idx = CHART_ASSETS.findIndex((a) => a.symbol === symbol);
                 if (idx >= 0) { setSelectedAsset(idx); setWsPrice(null); }
@@ -377,6 +380,7 @@ export default function DashboardPage() {
                 onPriceChange={handlePriceChange}
                 strategyOverlay={strategyOverlay}
                 jarvisTips={jarvisTipsCtx}
+                chartType={chartType}
               />
             </JarvisChart>
 
