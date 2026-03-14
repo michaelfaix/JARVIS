@@ -814,7 +814,7 @@ export function AssetChart({
     if (chartRef.current) {
       chartRef.current.timeScale().fitContent();
     }
-  }, [klines, isCrypto, symbol, basePrice, seed, interval, indicators]);
+  }, [klines, isCrypto, symbol, basePrice, seed, interval, indicators, chartType]);
 
   // Effect 2b: Update markers + SL/TP strategy overlay (reactive to strategy changes)
   // Runs independently of data loading — does NOT re-set candle data
@@ -892,7 +892,7 @@ export function AssetChart({
     // Brief flash then clear
     const tid = setTimeout(() => setRecalculating(false), 150);
     return () => clearTimeout(tid);
-  }, [regime, seed, strategyOverlay]);
+  }, [regime, seed, strategyOverlay, chartType]);
 
   // Effect 3: Live candle update from WebSocket tick (crypto only)
   useEffect(() => {
