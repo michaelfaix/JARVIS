@@ -535,7 +535,7 @@ interface AssetChartProps {
   onDrawingComplete?: (drawing: ChartDrawing) => void;
   strategyOverlay?: StrategyOverlay;
   jarvisTips?: JarvisTipsContext;
-  chartType?: "line" | "candle" | "bar";
+  chartType?: "line" | "candle" | "bar" | "heikin" | "hollow" | "linebreak" | "baseline";
 }
 
 export function AssetChart({
@@ -653,23 +653,25 @@ export function AssetChart({
 
     chartRef.current = chart;
 
-    const candleSeries = chartType === "candle"
+    const candleSeries = chartType === "hollow"
       ? chart.addCandlestickSeries({
-          upColor: "#00e676", downColor: "#ff3d57",
-          borderUpColor: "#00e676", borderDownColor: "#ff3d57",
-          wickUpColor: "#00e67680", wickDownColor: "#ff3d5780",
+          upColor: "transparent", borderUpColor: "#00e676", wickUpColor: "#00e676",
+          downColor: "#ff3d57", borderDownColor: "#ff3d57", wickDownColor: "#ff3d57",
         })
-      : chartType === "bar"
-        ? chart.addBarSeries({
+      : (chartType === "candle" || chartType === "heikin" || chartType === "linebreak")
+        ? chart.addCandlestickSeries({
             upColor: "#00e676", downColor: "#ff3d57",
+            borderUpColor: "#00e676", borderDownColor: "#ff3d57",
+            wickUpColor: "#00e67680", wickDownColor: "#ff3d5780",
           })
-        : chart.addAreaSeries({
-            lineColor: "#4a9eff", lineWidth: 2,
-            topColor: "rgba(74,158,255,0.15)", bottomColor: "rgba(8,9,13,0)",
-            crosshairMarkerRadius: 4,
-            crosshairMarkerBorderColor: "#4a9eff",
-            crosshairMarkerBackgroundColor: "#0d1117",
-          });
+        : chartType === "bar"
+          ? chart.addBarSeries({ upColor: "#00e676", downColor: "#ff3d57" })
+          : chart.addAreaSeries({
+              lineColor: "#4a9eff", lineWidth: 2,
+              topColor: chartType === "baseline" ? "rgba(0,230,118,0.15)" : "rgba(74,158,255,0.15)",
+              bottomColor: "rgba(8,9,13,0)",
+              crosshairMarkerRadius: 4, crosshairMarkerBorderColor: "#4a9eff", crosshairMarkerBackgroundColor: "#0d1117",
+            });
     candleSeriesRef.current = candleSeries;
 
     const volumeSeries = chart.addHistogramSeries({
@@ -730,14 +732,37 @@ export function AssetChart({
 
     // Filter out invalid data points
     const valid = assetData.filter((d) => d.time != null && typeof d.close === "number" && !isNaN(d.close));
-    if (chartType === "line") {
+    const ohlcValid = valid.filter((d) => typeof d.open === "number" && typeof d.high === "number" && typeof d.low === "number");
+
+    if (chartType === "line" || chartType === "baseline") {
       candleSeriesRef.current.setData(
         valid.map((d) => ({ time: d.time as unknown as Time, value: d.close }))
       );
+    } else if (chartType === "heikin") {
+      // Heikin Ashi transformation
+      const ha = ohlcValid.map((d, i, arr) => {
+        const prev = arr[i - 1];
+        const haClose = (d.open + d.high + d.low + d.close) / 4;
+        const haOpen = prev ? (prev.open + prev.close) / 2 : (d.open + d.close) / 2;
+        return { time: d.time as unknown as Time, open: haOpen, high: Math.max(d.high, haOpen, haClose), low: Math.min(d.low, haOpen, haClose), close: haClose };
+      });
+      candleSeriesRef.current.setData(ha);
+    } else if (chartType === "linebreak") {
+      // Three Line Break
+      const lb: { time: unknown; open: number; high: number; low: number; close: number }[] = [];
+      for (const d of ohlcValid) {
+        if (lb.length < 3) { lb.push({ time: d.time, open: d.open, high: d.high, low: d.low, close: d.close }); continue; }
+        const last3 = lb.slice(-3);
+        const maxH = Math.max(...last3.map((x) => x.high));
+        const minL = Math.min(...last3.map((x) => x.low));
+        if (d.close > maxH || d.close < minL) {
+          lb.push({ time: d.time, open: d.close > maxH ? maxH : minL, high: d.close > maxH ? d.close : minL, low: d.close > maxH ? maxH : d.close, close: d.close });
+        }
+      }
+      candleSeriesRef.current.setData(lb.map((d) => ({ ...d, time: d.time as Time })));
     } else {
       candleSeriesRef.current.setData(
-        valid.filter((d) => typeof d.open === "number" && typeof d.high === "number" && typeof d.low === "number")
-          .map((d) => ({ time: d.time as unknown as Time, open: d.open, high: d.high, low: d.low, close: d.close }))
+        ohlcValid.map((d) => ({ time: d.time as unknown as Time, open: d.open, high: d.high, low: d.low, close: d.close }))
       );
     }
 
@@ -855,7 +880,7 @@ export function AssetChart({
 
     // Generate strategy-aware markers (only candle/bar series support markers)
     const { markers, signals } = generateSignalMarkers(assetData, regime, seed, strategyOverlay);
-    if (chartType !== "line" && candleSeriesRef.current.setMarkers) {
+    if (!["line", "baseline"].includes(chartType) && candleSeriesRef.current.setMarkers) {
       candleSeriesRef.current.setMarkers(
         markers.map((m) => ({ ...m, time: m.time as Time }))
       );
@@ -923,12 +948,13 @@ export function AssetChart({
 
     // Update forming candle/point — validate first
     if (typeof tick.close !== "number" || isNaN(tick.close)) return;
-    if (chartType === "line") {
-      candleSeriesRef.current.update({ time: tick.time as Time, value: tick.close } as never);
-    } else {
-      if (typeof tick.open !== "number" || typeof tick.high !== "number" || typeof tick.low !== "number") return;
-      candleSeriesRef.current.update({ time: tick.time as Time, open: tick.open, high: tick.high, low: tick.low, close: tick.close } as never);
-    }
+    try {
+      if (chartType === "line" || chartType === "baseline") {
+        candleSeriesRef.current.update({ time: tick.time as Time, value: tick.close } as never);
+      } else if (typeof tick.open === "number" && typeof tick.high === "number" && typeof tick.low === "number") {
+        candleSeriesRef.current.update({ time: tick.time as Time, open: tick.open, high: tick.high, low: tick.low, close: tick.close } as never);
+      }
+    } catch { /* series may be destroyed during type switch */ }
 
     // Update volume bar for the live candle
     volumeSeriesRef.current.update({
@@ -1019,14 +1045,12 @@ export function AssetChart({
       // Push to chart — validate values
       if (typeof sc.close !== "number" || isNaN(sc.close)) return;
       try {
-        if (chartType === "line") {
+        if (chartType === "line" || chartType === "baseline") {
           candleSeriesRef.current!.update({ time: sc.time as Time, value: sc.close } as never);
         } else {
           candleSeriesRef.current!.update({ time: sc.time as Time, open: sc.open, high: sc.high, low: sc.low, close: sc.close } as never);
         }
-      } catch {
-        // Series may have been destroyed during chart type switch
-      }
+      } catch { /* series destroyed during type switch */ }
 
       volumeSeriesRef.current!.update({
         time: sc.time as Time,
