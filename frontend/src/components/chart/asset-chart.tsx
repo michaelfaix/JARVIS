@@ -544,7 +544,7 @@ export function AssetChart({
   basePrice,
   livePrice: _livePrice,
   regime = "RISK_ON",
-  height = 400,
+  height: _height = 400,
   interval = "1d",
   onPriceChange,
   indicators,
@@ -555,7 +555,7 @@ export function AssetChart({
   jarvisTips,
   chartType = "line",
 }: AssetChartProps) {
-  void _name; void _livePrice;
+  void _name; void _livePrice; void _height;
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const [tipsOpen, setTipsOpen] = useState(false);
@@ -607,27 +607,30 @@ export function AssetChart({
   useEffect(() => {
     if (!containerRef.current) return;
 
+    const CHART_HEIGHT = 500;
     const chart = createChart(containerRef.current, {
       layout: {
-        background: { type: ColorType.Solid, color: "#05080f" },
-        textColor: "#6b7f99",
+        background: { type: ColorType.Solid, color: "#08090d" },
+        textColor: "#4a5270",
         fontSize: 11,
       },
       grid: {
-        vertLines: { color: "#0a1f35" },
-        horzLines: { color: "#0a1f35" },
+        vertLines: { color: "#1e2335" },
+        horzLines: { color: "#1e2335" },
       },
       width: containerRef.current.clientWidth,
-      height,
+      height: CHART_HEIGHT,
       crosshair: {
-        vertLine: { color: "rgba(77, 184, 255, 0.3)" },
-        horzLine: { color: "rgba(77, 184, 255, 0.3)" },
+        vertLine: { color: "rgba(74, 158, 255, 0.3)" },
+        horzLine: { color: "rgba(74, 158, 255, 0.3)" },
       },
       rightPriceScale: {
-        borderColor: "#0a1f35",
+        borderColor: "#1e2335",
+        autoScale: true,
+        scaleMargins: { top: 0.1, bottom: 0.2 },
       },
       timeScale: {
-        borderColor: "#0a1f35",
+        borderColor: "#1e2335",
         timeVisible: ["1m", "5m", "15m", "1h", "4h"].includes(interval),
         rightOffset: 5,
         barSpacing: 8,
@@ -701,7 +704,7 @@ export function AssetChart({
       drawingSeriesRef.current = [];
       strategySeriesRef.current = [];
     };
-  }, [symbol, interval, height, chartType]);
+  }, [symbol, interval, chartType]);
 
   // Effect 2a: Load candle/volume data + indicator overlays (NOT strategy-dependent)
   useEffect(() => {
@@ -775,9 +778,9 @@ export function AssetChart({
     const last = assetData[assetData.length - 1];
     setLastPrice(last.close);
 
-    // Scroll to most recent data with small right offset
+    // Fit all data into view, then scroll to latest
     if (chartRef.current) {
-      chartRef.current.timeScale().scrollToRealTime();
+      chartRef.current.timeScale().fitContent();
     }
 
     // --- Indicator overlays ---
@@ -1217,7 +1220,7 @@ export function AssetChart({
     return () => {
       chart.unsubscribeClick(handleClick);
     };
-  }, [symbol, interval, height]); // Re-subscribe when chart recreates
+  }, [symbol, interval, chartType]); // Re-subscribe when chart recreates
 
   // Reset pending point when active tool changes
   useEffect(() => {
@@ -1247,7 +1250,7 @@ export function AssetChart({
     <div className="w-full">
       {/* Chart — header removed (JarvisChart provides it) */}
       <div className="relative">
-        <div ref={containerRef} className="w-full rounded-lg overflow-hidden" />
+        <div ref={containerRef} className="w-full overflow-hidden" style={{ height: 500, minHeight: 500, maxHeight: 500 }} />
         {recalculating && (
           <div className="absolute top-2 right-2 flex items-center gap-1.5 rounded bg-background/80 border border-border/50 px-2 py-1 text-[10px] text-blue-400 animate-pulse">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping" />
