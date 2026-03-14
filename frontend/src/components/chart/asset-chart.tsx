@@ -830,11 +830,13 @@ export function AssetChart({
     }
     strategySeriesRef.current = [];
 
-    // Generate strategy-aware markers
+    // Generate strategy-aware markers (only candle/bar series support markers)
     const { markers, signals } = generateSignalMarkers(assetData, regime, seed, strategyOverlay);
-    candleSeriesRef.current.setMarkers(
-      markers.map((m) => ({ ...m, time: m.time as Time }))
-    );
+    if (chartType !== "line" && candleSeriesRef.current.setMarkers) {
+      candleSeriesRef.current.setMarkers(
+        markers.map((m) => ({ ...m, time: m.time as Time }))
+      );
+    }
 
     // --- Strategy Overlay: SL/TP lines for the most recent signal ---
     if (strategyOverlay && signals.length > 0) {
