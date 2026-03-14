@@ -540,9 +540,9 @@ interface AssetChartProps {
 
 export function AssetChart({
   symbol,
-  name,
+  name: _name,
   basePrice,
-  livePrice,
+  livePrice: _livePrice,
   regime = "RISK_ON",
   height = 400,
   interval = "1d",
@@ -554,6 +554,7 @@ export function AssetChart({
   strategyOverlay,
   jarvisTips,
 }: AssetChartProps) {
+  void _name; void _livePrice; // Props kept for API compat, display moved to JarvisChart
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const [tipsOpen, setTipsOpen] = useState(false);
@@ -561,8 +562,8 @@ export function AssetChart({
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
   const [lastPrice, setLastPrice] = useState<number>(0);
-  const [priceChange, setPriceChange] = useState<number>(0);
-  const [wsLive, setWsLive] = useState(false);
+  const [, setPriceChange] = useState<number>(0);
+  const [, setWsLive] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
 
   // Store candle data so marker effect can access it without reloading data
@@ -1194,61 +1195,9 @@ export function AssetChart({
 
   const toggleTips = useCallback(() => setTipsOpen((p) => !p), []);
 
-  const displayPrice = livePrice ?? lastPrice;
-  const isPositive = priceChange >= 0;
-
   return (
     <div className="w-full">
-      {/* Price Header */}
-      <div className="flex items-baseline gap-2 sm:gap-4 mb-4 flex-wrap">
-        <h2 className="text-lg sm:text-2xl font-bold text-white">{symbol}/USD</h2>
-        <span className="text-xs text-muted-foreground hidden sm:inline">{name}</span>
-        {isCrypto && (wsLive || klines.length > 0) ? (
-          <span
-            className={`text-[10px] px-1.5 py-0.5 rounded ${
-              wsLive
-                ? "text-green-400 bg-green-500/10"
-                : "text-blue-400 bg-blue-500/10"
-            }`}
-          >
-            {wsLive ? "WS LIVE" : "REST DATA"}
-          </span>
-        ) : !isCrypto && simCandleRef.current ? (
-          <span className="text-[10px] text-yellow-400 bg-yellow-500/10 px-1.5 py-0.5 rounded">
-            SIM LIVE
-          </span>
-        ) : null}
-        <span className="text-xl sm:text-3xl font-mono font-bold text-white">
-          $
-          {displayPrice.toLocaleString("en-US", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}
-        </span>
-        <span
-          className={`text-sm font-mono font-medium ${
-            isPositive ? "text-green-400" : "text-red-400"
-          }`}
-        >
-          {isPositive ? "+" : ""}
-          {priceChange.toFixed(2)}%
-        </span>
-        {/* JARVIS Tips Button */}
-        {jarvisTips && (
-          <button
-            onClick={toggleTips}
-            className={`ml-auto px-2 py-0.5 rounded-md text-[11px] font-medium transition-all ${
-              tipsOpen
-                ? "bg-blue-600/30 text-blue-300 border border-blue-500/40"
-                : "bg-blue-600/10 text-blue-400 border border-blue-500/20 hover:bg-blue-600/20"
-            }`}
-          >
-            JARVIS ?
-          </button>
-        )}
-      </div>
-
-      {/* Chart */}
+      {/* Chart — header removed (JarvisChart provides it) */}
       <div className="relative">
         <div ref={containerRef} className="w-full rounded-lg overflow-hidden" />
         {recalculating && (
