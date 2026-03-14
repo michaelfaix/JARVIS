@@ -555,7 +555,7 @@ export function AssetChart({
   jarvisTips,
   chartType = "line",
 }: AssetChartProps) {
-  void _name; void _livePrice; // Props kept for API compat, display moved to JarvisChart
+  void _name; void _livePrice;
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const [tipsOpen, setTipsOpen] = useState(false);
@@ -564,8 +564,6 @@ export function AssetChart({
   const candleSeriesRef = useRef<ISeriesApi<any> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
   const [lastPrice, setLastPrice] = useState<number>(0);
-  const [, setPriceChange] = useState<number>(0);
-  const [, setWsLive] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
 
   // Store candle data so marker effect can access it without reloading data
@@ -595,7 +593,6 @@ export function AssetChart({
   activeToolRef.current = activeTool;
 
   // Keep track of previous close for % change
-  const prevCloseRef = useRef<number>(0);
 
   const seed = hashSymbol(symbol);
   const { klines, isCrypto } = useBinanceKlines(symbol, interval);
@@ -775,12 +772,8 @@ export function AssetChart({
       volumeData as unknown as { time: Time; value: number; color: string }[]
     );
 
-    // Store previous close for % change
     const last = assetData[assetData.length - 1];
-    const prev = assetData.length > 1 ? assetData[assetData.length - 2] : last;
-    prevCloseRef.current = prev.close;
     setLastPrice(last.close);
-    setPriceChange(((last.close - prev.close) / prev.close) * 100);
 
     // Scroll to most recent data with small right offset
     if (chartRef.current) {
@@ -944,8 +937,6 @@ export function AssetChart({
   useEffect(() => {
     if (!tick || !candleSeriesRef.current || !volumeSeriesRef.current) return;
 
-    setWsLive(wsKlineConnected);
-
     // Update forming candle/point — validate first
     if (typeof tick.close !== "number" || isNaN(tick.close)) return;
     try {
@@ -966,13 +957,7 @@ export function AssetChart({
           : "rgba(239, 68, 68, 0.3)",
     } as { time: Time; value: number; color: string });
 
-    // Update price display
     setLastPrice(tick.close);
-    if (prevCloseRef.current > 0) {
-      setPriceChange(
-        ((tick.close - prevCloseRef.current) / prevCloseRef.current) * 100
-      );
-    }
 
     // Notify parent of price change
     onPriceChangeRef.current?.(tick.close);
@@ -1063,12 +1048,6 @@ export function AssetChart({
 
       // Update display
       setLastPrice(sc.close);
-      if (prevCloseRef.current > 0) {
-        setPriceChange(
-          ((sc.close - prevCloseRef.current) / prevCloseRef.current) * 100
-        );
-      }
-
       onPriceChangeRef.current?.(sc.close);
     }, 1000);
 
