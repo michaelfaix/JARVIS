@@ -141,7 +141,7 @@ export const JarvisChart = React.memo(function JarvisChart({
   const dateStr = `Ab heute, ${now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })} GMT+1`;
 
   return (
-    <div className="rounded-lg border border-[#1a2030] bg-[#0d1117] overflow-hidden font-mono">
+    <div className="rounded-lg border border-[#1a2030] bg-[#0d1117] font-mono" style={{ overflow: "visible", position: "relative" }}>
 
       {/* ════════════════════════════════════════════════════════════════ */}
       {/* 1. ASSET HEADER                                                */}
@@ -189,9 +189,22 @@ export const JarvisChart = React.memo(function JarvisChart({
       {/* ════════════════════════════════════════════════════════════════ */}
       {/* 2. NAV TABS                                                    */}
       {/* ════════════════════════════════════════════════════════════════ */}
-      <div className="flex border-b border-[#1a2030] overflow-x-auto scrollbar-hide px-1">
+      <div className="flex border-b border-[#1e2335] bg-[#0d0f18]" style={{ overflow: "visible", flexWrap: "nowrap" }}>
         {NAV_TABS.map((tab) => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={cn("px-3 py-2 text-[11px] whitespace-nowrap transition-colors border-b-2 -mb-px", activeTab === tab.id ? "text-[#4a9eff] border-[#4a9eff]" : "text-muted-foreground border-transparent hover:text-white")}>
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className="whitespace-nowrap transition-colors border-b-2 -mb-px"
+            style={{
+              padding: "9px 12px",
+              fontSize: "11px",
+              letterSpacing: "0.3px",
+              color: activeTab === tab.id ? "#4a9eff" : "#4a5270",
+              borderBottomColor: activeTab === tab.id ? "#4a9eff" : "transparent",
+              cursor: "pointer",
+              background: "transparent",
+            }}
+          >
             {tab.label}
           </button>
         ))}
@@ -333,8 +346,8 @@ export const JarvisChart = React.memo(function JarvisChart({
             ))}
           </div>
 
-          {/* ══ CHART AREA ══ */}
-          <div className="relative" style={{ backgroundColor: "#08090d" }}>
+          {/* ══ CHART AREA — only element with overflow:hidden ══ */}
+          <div className="relative" style={{ backgroundColor: "#08090d", overflow: "hidden" }}>
             {children}
             <div className="absolute bottom-2 right-3 text-[10px] tracking-[3px] text-white/[0.03] uppercase pointer-events-none select-none font-bold">JARVIS ENGINE</div>
             <div className="absolute bottom-2 left-3 flex items-center gap-3 pointer-events-none">
