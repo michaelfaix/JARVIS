@@ -65,8 +65,8 @@ describe("ActivityFeed", () => {
       },
     ];
 
-    render(<ActivityFeed closedTrades={trades} openPositions={[]} />);
-    expect(screen.getByText("+$1,234.56")).toBeInTheDocument();
+    const { container: c1 } = render(<ActivityFeed closedTrades={trades} openPositions={[]} />);
+    expect(c1.textContent).toContain("+$1,234.56");
   });
 
   it("shows negative PnL with - sign", () => {
@@ -80,8 +80,8 @@ describe("ActivityFeed", () => {
       },
     ];
 
-    render(<ActivityFeed closedTrades={trades} openPositions={[]} />);
-    expect(screen.getByText("$300.00")).toBeInTheDocument();
+    const { container: c2 } = render(<ActivityFeed closedTrades={trades} openPositions={[]} />);
+    expect(c2.textContent).toContain("$300.00");
   });
 
   it("uses TrendingUp icon for profitable trades", () => {

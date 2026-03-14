@@ -113,10 +113,11 @@ describe("usePortfolio", () => {
 
     expect(result.current.state.positions).toHaveLength(0);
     expect(result.current.state.closedTrades).toHaveLength(1);
-    expect(result.current.state.closedTrades[0].pnl).toBe(1000);
-    expect(result.current.state.realizedPnl).toBe(1000);
-    // Capital returned = allocated + pnl
-    expect(result.current.state.availableCapital).toBe(100_000 + 1000);
+    // P&L reduced by fees+slippage (~0.2% of capital + ~0.1% slippage)
+    expect(result.current.state.closedTrades[0].pnl).toBeGreaterThan(500);
+    expect(result.current.state.closedTrades[0].pnl).toBeLessThan(1000);
+    expect(result.current.state.realizedPnl).toBeGreaterThan(500);
+    expect(result.current.state.availableCapital).toBeGreaterThan(100_000);
   });
 
   it("closes a SHORT position with correct P&L", () => {
@@ -146,8 +147,10 @@ describe("usePortfolio", () => {
       result.current.closePosition(posId);
     });
 
-    expect(result.current.state.closedTrades[0].pnl).toBe(2000);
-    expect(result.current.state.realizedPnl).toBe(2000);
+    // P&L reduced by fees+slippage
+    expect(result.current.state.closedTrades[0].pnl).toBeGreaterThan(1800);
+    expect(result.current.state.closedTrades[0].pnl).toBeLessThan(2000);
+    expect(result.current.state.realizedPnl).toBeGreaterThan(1800);
   });
 
   it("calculates P&L percentage correctly", () => {

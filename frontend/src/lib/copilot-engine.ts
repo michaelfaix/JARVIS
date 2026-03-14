@@ -389,3 +389,64 @@ export function generateDailyReview(ctx: CoPilotContext, locale: Locale, riskPro
     ? `## Tagesrueckblick 📋\n\n### Markt\n- **Regime:** ${ctx.regime.replace("_", " ")}\n- **JARVIS Konfidenz:** ${(conf * 100).toFixed(0)}%\n- **Aktive Signale:** ${ctx.signalCount}\n\n### Portfolio\n- **Wert:** $${ctx.totalValue.toLocaleString("en-US", { maximumFractionDigits: 0 })}\n- **P&L:** ${ctx.realizedPnl >= 0 ? "+" : ""}$${ctx.realizedPnl.toFixed(0)}\n- **Win Rate:** ${ctx.winRate.toFixed(0)}%\n- **Drawdown:** ${ctx.drawdown.toFixed(2)}%\n\n### Ausblick\n${outlook}\n- R:R aktuell: 1:${rr.ratio.toFixed(1)} ${rr.rating === "good" ? "✅" : "⚠️"}\n\n💡 *${riskProfile === "conservative" ? "Konservativ: Morgen nur Top-Signale handeln." : riskProfile === "aggressive" ? "Aggressiv: Wenn Regime Risk-On bleibt, Exposure erhoehen." : "Moderat: Wie gewohnt weiter handeln."}*`
     : `## Daily Review 📋\n\n### Market\n- **Regime:** ${ctx.regime.replace("_", " ")}\n- **JARVIS Confidence:** ${(conf * 100).toFixed(0)}%\n- **Active Signals:** ${ctx.signalCount}\n\n### Portfolio\n- **Value:** $${ctx.totalValue.toLocaleString("en-US", { maximumFractionDigits: 0 })}\n- **P&L:** ${ctx.realizedPnl >= 0 ? "+" : ""}$${ctx.realizedPnl.toFixed(0)}\n- **Win Rate:** ${ctx.winRate.toFixed(0)}%\n- **Drawdown:** ${ctx.drawdown.toFixed(2)}%\n\n### Outlook\n${outlook}\n- Current R:R: 1:${rr.ratio.toFixed(1)} ${rr.rating === "good" ? "✅" : "⚠️"}\n\n💡 *${riskProfile === "conservative" ? "Conservative: Only trade top signals tomorrow." : riskProfile === "aggressive" ? "Aggressive: If regime stays Risk-On, increase exposure." : "Moderate: Continue trading as usual."}*`;
 }
+
+// ---------------------------------------------------------------------------
+// Trade Review (KI-Coaching)
+// ---------------------------------------------------------------------------
+
+export function generateTradeReview(
+  trade: {
+    asset: string;
+    direction: "LONG" | "SHORT";
+    entryPrice: number;
+    exitPrice: number;
+    pnl: number;
+    pnlPercent: number;
+    holdingPeriod?: string;
+  },
+  ctx: CoPilotContext,
+  locale: Locale,
+  riskProfile: RiskProfile
+): string {
+  const won = trade.pnl > 0;
+  const rrActual = trade.exitPrice && trade.entryPrice
+    ? Math.abs(trade.exitPrice - trade.entryPrice) / (trade.entryPrice * (ctx.slPercent / 100))
+    : 0;
+
+  if (locale === "de") {
+    return [
+      `## Trade Review: ${trade.asset} ${trade.direction}`,
+      "",
+      `**Ergebnis:** ${won ? "✅ Gewinn" : "❌ Verlust"} (${trade.pnl >= 0 ? "+" : ""}${trade.pnl.toFixed(2)} / ${trade.pnlPercent?.toFixed(1) ?? "—"}%)`,
+      "",
+      `**Analyse:**`,
+      won
+        ? `- Guter Einstieg bei $${trade.entryPrice.toLocaleString()}. ${rrActual > 1.5 ? "Exzellentes R:R Verhältnis." : "R:R akzeptabel."}`
+        : `- Entry bei $${trade.entryPrice.toLocaleString()} war ${rrActual < 0.5 ? "zu früh — Signal war noch nicht bestätigt" : "im Rahmen, aber Markt lief dagegen"}.`,
+      `- Regime war ${ctx.regime}${ctx.regime === "CRISIS" ? " — schwieriges Umfeld für Trades" : ""}.`,
+      `- ${riskProfile === "conservative" ? "Konservative Positionsgröße war korrekt." : riskProfile === "aggressive" ? "Aggressive Positionierung erhöht Risiko." : "Moderate Positionierung war angemessen."}`,
+      "",
+      `**Empfehlung:**`,
+      won
+        ? `- Weiter so! ${rrActual > 2 ? "Take-Profit-Level war gut gewählt." : "Erwäge größere TP-Ziele für besseres R:R."}`
+        : `- ${ctx.oodScore > 0.5 ? "OOD-Score war hoch — in solchen Situationen besser warten." : "Prüfe die Signal-Konfidenz vor dem nächsten Trade."}`,
+    ].join("\n");
+  }
+
+  return [
+    `## Trade Review: ${trade.asset} ${trade.direction}`,
+    "",
+    `**Result:** ${won ? "✅ Win" : "❌ Loss"} (${trade.pnl >= 0 ? "+" : ""}${trade.pnl.toFixed(2)} / ${trade.pnlPercent?.toFixed(1) ?? "—"}%)`,
+    "",
+    `**Analysis:**`,
+    won
+      ? `- Good entry at $${trade.entryPrice.toLocaleString()}. ${rrActual > 1.5 ? "Excellent R:R ratio." : "Acceptable R:R."}`
+      : `- Entry at $${trade.entryPrice.toLocaleString()} was ${rrActual < 0.5 ? "too early — signal was not yet confirmed" : "within range, but market moved against"}.`,
+    `- Regime was ${ctx.regime}${ctx.regime === "CRISIS" ? " — difficult environment for trades" : ""}.`,
+    "",
+    `**Recommendation:**`,
+    won
+      ? `- Keep it up! ${rrActual > 2 ? "Take-profit level was well chosen." : "Consider larger TP targets for better R:R."}`
+      : `- ${ctx.oodScore > 0.5 ? "OOD score was high — better to wait in such situations." : "Check signal confidence before next trade."}`,
+  ].join("\n");
+}

@@ -159,6 +159,13 @@ function localFallbackSignals(
     );
     const vol = Math.max(0.005, features.volatility * 10);
 
+    const factors: Signal["factors"] = [];
+    if (Math.abs(features.momentum) > 0.01) factors.push({ name: "Momentum", value: Math.abs(features.momentum * 100), impact: features.momentum >= 0 ? "positive" : "negative" });
+    if (Math.abs(features.rsi) > 0.3) factors.push({ name: "RSI", value: Math.abs(features.rsi * 50 + 50), impact: features.rsi > 0 ? "positive" : "negative" });
+    if (Math.abs(features.trend) > 0.001) factors.push({ name: "Trend", value: Math.abs(features.trend * 1000), impact: features.trend >= 0 ? "positive" : "negative" });
+    if (features.volatility > 0.02) factors.push({ name: "Volatilität", value: features.volatility * 100, impact: "negative" });
+    if (Math.abs(features.macd) > 0.005) factors.push({ name: "MACD", value: Math.abs(features.macd * 100), impact: features.macd >= 0 ? "positive" : "negative" });
+
     return {
       id: `local-${asset.symbol}-${Date.now()}`,
       asset: asset.symbol,
@@ -180,6 +187,7 @@ function localFallbackSignals(
       uncertainty: null,
       deepPathUsed: false,
       timestamp: new Date(),
+      factors: factors.slice(0, 3),
     };
   }).filter((s) => s !== null);
 }

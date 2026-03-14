@@ -9,6 +9,10 @@ import { useAuth } from "@/hooks/use-auth";
 
 const KEY = "jarvis-portfolio";
 
+// Slippage & fee simulation for realistic paper trading
+const TRADING_FEE_PCT = 0.001; // 0.1% per trade (entry + exit = 0.2% round trip)
+const SLIPPAGE_PCT = 0.0005; // 0.05% slippage per execution
+
 function defaultState(): PortfolioState {
   return {
     totalCapital: DEFAULT_CAPITAL,
@@ -202,10 +206,16 @@ export function usePortfolio() {
       setState((prev) => {
         const pos = prev.positions.find((p) => p.id === posId);
         if (!pos) return prev;
-        const pnl =
+        const rawPnl =
           pos.direction === "LONG"
             ? (pos.currentPrice - pos.entryPrice) * pos.size
             : (pos.entryPrice - pos.currentPrice) * pos.size;
+
+        // Apply fees and slippage to realized P&L
+        const feesCost = pos.capitalAllocated * TRADING_FEE_PCT * 2; // entry + exit
+        const slippageCost = pos.entryPrice * pos.size * SLIPPAGE_PCT * 2;
+        const pnl = rawPnl - feesCost - slippageCost;
+
         const pnlPercent =
           pos.capitalAllocated > 0 ? (pnl / pos.capitalAllocated) * 100 : 0;
 

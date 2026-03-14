@@ -63,7 +63,7 @@ export const ActivityFeed = React.memo(function ActivityFeed({ closedTrades, ope
           </div>
         ),
         title: `${trade.asset} ${trade.direction}`,
-        description: formatPnl(trade.pnl),
+        description: `${formatPnl(trade.pnl)} (inkl. Gebühren)`,
         time: new Date(trade.closedAt),
       });
     }

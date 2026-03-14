@@ -78,6 +78,7 @@ export interface Signal {
   uncertainty: SignalUncertainty | null;
   deepPathUsed: boolean;
   timestamp: Date;
+  factors?: { name: string; value: number; impact: "positive" | "negative" }[];
 }
 
 // ---------------------------------------------------------------------------

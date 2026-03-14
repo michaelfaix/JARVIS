@@ -19,8 +19,14 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePortfolio } from "@/hooks/use-portfolio";
 import { useTradeNotes, TAG_SUGGESTIONS } from "@/hooks/use-trade-notes";
+import { useLocale } from "@/hooks/use-locale";
 import { TradeNoteEditor } from "@/components/journal/trade-note-editor";
 import { TradeStatsDashboard } from "@/components/portfolio/trade-stats-dashboard";
+import {
+  generateTradeReview,
+  type CoPilotContext,
+  type RiskProfile,
+} from "@/lib/copilot-engine";
 import {
   BookOpen,
   TrendingUp,
@@ -33,6 +39,7 @@ import {
   DollarSign,
   StickyNote,
   Star,
+  BrainCircuit,
 } from "lucide-react";
 
 type FilterAsset = "ALL" | string;
@@ -48,6 +55,35 @@ export default function JournalPage() {
   const [filterResult, setFilterResult] = useState<FilterResult>("ALL");
   const [filterTag, setFilterTag] = useState<FilterTag>("ALL");
   const [editingTradeId, setEditingTradeId] = useState<string | null>(null);
+  const [reviewTradeId, setReviewTradeId] = useState<string | null>(null);
+  const { locale } = useLocale();
+
+  // Default CoPilotContext for KI Trade Review (uses portfolio-level stats)
+  const defaultCtx: CoPilotContext = useMemo(() => ({
+    regime: "RISK_ON",
+    ece: 0.03,
+    oodScore: 0.2,
+    metaUncertainty: 0.1,
+    strategy: "momentum",
+    selectedAsset: "",
+    interval: "1d",
+    slPercent: 3,
+    tpPercent: 6,
+    currentPrice: 0,
+    totalValue: state.totalCapital + state.realizedPnl,
+    drawdown: drawdown,
+    positionCount: state.positions.length,
+    closedTradeCount: state.closedTrades.length,
+    realizedPnl: state.realizedPnl,
+    winRate: winRate,
+    signalCount: 0,
+    topSignalAsset: null,
+    topSignalDirection: null,
+    topSignalConfidence: 0.7,
+    patterns: [],
+  }), [state, drawdown, winRate]);
+
+  const riskProfile: RiskProfile = "moderate";
 
   const allTrades = state.closedTrades;
 
@@ -444,20 +480,59 @@ export default function JournalPage() {
                                     ) : null}
                                   </TableCell>
                                   <TableCell>
-                                    <button
-                                      onClick={() =>
-                                        setEditingTradeId(isEditing ? null : trade.id)
-                                      }
-                                      className="relative p-1 rounded hover:bg-hud-cyan/10 transition-colors"
-                                      title={tradeNote ? "Edit note" : "Add note"}
-                                    >
-                                      <StickyNote className={`h-3.5 w-3.5 ${isEditing ? "text-hud-cyan" : "text-muted-foreground"}`} />
-                                      {tradeNote && (
-                                        <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-hud-cyan" />
-                                      )}
-                                    </button>
+                                    <div className="flex items-center gap-1">
+                                      <button
+                                        onClick={() =>
+                                          setReviewTradeId(reviewTradeId === trade.id ? null : trade.id)
+                                        }
+                                        className="relative p-1 rounded hover:bg-hud-amber/10 transition-colors"
+                                        title="KI Review"
+                                      >
+                                        <BrainCircuit className={`h-3.5 w-3.5 ${reviewTradeId === trade.id ? "text-hud-amber" : "text-muted-foreground"}`} />
+                                      </button>
+                                      <button
+                                        onClick={() =>
+                                          setEditingTradeId(isEditing ? null : trade.id)
+                                        }
+                                        className="relative p-1 rounded hover:bg-hud-cyan/10 transition-colors"
+                                        title={tradeNote ? "Edit note" : "Add note"}
+                                      >
+                                        <StickyNote className={`h-3.5 w-3.5 ${isEditing ? "text-hud-cyan" : "text-muted-foreground"}`} />
+                                        {tradeNote && (
+                                          <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-hud-cyan" />
+                                        )}
+                                      </button>
+                                    </div>
                                   </TableCell>
                                 </TableRow>
+                                {reviewTradeId === trade.id && (
+                                  <TableRow>
+                                    <TableCell colSpan={13} className="p-3">
+                                      <div className="bg-hud-bg/80 border border-hud-border/40 rounded-lg p-4 text-sm text-white/80 whitespace-pre-line font-mono leading-relaxed">
+                                        <div className="flex items-center gap-2 mb-2 text-xs text-hud-amber font-semibold uppercase tracking-wider">
+                                          <BrainCircuit className="h-4 w-4" />
+                                          KI-Coaching Trade Review
+                                        </div>
+                                        {generateTradeReview(
+                                          {
+                                            asset: trade.asset,
+                                            direction: trade.direction,
+                                            entryPrice: trade.entryPrice,
+                                            exitPrice: trade.exitPrice,
+                                            pnl: trade.pnl,
+                                            pnlPercent: trade.pnlPercent,
+                                            holdingPeriod: formatDuration(
+                                              new Date(trade.closedAt).getTime() - new Date(trade.openedAt).getTime()
+                                            ),
+                                          },
+                                          defaultCtx,
+                                          locale === "de" ? "de" : "en",
+                                          riskProfile
+                                        )}
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>
+                                )}
                                 {isEditing && (
                                   <TableRow>
                                     <TableCell colSpan={13} className="p-2">

@@ -94,6 +94,24 @@ export const TopSignalsHud = React.memo(function TopSignalsHud({
                   </div>
                 </div>
 
+                {/* Signal Factors */}
+                {signal.factors && signal.factors.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {signal.factors.map((f, i) => (
+                      <span
+                        key={i}
+                        className={`text-[7px] font-mono px-1 py-0.5 rounded border ${
+                          f.impact === "positive"
+                            ? "text-hud-green border-hud-green/20 bg-hud-green/5"
+                            : "text-hud-red border-hud-red/20 bg-hud-red/5"
+                        }`}
+                      >
+                        {f.impact === "positive" ? "↑" : "↓"} {f.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
                 {/* Confidence bar */}
                 <Progress
                   value={signal.confidence * 100}
