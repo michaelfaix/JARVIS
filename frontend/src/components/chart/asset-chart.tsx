@@ -712,14 +712,16 @@ export function AssetChart({
 
     assetDataRef.current = assetData;
 
-    // Line/area: { time, value }. Candle/bar: OHLC.
+    // Filter out invalid data points
+    const valid = assetData.filter((d) => d.time != null && typeof d.close === "number" && !isNaN(d.close));
     if (chartType === "line") {
       candleSeriesRef.current.setData(
-        assetData.map((d) => ({ time: d.time as unknown as Time, value: d.close }))
+        valid.map((d) => ({ time: d.time as unknown as Time, value: d.close }))
       );
     } else {
       candleSeriesRef.current.setData(
-        assetData.map((d) => ({ time: d.time as unknown as Time, open: d.open, high: d.high, low: d.low, close: d.close }))
+        valid.filter((d) => typeof d.open === "number" && typeof d.high === "number" && typeof d.low === "number")
+          .map((d) => ({ time: d.time as unknown as Time, open: d.open, high: d.high, low: d.low, close: d.close }))
       );
     }
 
@@ -898,10 +900,12 @@ export function AssetChart({
 
     setWsLive(wsKlineConnected);
 
-    // Update forming candle/point
+    // Update forming candle/point — validate first
+    if (typeof tick.close !== "number" || isNaN(tick.close)) return;
     if (chartType === "line") {
       candleSeriesRef.current.update({ time: tick.time as Time, value: tick.close } as never);
     } else {
+      if (typeof tick.open !== "number" || typeof tick.high !== "number" || typeof tick.low !== "number") return;
       candleSeriesRef.current.update({ time: tick.time as Time, open: tick.open, high: tick.high, low: tick.low, close: tick.close } as never);
     }
 
@@ -991,11 +995,16 @@ export function AssetChart({
       sc.low = Math.min(sc.low, newPrice);
       sc.volume += 10000 + Math.random() * 50000;
 
-      // Push to chart
-      if (chartType === "line") {
-        candleSeriesRef.current!.update({ time: sc.time as Time, value: sc.close } as never);
-      } else {
-        candleSeriesRef.current!.update({ time: sc.time as Time, open: sc.open, high: sc.high, low: sc.low, close: sc.close } as never);
+      // Push to chart — validate values
+      if (typeof sc.close !== "number" || isNaN(sc.close)) return;
+      try {
+        if (chartType === "line") {
+          candleSeriesRef.current!.update({ time: sc.time as Time, value: sc.close } as never);
+        } else {
+          candleSeriesRef.current!.update({ time: sc.time as Time, open: sc.open, high: sc.high, low: sc.low, close: sc.close } as never);
+        }
+      } catch {
+        // Series may have been destroyed during chart type switch
       }
 
       volumeSeriesRef.current!.update({
@@ -1024,7 +1033,7 @@ export function AssetChart({
     };
     // Only restart when initial data loads (lastPrice changes from 0 to real value)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isCrypto, interval, lastPrice > 0, basePrice]);
+  }, [isCrypto, interval, lastPrice > 0, basePrice, chartType]);
 
   // Effect 5: Render drawing overlays on the chart
   useEffect(() => {
