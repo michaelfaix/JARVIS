@@ -73,35 +73,35 @@ const TIMEFRAME_CONFIG: Record<
 > = {
   "1m": {
     stepSeconds: 60,
-    count: 60,
+    count: 500,
     volMul: 0.15,
     trendFreq: 8,
     noiseFreq: 12,
   },
   "5m": {
     stepSeconds: 300,
-    count: 72,
+    count: 300,
     volMul: 0.3,
     trendFreq: 5,
     noiseFreq: 8,
   },
   "15m": {
     stepSeconds: 900,
-    count: 96,
+    count: 200,
     volMul: 0.5,
     trendFreq: 3.5,
     noiseFreq: 5,
   },
   "1h": {
     stepSeconds: 3600,
-    count: 90,
+    count: 168,
     volMul: 0.8,
     trendFreq: 2.5,
     noiseFreq: 3.5,
   },
   "4h": {
     stepSeconds: 14400,
-    count: 90,
+    count: 180,
     volMul: 1.2,
     trendFreq: 2,
     noiseFreq: 2,
@@ -632,6 +632,22 @@ export function AssetChart({
       timeScale: {
         borderColor: "#0a1f35",
         timeVisible: ["1m", "5m", "15m", "1h", "4h"].includes(interval),
+        rightOffset: 5,
+        barSpacing: 8,
+        minBarSpacing: 3,
+        fixLeftEdge: false,
+        fixRightEdge: false,
+      },
+      handleScroll: {
+        mouseWheel: true,
+        pressedMouseMove: true,
+        horzTouchDrag: true,
+        vertTouchDrag: false,
+      },
+      handleScale: {
+        axisPressedMouseMove: true,
+        mouseWheel: true,
+        pinch: true,
       },
     });
 
@@ -740,6 +756,11 @@ export function AssetChart({
     prevCloseRef.current = prev.close;
     setLastPrice(last.close);
     setPriceChange(((last.close - prev.close) / prev.close) * 100);
+
+    // Scroll to most recent data with small right offset
+    if (chartRef.current) {
+      chartRef.current.timeScale().scrollToRealTime();
+    }
 
     // --- Indicator overlays ---
     if (indicators) {
