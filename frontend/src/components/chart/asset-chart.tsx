@@ -14,7 +14,6 @@ import {
   type IChartApi,
   type ISeriesApi,
   ColorType,
-  type CandlestickData as LWCandlestickData,
   type Time,
   LineStyle,
 } from "lightweight-charts";
@@ -367,8 +366,8 @@ function generateVolumeData(
       1000000 + Math.abs(Math.sin(i * 0.5 + seed)) * 5000000,
     color:
       candle.close >= candle.open
-        ? "rgba(34, 197, 94, 0.3)"
-        : "rgba(239, 68, 68, 0.3)",
+        ? "rgba(0, 230, 118, 0.15)"
+        : "rgba(255, 61, 87, 0.15)",
   }));
 }
 
@@ -559,7 +558,7 @@ export function AssetChart({
   const chartRef = useRef<IChartApi | null>(null);
   const [tipsOpen, setTipsOpen] = useState(false);
   const tipsRef = useRef<HTMLDivElement>(null);
-  const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const candleSeriesRef = useRef<ISeriesApi<"Area"> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
   const [lastPrice, setLastPrice] = useState<number>(0);
   const [, setPriceChange] = useState<number>(0);
@@ -635,13 +634,14 @@ export function AssetChart({
 
     chartRef.current = chart;
 
-    const candleSeries = chart.addCandlestickSeries({
-      upColor: "#00e5a0",
-      downColor: "#ff4466",
-      borderUpColor: "#00e5a0",
-      borderDownColor: "#ff4466",
-      wickUpColor: "#00e5a0",
-      wickDownColor: "#ff4466",
+    const candleSeries = chart.addAreaSeries({
+      lineColor: "#4a9eff",
+      lineWidth: 2,
+      topColor: "rgba(74,158,255,0.15)",
+      bottomColor: "rgba(8,9,13,0)",
+      crosshairMarkerRadius: 4,
+      crosshairMarkerBorderColor: "#4a9eff",
+      crosshairMarkerBackgroundColor: "#0d1117",
     });
     candleSeriesRef.current = candleSeries;
 
@@ -701,8 +701,9 @@ export function AssetChart({
 
     assetDataRef.current = assetData;
 
+    // Area series: map OHLC → { time, value: close }
     candleSeriesRef.current.setData(
-      assetData as unknown as LWCandlestickData<Time>[]
+      assetData.map((d) => ({ time: d.time as unknown as Time, value: d.close }))
     );
 
     const volumeData = generateVolumeData(
@@ -878,15 +879,11 @@ export function AssetChart({
 
     setWsLive(wsKlineConnected);
 
-    // Update the last (forming) candle in-place
-    const liveCandle: LWCandlestickData<Time> = {
+    // Update the last (forming) point for area series
+    candleSeriesRef.current.update({
       time: tick.time as Time,
-      open: tick.open,
-      high: tick.high,
-      low: tick.low,
-      close: tick.close,
-    };
-    candleSeriesRef.current.update(liveCandle);
+      value: tick.close,
+    } as { time: Time; value: number });
 
     // Update volume bar for the live candle
     volumeSeriesRef.current.update({
@@ -977,10 +974,7 @@ export function AssetChart({
       // Push to chart
       candleSeriesRef.current!.update({
         time: sc.time as Time,
-        open: sc.open,
-        high: sc.high,
-        low: sc.low,
-        close: sc.close,
+        value: sc.close,
       });
 
       volumeSeriesRef.current!.update({
